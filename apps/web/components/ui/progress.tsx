@@ -18,9 +18,9 @@ export function Progress({
   };
 
   return (
-    <div className={cn("h-2 overflow-hidden rounded-full bg-slate-800", className)}>
+    <div className={cn("h-2 overflow-hidden rounded-full bg-slate-900/90 ring-1 ring-white/10", className)}>
       <div
-        className={cn("h-full rounded-full bg-gradient-to-r", tones[tone])}
+        className={cn("progress-fill h-full rounded-full bg-gradient-to-r shadow-[0_0_18px_rgba(34,211,238,0.18)]", tones[tone])}
         style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
       />
     </div>

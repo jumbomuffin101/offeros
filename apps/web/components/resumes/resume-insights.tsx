@@ -38,21 +38,26 @@ export function ResumeInsights() {
       <CardHeader>
         <h2 className="text-lg font-semibold text-white">Resume Insights</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Mock analysis summary for the current resume set.
+          Mock review signals to help decide which version to improve next.
         </p>
       </CardHeader>
-      <CardContent className="grid gap-3 md:grid-cols-2">
+      <CardContent className="grid gap-4 md:grid-cols-2">
         {insights.map((insight) => {
           const Icon = insight.icon;
 
           return (
             <div
               key={insight.label}
-              className="rounded-xl border border-white/10 bg-slate-950/30 p-4"
+              className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 transition hover:border-cyan-300/20 hover:bg-white/[0.045]"
             >
-              <Icon className={`mb-3 size-5 ${insight.tone}`} />
-              <div className="text-sm text-slate-500">{insight.label}</div>
-              <div className="mt-1 text-sm font-semibold text-white">{insight.value}</div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Icon className={`size-5 ${insight.tone}`} />
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
+                  Insight
+                </span>
+              </div>
+              <div className="text-sm font-medium text-slate-400">{insight.label}</div>
+              <div className="mt-1 text-base font-semibold text-white">{insight.value}</div>
               <p className="mt-2 text-sm leading-6 text-slate-500">{insight.helper}</p>
             </div>
           );

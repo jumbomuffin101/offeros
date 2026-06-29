@@ -1,4 +1,4 @@
-import { Filter, ListFilter, Plus, Search } from "lucide-react";
+import { Filter, GripVertical, ListFilter, Plus, Search } from "lucide-react";
 import type { Application, ApplicationStatus } from "@/lib/types";
 import { applicationStatuses } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
@@ -19,17 +19,20 @@ const statusTone: Record<ApplicationStatus, "cyan" | "green" | "amber" | "red" |
 
 export function ApplicationKanban({ applications }: { applications: Application[] }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Card className="p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <Button variant="primary">
             <Plus className="size-4" />
             Add Application
           </Button>
-          <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:max-w-2xl">
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:max-w-3xl">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-              <Input className="pl-9" placeholder="Search applications" />
+              <Input className="pl-9 pr-16" placeholder="Search applications" />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
+                Ctrl K
+              </span>
             </div>
             <Button>
               <Filter className="size-4" />
@@ -50,11 +53,14 @@ export function ApplicationKanban({ applications }: { applications: Application[
           return (
             <section
               key={status}
-              className="min-h-64 rounded-2xl border border-white/10 bg-slate-950/28 p-3"
+              className="min-h-72 rounded-3xl border border-white/10 bg-slate-950/32 p-3 shadow-inner shadow-black/20"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-100">{status}</h2>
-                <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-slate-400">
+              <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-100">{status}</h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Ready for drag-and-drop</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-400">
                   {items.length}
                 </span>
               </div>
@@ -62,40 +68,47 @@ export function ApplicationKanban({ applications }: { applications: Application[
                 {items.map((application) => (
                   <Card
                     key={application.id}
-                    className="p-4 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/24"
+                    className="premium-hover p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-white">
+                      <div className="min-w-0">
+                        <div className="truncate text-base font-semibold text-white">
                           {application.company}
                         </div>
-                        <div className="mt-1 text-sm text-slate-400">{application.role}</div>
+                        <div className="mt-1 text-sm font-medium text-slate-300">{application.role}</div>
+                        <div className="mt-1 text-xs text-slate-500">{application.location}</div>
                       </div>
-                      <Badge tone={statusTone[application.status]}>{application.status}</Badge>
+                      <div className="flex items-center gap-1">
+                        <GripVertical className="size-4 text-slate-600 transition group-hover:text-slate-400" />
+                        <Badge tone={statusTone[application.status]}>{application.status}</Badge>
+                      </div>
                     </div>
-                    <div className="mt-4 space-y-2 text-xs text-slate-500">
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="flex justify-between gap-3">
-                        <span>Location</span>
-                        <span className="text-right text-slate-300">{application.location}</span>
+                        <span className="text-slate-500">Applied</span>
+                        <span className="text-slate-300">{application.dateApplied ?? "Draft"}</span>
                       </div>
                       <div className="flex justify-between gap-3">
-                        <span>Date applied</span>
-                        <span className="text-slate-300">{application.dateApplied ?? "Not sent"}</span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span>Deadline</span>
+                        <span className="text-slate-500">Due</span>
                         <span className="text-slate-300">{application.deadline ?? "None"}</span>
                       </div>
-                      <div className="flex justify-between gap-3">
-                        <span>Source</span>
-                        <span className="text-slate-300">{application.source}</span>
+                      <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-500">Source</span>
+                          <span className="font-medium text-slate-300">{application.source}</span>
+                        </div>
                       </div>
                     </div>
-                    <p className="mt-4 line-clamp-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-5 text-slate-400">
+                    <p className="mt-4 line-clamp-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3 text-xs leading-5 text-slate-400">
                       {application.notes}
                     </p>
                   </Card>
                 ))}
+                {items.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-center text-sm text-slate-500">
+                    No applications in this stage yet.
+                  </div>
+                ) : null}
               </div>
             </section>
           );
