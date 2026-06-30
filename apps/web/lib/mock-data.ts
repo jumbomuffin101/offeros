@@ -4,7 +4,7 @@ import type {
   Application,
   ApplicationStatus,
   Deadline,
-  PrepTask,
+  PrepWorkspaceData,
   ResumeVersion,
 } from "@/lib/types";
 
@@ -288,33 +288,96 @@ export const resumes: ResumeVersion[] = [
   },
 ];
 
-export const prepTasks: PrepTask[] = [
-  {
-    id: "daily-coding",
-    title: "Longest Substring Without Repeating Characters",
-    type: "Coding",
-    difficulty: "Medium",
-    topic: "Sliding window",
-    targetTime: "35 min",
-    status: "In Progress",
-  },
-  {
-    id: "behavioral-star",
-    title: "Tell me about a time you solved a difficult technical problem.",
-    type: "Behavioral",
-    topic: "STAR storytelling",
-    targetTime: "20 min",
-    status: "Not Started",
-  },
-  {
-    id: "system-url-shortener",
-    title: "Design a URL shortener",
-    type: "System Design",
-    topic: "Caching, database schema, API design",
-    targetTime: "45 min",
-    status: "Not Started",
-  },
-];
+export const prepWorkspaceData: PrepWorkspaceData = {
+  codingProblems: [
+    {
+      id: "daily-coding",
+      title: "Longest Substring Without Repeating Characters",
+      difficulty: "Medium",
+      topic: "Sliding window",
+      targetTimeMinutes: 35,
+      status: "In Progress",
+      notes: "Explain why the left pointer never moves backward and test duplicate boundaries.",
+      link: "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+      completedAt: "",
+      createdAt: "2026-06-29T13:00:00.000Z",
+      updatedAt: "2026-06-30T13:30:00.000Z",
+    },
+    {
+      id: "merge-intervals",
+      title: "Merge Intervals",
+      difficulty: "Medium",
+      topic: "Sorting",
+      targetTimeMinutes: 30,
+      status: "Not Started",
+      notes: "",
+      link: "https://leetcode.com/problems/merge-intervals/",
+      completedAt: "",
+      createdAt: "2026-06-28T15:00:00.000Z",
+      updatedAt: "2026-06-28T15:00:00.000Z",
+    },
+  ],
+  behavioralQuestions: [
+    {
+      id: "behavioral-star",
+      question: "Tell me about a time you solved a difficult technical problem.",
+      category: "Problem solving",
+      starSituation: "A production data import was timing out for larger customer accounts.",
+      starTask: "I owned finding the bottleneck and restoring reliable imports before the next release.",
+      starAction: "I profiled the pipeline, replaced repeated lookups with batching, and added load tests.",
+      starResult: "Import time dropped by 68% and the release shipped without further timeouts.",
+      confidenceScore: 4,
+      status: "In Progress",
+      createdAt: "2026-06-25T14:00:00.000Z",
+      updatedAt: "2026-06-29T18:00:00.000Z",
+    },
+  ],
+  systemDesignPrompts: [
+    {
+      id: "system-url-shortener",
+      title: "Design a URL shortener",
+      prompt: "Sketch the API, storage model, cache invalidation path, analytics, and abuse prevention.",
+      concepts: ["Caching", "Database schema", "API design"],
+      status: "Not Started",
+      notes: "Start with capacity estimates and clarify whether custom aliases are required.",
+      createdAt: "2026-06-27T12:00:00.000Z",
+      updatedAt: "2026-06-27T12:00:00.000Z",
+    },
+    {
+      id: "system-notifications",
+      title: "Design a notification service",
+      prompt: "Design multi-channel delivery with preferences, retries, idempotency, and observability.",
+      concepts: ["Queues", "Retries", "Idempotency"],
+      status: "Not Started",
+      notes: "",
+      createdAt: "2026-06-28T12:00:00.000Z",
+      updatedAt: "2026-06-28T12:00:00.000Z",
+    },
+  ],
+  sessions: [
+    { id: "session-1", itemId: "history-coding-1", type: "coding", completedAt: "2026-06-24T20:00:00.000Z" },
+    { id: "session-2", itemId: "history-coding-2", type: "coding", completedAt: "2026-06-25T20:00:00.000Z" },
+    { id: "session-3", itemId: "history-behavioral-1", type: "behavioral", completedAt: "2026-06-26T20:00:00.000Z" },
+    { id: "session-4", itemId: "history-coding-3", type: "coding", completedAt: "2026-06-27T20:00:00.000Z" },
+    { id: "session-5", itemId: "history-system-1", type: "systemDesign", completedAt: "2026-06-28T20:00:00.000Z" },
+    { id: "session-6", itemId: "history-behavioral-2", type: "behavioral", completedAt: "2026-06-29T20:00:00.000Z" },
+  ],
+  weeklyDays: [
+    { date: "2026-06-24", coding: 1, behavioral: 0, systemDesign: 0 },
+    { date: "2026-06-25", coding: 1, behavioral: 0, systemDesign: 0 },
+    { date: "2026-06-26", coding: 0, behavioral: 1, systemDesign: 0 },
+    { date: "2026-06-27", coding: 1, behavioral: 0, systemDesign: 0 },
+    { date: "2026-06-28", coding: 0, behavioral: 0, systemDesign: 1 },
+    { date: "2026-06-29", coding: 0, behavioral: 1, systemDesign: 0 },
+    { date: "2026-06-30", coding: 0, behavioral: 0, systemDesign: 0 },
+  ],
+  goals: [
+    { id: "coding", label: "Coding problems", target: 5, current: 0 },
+    { id: "behavioral", label: "Behavioral answers", target: 3, current: 0 },
+    { id: "systemDesign", label: "System design prompts", target: 2, current: 0 },
+    { id: "followUps", label: "Application follow-ups", target: 4, current: 1 },
+  ],
+};
 
 export const activities: Activity[] = [
   {

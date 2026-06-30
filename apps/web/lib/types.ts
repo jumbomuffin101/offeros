@@ -52,14 +52,75 @@ export type ResumeVersion = {
   updatedAt: string;
 };
 
-export type PrepTask = {
+export type PrepStatus = "Not Started" | "In Progress" | "Completed" | "Skipped";
+
+export type CodingProblem = {
   id: string;
   title: string;
-  type: "Coding" | "Behavioral" | "System Design";
-  difficulty?: "Easy" | "Medium" | "Hard";
+  difficulty: "Easy" | "Medium" | "Hard";
   topic: string;
-  targetTime: string;
-  status: "Not Started" | "In Progress" | "Complete";
+  targetTimeMinutes: number;
+  status: PrepStatus;
+  notes: string;
+  link: string;
+  completedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BehavioralQuestion = {
+  id: string;
+  question: string;
+  category: string;
+  starSituation: string;
+  starTask: string;
+  starAction: string;
+  starResult: string;
+  confidenceScore: number;
+  status: PrepStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SystemDesignPrompt = {
+  id: string;
+  title: string;
+  prompt: string;
+  concepts: string[];
+  status: PrepStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PrepSession = {
+  id: string;
+  itemId: string;
+  type: "coding" | "behavioral" | "systemDesign";
+  completedAt: string;
+};
+
+export type WeeklyPrepDay = {
+  date: string;
+  coding: number;
+  behavioral: number;
+  systemDesign: number;
+};
+
+export type PrepGoal = {
+  id: "coding" | "behavioral" | "systemDesign" | "followUps";
+  label: string;
+  target: number;
+  current: number;
+};
+
+export type PrepWorkspaceData = {
+  codingProblems: CodingProblem[];
+  behavioralQuestions: BehavioralQuestion[];
+  systemDesignPrompts: SystemDesignPrompt[];
+  sessions: PrepSession[];
+  weeklyDays: WeeklyPrepDay[];
+  goals: PrepGoal[];
 };
 
 export type Activity = {

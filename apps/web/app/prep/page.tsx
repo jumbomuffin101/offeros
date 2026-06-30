@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { PrepBoard } from "@/components/prep/prep-board";
-import { prepTasks } from "@/lib/mock-data";
+import { PrepWorkspace } from "@/components/prep/prep-workspace";
+import { prepWorkspaceData } from "@/lib/mock-data";
 
 export default function PrepPage() {
   return (
@@ -10,7 +10,7 @@ export default function PrepPage() {
         title="Interview prep"
         subtitle="Daily coding, behavioral practice, system design prompts, and consistency tracking."
       />
-      <PrepBoard tasks={prepTasks} />
+      <PrepWorkspace initialData={prepWorkspaceData} />
     </>
   );
 }
