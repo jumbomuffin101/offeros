@@ -35,11 +35,21 @@ export type Application = {
 export type ResumeVersion = {
   id: string;
   name: string;
-  lastUpdated: string;
-  applicationsUsedFor: number;
-  keywordMatchScore: number;
+  targetRole: string;
+  description: string;
   status: "Active" | "Draft";
-  focus: string;
+  lastUpdated: string;
+  applicationsUsed: number;
+  keywordMatchScore: number;
+  tags: string[];
+  strengths: string[];
+  weaknesses: string[];
+  missingKeywords: string[];
+  suggestedImprovement: string;
+  notes: string;
+  fileName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type PrepTask = {

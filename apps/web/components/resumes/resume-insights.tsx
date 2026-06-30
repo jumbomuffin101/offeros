@@ -1,68 +1,37 @@
-import { AlertTriangle, CheckCircle2, Lightbulb, Target } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Activity, Lightbulb, Target, TrendingUp } from "lucide-react";
+import type { ResumeVersion } from "@/lib/types";
+import { mostCommonMissingKeywords } from "@/lib/resume-utils";
+import { Progress } from "@/components/ui/progress";
 
-const insights = [
-  {
-    label: "Weak bullets detected",
-    value: "4",
-    helper: "Add measurable impact to backend and AI project bullets.",
-    icon: AlertTriangle,
-    tone: "text-amber-300",
-  },
-  {
-    label: "Missing keywords",
-    value: "Kafka, Postgres, testing",
-    helper: "Most relevant for backend and fintech roles.",
-    icon: Target,
-    tone: "text-cyan-300",
-  },
-  {
-    label: "Strongest project section",
-    value: "Distributed job tracker",
-    helper: "High signal for reliability and API design.",
-    icon: CheckCircle2,
-    tone: "text-emerald-300",
-  },
-  {
-    label: "Suggested next improvement",
-    value: "Rewrite first project bullet",
-    helper: "Lead with scale, latency, and user impact.",
-    icon: Lightbulb,
-    tone: "text-violet-300",
-  },
-];
+export function ResumeInsights({ resumes }: { resumes: ResumeVersion[] }) {
+  const best = [...resumes].sort((a, b) => b.keywordMatchScore - a.keywordMatchScore)[0];
+  const mostUsed = [...resumes].sort((a, b) => b.applicationsUsed - a.applicationsUsed)[0];
+  const missing = mostCommonMissingKeywords(resumes);
+  const improvement = best?.suggestedImprovement || resumes.find((resume) => resume.suggestedImprovement)?.suggestedImprovement;
+  const active = resumes.filter((resume) => resume.status === "Active").length;
 
-export function ResumeInsights() {
+  const insights = [
+    { label: "Best keyword match", value: best ? `${best.name} · ${best.keywordMatchScore}%` : "No data", icon: Target, tone: "text-emerald-300" },
+    { label: "Most used resume", value: mostUsed ? `${mostUsed.name} · ${mostUsed.applicationsUsed} applications` : "No data", icon: TrendingUp, tone: "text-cyan-300" },
+    { label: "Common missing keywords", value: missing.join(", ") || "None recorded", icon: Activity, tone: "text-amber-300" },
+    { label: "Top next improvement", value: improvement || "No improvement recorded", icon: Lightbulb, tone: "text-violet-300" },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="text-lg font-semibold text-white">Resume Insights</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Mock review signals to help decide which version to improve next.
-        </p>
-      </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2">
+    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div><h2 className="text-lg font-semibold text-white">Resume insights</h2><p className="mt-1 text-sm text-slate-500">Live signals from your current resume library.</p></div>
+        <div className="min-w-48">
+          <div className="mb-2 flex justify-between text-xs text-slate-400"><span>{active} active</span><span>{resumes.length - active} draft</span></div>
+          <Progress value={resumes.length ? (active / resumes.length) * 100 : 0} tone="green" />
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {insights.map((insight) => {
           const Icon = insight.icon;
-
-          return (
-            <div
-              key={insight.label}
-              className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 transition hover:border-cyan-300/20 hover:bg-white/[0.045]"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <Icon className={`size-5 ${insight.tone}`} />
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
-                  Insight
-                </span>
-              </div>
-              <div className="text-sm font-medium text-slate-400">{insight.label}</div>
-              <div className="mt-1 text-base font-semibold text-white">{insight.value}</div>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{insight.helper}</p>
-            </div>
-          );
+          return <div className="rounded-xl border border-white/10 bg-slate-950/30 p-4" key={insight.label}><Icon className={`size-5 ${insight.tone}`} /><div className="mt-4 text-xs font-medium uppercase text-slate-500">{insight.label}</div><div className="mt-1 text-sm font-semibold leading-6 text-white">{insight.value}</div></div>;
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

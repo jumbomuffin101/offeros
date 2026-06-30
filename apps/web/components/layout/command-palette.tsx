@@ -25,12 +25,14 @@ const commands = [
   { label: "Open Analytics", href: "/analytics", icon: BarChart3, hint: "Conversion insights", action: "navigate" },
   { label: "Open Settings", href: "/settings", icon: Settings, hint: "Workspace preferences", action: "navigate" },
   { label: "Add Application", href: "/applications", icon: FilePlus2, hint: "Create a local tracker card", action: "add-application" },
-  { label: "Upload Resume", href: "/resumes", icon: Upload, hint: "Open resume manager", action: "navigate" },
+  { label: "Upload Resume", href: "/resumes", icon: Upload, hint: "Create a local resume version", action: "upload-resume" },
   { label: "Start Daily Problem", href: "/prep", icon: Play, hint: "Open prep workspace", action: "navigate" },
 ];
 
 const OPEN_ADD_EVENT = "offeros:add-application";
 const OPEN_ADD_STORAGE_KEY = "offeros:open-add-application";
+const OPEN_UPLOAD_EVENT = "offeros:upload-resume";
+const OPEN_UPLOAD_STORAGE_KEY = "offeros:open-upload-resume";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -90,15 +92,19 @@ export function CommandPalette() {
               </>
             );
 
-            if (command.action === "add-application") {
+            if (command.action === "add-application" || command.action === "upload-resume") {
               return (
                 <button
                   className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-white/[0.055]"
                   key={command.label}
                   onClick={() => {
                     setOpen(false);
-                    window.sessionStorage.setItem(OPEN_ADD_STORAGE_KEY, "true");
-                    window.dispatchEvent(new Event(OPEN_ADD_EVENT));
+                    const isResumeUpload = command.action === "upload-resume";
+                    window.sessionStorage.setItem(
+                      isResumeUpload ? OPEN_UPLOAD_STORAGE_KEY : OPEN_ADD_STORAGE_KEY,
+                      "true",
+                    );
+                    window.dispatchEvent(new Event(isResumeUpload ? OPEN_UPLOAD_EVENT : OPEN_ADD_EVENT));
                     router.push(command.href);
                   }}
                   type="button"
