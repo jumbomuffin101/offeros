@@ -47,7 +47,7 @@ export function KpiCard({
               <span
                 className={cn("w-1.5 rounded-full bg-gradient-to-t", tones[tone])}
                 key={`${label}-${index}`}
-                style={{ height: `${Math.max(point, 18)}%` }}
+                style={{ height: `${Math.min(100, Math.max(point, 18))}%` }}
               />
             ))}
           </div>

@@ -7,12 +7,11 @@ export function loadStoredApplications(fallback: Application[]) {
     return fallback;
   }
 
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    return fallback;
-  }
-
   try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return fallback;
+    }
     const parsed = JSON.parse(stored) as unknown;
     return Array.isArray(parsed)
       ? parsed.map((item, index) => normalizeApplication(item, fallback[index]))

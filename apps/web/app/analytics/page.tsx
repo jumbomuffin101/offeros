@@ -1,6 +1,5 @@
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { PageHeader } from "@/components/layout/page-header";
-import { analyticsMetrics } from "@/lib/mock-data";
 
 export default function AnalyticsPage() {
   return (
@@ -10,7 +9,7 @@ export default function AnalyticsPage() {
         title="Recruiting analytics"
         subtitle="Understand response rates, conversion points, resume performance, and prep consistency."
       />
-      <AnalyticsDashboard metrics={analyticsMetrics} />
+      <AnalyticsDashboard />
     </>
   );
 }

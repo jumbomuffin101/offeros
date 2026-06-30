@@ -16,7 +16,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
         <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
       </CardHeader>
       <CardContent>
-        <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-gradient-to-b before:from-cyan-300/40 before:via-slate-700 before:to-transparent">
+        {activities.length ? <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-gradient-to-b before:from-cyan-300/40 before:via-slate-700 before:to-transparent">
         {activities.map((activity) => (
           <div key={activity.id} className="relative flex gap-4">
             <div className="pt-1.5">
@@ -31,7 +31,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
             </div>
           </div>
         ))}
-        </div>
+        </div> : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-5 py-10 text-center"><p className="text-sm font-medium text-slate-300">No recent activity</p><p className="mt-1 text-xs text-slate-500">Add an application, resume, or prep update to start the timeline.</p></div>}
       </CardContent>
     </Card>
   );
