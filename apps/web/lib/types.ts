@@ -8,17 +8,27 @@ export type ApplicationStatus =
   | "Offer"
   | "Rejected";
 
+export type ApplicationPriority = "Low" | "Medium" | "High";
+
 export type Application = {
   id: string;
   company: string;
   role: string;
   location: string;
   status: ApplicationStatus;
-  dateApplied?: string;
-  deadline?: string;
+  dateApplied: string;
+  deadline: string;
   source: string;
+  resumeUsed: string;
+  jobUrl: string;
+  recruiterName: string;
+  recruiterEmail: string;
+  salaryRange: string;
+  priority: ApplicationPriority;
   notes: string;
-  resume: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
   category: "Big Tech" | "Finance" | "Fintech" | "Startup" | "Data";
 };
 
