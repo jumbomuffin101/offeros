@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, BookOpen, BriefcaseBusiness, Command, Database, FileText, GraduationCap, Info, Moon, RotateCcw, Upload, X } from "lucide-react";
+import { BarChart3, BookOpen, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Moon, RotateCcw, Smartphone, Upload, Wifi, WifiOff, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
+import { usePwa } from "@/components/pwa/pwa-provider";
 import { saveStoredApplications } from "@/lib/application-storage";
 import { saveStoredResumes } from "@/lib/resume-storage";
 import { saveStoredPrep } from "@/lib/prep-storage";
@@ -25,6 +26,7 @@ const helpItems: Array<{ title: string; detail: string; icon: LucideIcon }> = [
 type ResetScope = "all" | "applications" | "resumes" | "prep";
 
 export function SettingsPanel() {
+  const { canInstall, install, isInstalled, isOnline } = usePwa();
   const [toast, setToast] = useState("");
   const [toastTone, setToastTone] = useState<"success" | "info">("success");
   const [pendingReset, setPendingReset] = useState<ResetScope | null>(null);
@@ -41,6 +43,10 @@ export function SettingsPanel() {
   }, []);
 
   function notify(message: string, tone: "success" | "info" = "success") { setToastTone(tone); setToast(message); }
+  async function handleInstall() {
+    const accepted = await install();
+    notify(accepted ? "OfferOS installed" : "Install prompt closed", accepted ? "success" : "info");
+  }
   function reset(scope: ResetScope) {
     if (scope === "all") { clearAllOfferOSData(); window.location.reload(); return; }
     if (scope === "applications") saveStoredApplications([]);
@@ -55,6 +61,54 @@ export function SettingsPanel() {
       <Card><CardHeader><div className="flex items-center gap-3"><Moon className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Appearance</h2><p className="mt-1 text-sm text-slate-500">Theme preference for this local workspace.</p></div></div></CardHeader><CardContent><div className="grid grid-cols-3 gap-2">{["Dark", "System", "Light"].map((theme) => <button className={`rounded-lg border px-3 py-3 text-sm font-medium ${theme === "Dark" ? "border-indigo-400/30 bg-indigo-400/10 text-indigo-100" : "cursor-not-allowed border-slate-700/35 bg-slate-900/20 text-slate-600"}`} disabled={theme !== "Dark"} key={theme} onClick={() => notify("Dark theme is active")} type="button">{theme}</button>)}</div><p className="mt-3 text-xs text-slate-500">System and light themes are planned for a future release.</p></CardContent></Card>
       <Card><CardHeader><div className="flex items-center gap-3"><Upload className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Import & Export</h2><p className="mt-1 text-sm text-slate-500">Portable workspace data is on the roadmap.</p></div></div></CardHeader><CardContent className="flex flex-wrap gap-2"><Button onClick={() => notify("Export is coming soon", "info")} variant="secondary">Export data</Button><Button onClick={() => notify("Import is coming soon", "info")} variant="secondary">Import data</Button></CardContent></Card>
     </div>
+
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Smartphone className="size-5 text-indigo-300" />
+          <div>
+            <h2 className="text-lg font-semibold text-white">App & Offline</h2>
+            <p className="mt-1 text-sm text-slate-500">Install OfferOS and keep this local workspace available on your device.</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-white">Install OfferOS</div>
+                <p className="mt-1 text-sm leading-6 text-slate-500">Launch it in a standalone window from your home screen or app launcher.</p>
+              </div>
+              {isInstalled ? <CheckCircle2 className="size-5 shrink-0 text-emerald-300" /> : <Download className="size-5 shrink-0 text-indigo-300" />}
+            </div>
+            <div className="mt-4">
+              {isInstalled ? (
+                <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.08] px-3 py-2 text-sm font-medium text-emerald-200">
+                  <CheckCircle2 className="size-4" /> Installed on this device
+                </div>
+              ) : canInstall ? (
+                <Button onClick={() => void handleInstall()} variant="primary"><Download className="size-4" />Install OfferOS</Button>
+              ) : (
+                <p className="text-xs leading-5 text-slate-500">A direct install prompt is not currently available in this browser. Use the browser instructions alongside.</p>
+              )}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4">
+            <div className="flex items-center gap-2">
+              {isOnline ? <Wifi className="size-4 text-emerald-300" /> : <WifiOff className="size-4 text-amber-300" />}
+              <span className="text-sm font-semibold text-white">{isOnline ? "Online" : "Offline"}</span>
+              <span className="text-xs text-slate-500">Local workspace ready</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-400">Applications, resumes, and prep data stay in this browser&apos;s local storage. OfferOS does not sync this data to the cloud.</p>
+            <div className="mt-4 space-y-2 border-t border-slate-700/35 pt-4 text-xs leading-5 text-slate-500">
+              <p><span className="font-medium text-slate-300">iPhone or iPad:</span> open Share &rarr; Add to Home Screen.</p>
+              <p><span className="font-medium text-slate-300">Chrome desktop:</span> use the Install icon in the address bar when available.</p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
     <Card><CardHeader><div className="flex items-center gap-3"><Database className="size-5 text-amber-300" /><div><h2 className="text-lg font-semibold text-white">Local Data</h2><p className="mt-1 text-sm text-slate-500">Clear one workspace area or restart the full first-run experience.</p></div></div></CardHeader><CardContent><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{(["applications", "resumes", "prep"] as ResetScope[]).map((scope) => <Button key={scope} onClick={() => setPendingReset(scope)} variant="secondary"><RotateCcw className="size-4" />Clear {scope}</Button>)}<Button className="border-rose-400/25 text-rose-200 hover:bg-rose-400/10" onClick={() => setPendingReset("all")} variant="ghost"><RotateCcw className="size-4" />Reset all data</Button></div></CardContent></Card>
 

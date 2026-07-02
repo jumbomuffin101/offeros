@@ -13,6 +13,7 @@ import {
   Settings,
   Layers3,
 } from "lucide-react";
+import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -79,6 +80,7 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto space-y-3">
+        <ConnectionStatus />
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-full bg-indigo-400/80 text-sm font-semibold text-indigo-50">
@@ -116,9 +118,12 @@ export function MobileNav() {
           </span>
           OfferOS
         </Link>
-        <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
-          Ctrl K
-        </span>
+        <div className="flex items-center gap-3">
+          <ConnectionStatus compact />
+          <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
+            Ctrl K
+          </span>
+        </div>
       </div>
       <nav className="flex gap-2 overflow-x-auto pb-1">
         {navItems.map((item) => {

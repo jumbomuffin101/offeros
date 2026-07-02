@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">OfferOS</title>
+  <rect width="512" height="512" rx="112" fill="#151722"/>
+  <rect x="96" y="96" width="320" height="320" rx="88" fill="#23263a" stroke="#6674ae" stroke-width="8"/>
+  <path d="M176 176h72v72h-72zm88 0h72v72h-72zm-88 88h72v72h-72z" fill="#eef0f8"/>
+  <path d="M264 264h72v72h-72z" fill="#8e9bd1"/>
+  <path d="M248 212h16v88h-16zM212 248h88v16h-88z" fill="#151722" opacity=".45"/>
+</svg>
