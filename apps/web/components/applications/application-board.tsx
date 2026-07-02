@@ -11,6 +11,10 @@ import {
 } from "@/components/applications/application-form-modal";
 import { ApplicationStats } from "@/components/applications/application-stats";
 import { Button } from "@/components/ui/button";
+import { Toast } from "@/components/ui/toast";
+import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
+import { ESCAPE_EVENT } from "@/lib/action-events";
+import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { applicationStatuses } from "@/lib/mock-data";
 import {
   defaultApplicationFilters,
@@ -79,6 +83,15 @@ export function ApplicationBoard({
   }, []);
 
   useEffect(() => {
+    function closeOverlays() {
+      setFormOpen(false); setEditingApplication(null); setSelectedApplicationId(null);
+      setPendingDeleteId(null); setFilterOpen(false); setSortOpen(false);
+    }
+    window.addEventListener(ESCAPE_EVENT, closeOverlays);
+    return () => window.removeEventListener(ESCAPE_EVENT, closeOverlays);
+  }, []);
+
+  useEffect(() => {
     if (!toast) {
       return;
     }
@@ -118,7 +131,7 @@ export function ApplicationBoard({
 
     setApplications((current) => [application, ...current]);
     setFormOpen(false);
-    setToast("Application added.");
+    setToast("Application saved");
   }
 
   function updateApplication(payload: ApplicationFormPayload) {
@@ -141,7 +154,7 @@ export function ApplicationBoard({
     setEditingApplication(null);
     setFormOpen(false);
     setSelectedApplicationId(updated.id);
-    setToast("Application updated.");
+    setToast("Application updated");
   }
 
   function moveApplication(id: string, status: ApplicationStatus) {
@@ -159,7 +172,7 @@ export function ApplicationBoard({
     setApplications((current) => current.filter((application) => application.id !== id));
     setPendingDeleteId(null);
     setSelectedApplicationId(null);
-    setToast("Application deleted.");
+    setToast("Deleted successfully");
   }
 
   function resetDemoData() {
@@ -172,6 +185,13 @@ export function ApplicationBoard({
     setSortKey("deadlineSoonest");
     setToast("Demo data restored.");
   }
+
+  function openApplication(application: Application) {
+    setSelectedApplicationId(application.id);
+    recordRecentlyViewed({ id: application.id, type: "Application", label: application.company, detail: application.role, href: "/applications" });
+  }
+
+  if (!hydrated) return <WorkspaceSkeleton cards={8} />;
 
   return (
     <div className="space-y-6">
@@ -215,7 +235,7 @@ export function ApplicationBoard({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      {applications.length || hasActiveQuery ? <div className="grid gap-4 xl:grid-cols-4">
         {applicationStatuses.map((status) => (
           <ApplicationColumn
             applications={visibleApplications.filter(
@@ -223,12 +243,12 @@ export function ApplicationBoard({
             )}
             hasActiveQuery={hasActiveQuery}
             key={status}
-            onOpenApplication={(application) => setSelectedApplicationId(application.id)}
+            onOpenApplication={openApplication}
             onStatusChange={moveApplication}
             status={status}
           />
         ))}
-      </div>
+      </div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><Plus className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">No applications yet</h2><p className="mt-2 text-sm text-slate-500">Add your first opportunity and keep every deadline and follow-up in one place.</p><Button className="mt-5" onClick={() => setFormOpen(true)} variant="primary"><Plus className="size-4" />Add your first application</Button></div>}
 
       <ApplicationFormModal
         application={editingApplication}
@@ -271,11 +291,7 @@ export function ApplicationBoard({
         </div>
       ) : null}
 
-      {toast ? (
-        <div className="fixed bottom-5 right-5 z-50 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-medium text-emerald-100 shadow-2xl shadow-black/30 backdrop-blur-xl">
-          {toast}
-        </div>
-      ) : null}
+      <Toast message={toast} />
     </div>
   );
 }

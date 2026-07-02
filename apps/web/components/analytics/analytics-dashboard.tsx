@@ -5,6 +5,8 @@ import { useOfferOSData } from "@/hooks/use-offeros-data";
 import { buildAnalytics, type CountDatum } from "@/lib/analytics-utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 
 const toneText = { cyan: "text-cyan-300", green: "text-emerald-300", amber: "text-amber-300", red: "text-rose-300", purple: "text-violet-300" };
 
@@ -13,9 +15,13 @@ export function AnalyticsDashboard() {
   const analytics = buildAnalytics(applications, resumes, prep, asOf);
   const maxWeekly = Math.max(1, ...analytics.applicationsOverTime.map((item) => item.value));
   const maxStatus = Math.max(1, ...analytics.statusDistribution.map((item) => item.value));
+  const empty = !applications.length && !resumes.length && !prep.sessions.length;
+
+  if (!hydrated) return <WorkspaceSkeleton cards={10} />;
+  if (empty) return <section className="rounded-2xl border border-slate-700/40 bg-[#1b1d2b] px-6 py-14 text-center"><TrendingUp className="mx-auto size-8 text-indigo-300" /><h2 className="mt-5 text-2xl font-semibold text-white">No recruiting data yet</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Analytics become meaningful after you track applications, resumes, and completed prep. Start with one action below.</p><div className="mx-auto mt-6 max-w-3xl"><QuickActions compact /></div></section>;
 
   return <div className="space-y-6">
-    <div className="flex justify-end"><span className={`rounded-full border px-2.5 py-1 text-xs ${hydrated ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-500"}`}>{hydrated ? "Calculated from local workspace" : "Loading local analytics"}</span></div>
+    <div className="flex justify-end"><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-100">Calculated from local workspace</span></div>
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">{analytics.metrics.map((metric) => <Card className="premium-hover" key={metric.id}><CardContent><div className={`text-sm font-medium ${toneText[metric.tone]}`}>{metric.label}</div><div className="mt-3 text-3xl font-semibold text-white">{metric.value}</div><p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{metric.helper}</p><div className="mt-4 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs text-slate-300">{metric.change}</div></CardContent></Card>)}</div>
 
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

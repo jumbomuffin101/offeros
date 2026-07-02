@@ -121,6 +121,13 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(129, 145, 220, 0.12) !important;
 }
 
+.command-search,
+.command-search:focus {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 [class*="bg-slate-950/95"],
 [class*="bg-slate-950/96"] {
   background-color: rgba(27, 29, 43, 0.98) !important;

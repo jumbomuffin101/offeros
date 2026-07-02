@@ -10,6 +10,9 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 import { MomentumCard } from "@/components/dashboard/momentum-card";
 import { PipelineSummary } from "@/components/dashboard/pipeline-summary";
 import { RecruitingPlan } from "@/components/dashboard/recruiting-plan";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import { RecentlyViewedCard } from "@/components/dashboard/recently-viewed-card";
+import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 
 export function DashboardContent() {
   const { applications, resumes, prep, asOf, hydrated } = useOfferOSData();
@@ -18,9 +21,15 @@ export function DashboardContent() {
   const momentum = recruitingMomentum(applications, resumes, prep, asOf);
   const prepValues = prep.weeklyDays.map((day) => Math.min(100, (day.coding + day.behavioral + day.systemDesign) * 32));
   const appValues = weeklyApplicationSparkline(applications, asOf);
+  const completelyEmpty = !applications.length && !resumes.length && !prep.sessions.length && !prep.codingProblems.length && !prep.behavioralQuestions.length && !prep.systemDesignPrompts.length;
+
+  if (!hydrated) return <WorkspaceSkeleton cards={8} />;
+
+  if (completelyEmpty) return <div className="space-y-6"><section className="rounded-2xl border border-slate-700/40 bg-[#1b1d2b] px-6 py-14 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200"><Target className="size-6" /></div><h2 className="mt-5 text-2xl font-semibold text-white">Let&apos;s build your recruiting workspace.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Start with one application, one resume, or one focused prep task. OfferOS will turn those actions into a useful daily operating view.</p><div className="mx-auto mt-6 max-w-3xl"><QuickActions compact /></div></section><RecentlyViewedCard /></div>;
 
   return <div className="space-y-6">
-    <div className="flex justify-end"><span className={`rounded-full border px-2.5 py-1 text-xs ${hydrated ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-white/10 bg-white/5 text-slate-500"}`}>{hydrated ? "Local workspace synced" : "Loading local workspace"}</span></div>
+    <div className="flex justify-end"><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-100">Local workspace synced</span></div>
+    <QuickActions />
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <KpiCard label="Total Applications" value={String(applications.length)} helper="All locally tracked opportunities" trend={`${momentum.applicationsThisWeek} added this week`} sparkline={appValues} icon={<BriefcaseBusiness className="size-5" />} />
       <KpiCard label="Active Interviews" value={String(counts.Interview + counts["Final Round"])} helper="Interview and final-round loops" trend={counts["Final Round"] ? `${counts["Final Round"]} in final rounds` : "No final rounds yet"} sparkline={[18, 24, 34, 42, 54, 62, Math.max(20, (counts.Interview + counts["Final Round"]) * 28)]} tone="purple" icon={<MessageSquareMore className="size-5" />} />
@@ -33,7 +42,7 @@ export function DashboardContent() {
     </div>
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><RecruitingPlan items={plan} /><PipelineSummary counts={counts} nextMove={plan[0]?.label ?? "Add an application to build your pipeline."} /></div>
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"><MomentumCard momentum={momentum} days={prep.weeklyDays} /><DeadlineList deadlines={upcomingDeadlines(applications, asOf)} /></div>
-    <ActivityFeed activities={recentActivity(applications, resumes, prep, asOf)} />
+    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><ActivityFeed activities={recentActivity(applications, resumes, prep, asOf)} /><RecentlyViewedCard /></div>
   </div>;
 }
 

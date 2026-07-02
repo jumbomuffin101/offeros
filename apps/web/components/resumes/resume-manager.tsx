@@ -11,6 +11,10 @@ import { ResumeFilters } from "@/components/resumes/resume-filters";
 import { ResumeFormModal, type ResumeFormPayload } from "@/components/resumes/resume-form-modal";
 import { ResumeInsights } from "@/components/resumes/resume-insights";
 import { Button } from "@/components/ui/button";
+import { Toast } from "@/components/ui/toast";
+import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
+import { ESCAPE_EVENT } from "@/lib/action-events";
+import { recordRecentlyViewed } from "@/lib/recently-viewed";
 
 const OPEN_UPLOAD_EVENT = "offeros:upload-resume";
 const OPEN_UPLOAD_STORAGE_KEY = "offeros:open-upload-resume";
@@ -44,6 +48,11 @@ export function ResumeManager({ initialResumes }: { initialResumes: ResumeVersio
     return () => window.removeEventListener(OPEN_UPLOAD_EVENT, openUpload);
   }, []);
   useEffect(() => {
+    function closeOverlays() { setFormOpen(false); setEditingResume(null); setSelectedId(null); setPendingDelete(null); }
+    window.addEventListener(ESCAPE_EVENT, closeOverlays);
+    return () => window.removeEventListener(ESCAPE_EVENT, closeOverlays);
+  }, []);
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
@@ -56,14 +65,14 @@ export function ResumeManager({ initialResumes }: { initialResumes: ResumeVersio
   function createResume(payload: ResumeFormPayload) {
     const now = new Date().toISOString();
     const resume: ResumeVersion = { ...payload, id: `${slugify(payload.name)}-${timestampId(now)}`, createdAt: now, updatedAt: now, lastUpdated: now };
-    commitResumes([resume, ...resumes]); setFormOpen(false); setToast("Resume version created.");
+    commitResumes([resume, ...resumes]); setFormOpen(false); setToast("Resume saved");
   }
 
   function updateResume(payload: ResumeFormPayload) {
     if (!editingResume) return;
     const now = new Date().toISOString();
     commitResumes(resumes.map((resume) => resume.id === editingResume.id ? { ...resume, ...payload, lastUpdated: now, updatedAt: now } : resume));
-    setEditingResume(null); setFormOpen(false); setToast("Resume changes saved.");
+    setEditingResume(null); setFormOpen(false); setToast("Resume updated");
   }
 
   function duplicateResume(resume: ResumeVersion) {
@@ -80,7 +89,7 @@ export function ResumeManager({ initialResumes }: { initialResumes: ResumeVersio
 
   function deleteResume(resume: ResumeVersion) {
     if (resumes.length <= 1) { setPendingDelete(null); setToast("Keep at least one resume version in your library."); return; }
-    commitResumes(resumes.filter((item) => item.id !== resume.id)); setSelectedId(null); setPendingDelete(null); setToast("Resume version deleted.");
+    commitResumes(resumes.filter((item) => item.id !== resume.id)); setSelectedId(null); setPendingDelete(null); setToast("Deleted successfully");
   }
 
   function resetDemoData() {
@@ -92,18 +101,25 @@ export function ResumeManager({ initialResumes }: { initialResumes: ResumeVersio
     if (hydrated) saveStoredResumes(next);
   }
 
+  function openResume(resume: ResumeVersion) {
+    setSelectedId(resume.id);
+    recordRecentlyViewed({ id: resume.id, type: "Resume", label: resume.name, detail: resume.targetRole, href: "/resumes" });
+  }
+
+  if (!hydrated) return <WorkspaceSkeleton cards={6} />;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex-1"><ResumeFilters counts={counts} search={search} sort={sort} status={status} onSearch={setSearch} onSort={setSort} onStatus={setStatus} /></div>
         <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Upload resume</Button><Button onClick={resetDemoData} variant="ghost"><RotateCcw className="size-4" />Reset demo data</Button></div>
       </div>
-      {visible.length ? <div className="grid gap-5 lg:grid-cols-2">{visible.map((resume) => <ResumeCard key={resume.id} resume={resume} onOpen={() => setSelectedId(resume.id)} onDuplicate={() => duplicateResume(resume)} />)}</div> : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center"><FilePlus2 className="mx-auto size-7 text-slate-600" /><h2 className="mt-4 font-semibold text-white">No resume versions found</h2><p className="mt-2 text-sm text-slate-500">Adjust the filters or add a targeted resume version.</p><Button className="mt-5" onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary">Add resume</Button></div>}
-      <ResumeInsights resumes={resumes} />
+      {visible.length ? <div className="grid gap-5 lg:grid-cols-2">{visible.map((resume) => <ResumeCard key={resume.id} resume={resume} onOpen={() => openResume(resume)} onDuplicate={() => duplicateResume(resume)} />)}</div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><FilePlus2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">{resumes.length ? "No matching resumes" : "No resumes yet"}</h2><p className="mt-2 text-sm text-slate-500">{resumes.length ? "Adjust your search or filters to see another version." : "Create your first targeted resume version and track where it performs."}</p><Button className="mt-5" onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary">{resumes.length ? "Create another resume" : "Create your first resume"}</Button></div>}
+      {resumes.length ? <ResumeInsights resumes={resumes} /> : null}
       <ResumeFormModal open={formOpen} resume={editingResume} onClose={() => { setFormOpen(false); setEditingResume(null); }} onSubmit={editingResume ? updateResume : createResume} />
       <ResumeDetailDrawer resume={selected} onClose={() => setSelectedId(null)} onDelete={setPendingDelete} onDuplicate={duplicateResume} onEdit={(resume) => { setEditingResume(resume); setFormOpen(true); }} onToggleStatus={toggleStatus} />
       {pendingDelete ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-xl"><div className="glass-card page-enter w-full max-w-md rounded-3xl p-6" role="alertdialog" aria-modal="true"><h2 className="text-xl font-semibold text-white">Delete resume version?</h2><p className="mt-2 text-sm leading-6 text-slate-400">{resumes.length <= 1 ? "This is your final resume version and cannot be deleted. Reset demo data or create another version first." : `This removes ${pendingDelete.name} from your local resume library.`}</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button onClick={() => setPendingDelete(null)} variant="ghost">Cancel</Button><Button className="text-rose-100" disabled={resumes.length <= 1} onClick={() => deleteResume(pendingDelete)} variant="primary">Delete</Button></div></div></div> : null}
-      {toast ? <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-medium text-emerald-100 shadow-2xl backdrop-blur-xl" role="status">{toast}</div> : null}
+      <Toast message={toast} />
     </div>
   );
 }

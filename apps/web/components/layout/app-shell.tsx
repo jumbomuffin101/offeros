@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { MobileNav, Sidebar } from "@/components/layout/sidebar";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <CommandPalette />
+      <OnboardingModal />
     </div>
   );
 }

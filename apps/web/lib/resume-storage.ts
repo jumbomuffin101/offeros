@@ -8,8 +8,7 @@ export function loadStoredResumes(fallback: ResumeVersion[]) {
     if (!raw) return fallback.map((resume) => ({ ...resume }));
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return fallback.map((resume) => ({ ...resume }));
-    const normalized = parsed.map(normalizeResume).filter((resume): resume is ResumeVersion => resume !== null);
-    return normalized.length ? normalized : fallback.map((resume) => ({ ...resume }));
+    return parsed.map(normalizeResume).filter((resume): resume is ResumeVersion => resume !== null);
   } catch {
     return fallback.map((resume) => ({ ...resume }));
   }

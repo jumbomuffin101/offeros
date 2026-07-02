@@ -7,7 +7,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Workspace settings"
-        subtitle="Basic local preferences and integration placeholders for the OfferOS MVP."
+        subtitle="Manage local data, productivity preferences, shortcuts, and workspace help."
       />
       <SettingsPanel />
     </>
