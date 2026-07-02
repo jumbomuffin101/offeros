@@ -18,7 +18,7 @@ export function ResumeCard({
     <article
       className={`premium-hover group relative rounded-2xl border p-5 transition ${
         resume.status === "Active"
-          ? "border-emerald-300/20 bg-emerald-300/[0.035] shadow-[0_18px_60px_rgba(16,185,129,0.055)]"
+          ? "border-emerald-300/20 bg-emerald-300/[0.035]"
           : "border-white/10 bg-white/[0.025]"
       }`}
     >

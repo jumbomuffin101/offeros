@@ -15,8 +15,8 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
 }) {
   if (!resume) return null;
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/65 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <aside className="page-enter ml-auto flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-slate-950/95 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="resume-detail-title">
+    <div className="fixed inset-0 z-40 bg-[#0d0f18]/72 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <aside className="page-enter ml-auto flex h-full w-full max-w-xl flex-col border-l border-slate-700/40 bg-[#1b1d2b]/98 shadow-xl shadow-black/25" role="dialog" aria-modal="true" aria-labelledby="resume-detail-title">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
           <div className="min-w-0"><div className="mb-3 flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-200"><FileText className="size-4" /></span><Badge tone={resume.status === "Active" ? "green" : "amber"}>{resume.status}</Badge></div><h2 className="text-xl font-semibold text-white" id="resume-detail-title">{resume.name}</h2><p className="mt-1 text-sm text-cyan-100/75">{resume.targetRole}</p></div>
           <button aria-label="Close resume details" className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:bg-white/10 hover:text-white" onClick={onClose} type="button"><X className="size-4" /></button>

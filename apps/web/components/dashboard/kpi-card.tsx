@@ -21,10 +21,10 @@ export function KpiCard({
   icon: ReactNode;
 }) {
   const tones = {
-    cyan: "from-cyan-300 to-blue-500 text-cyan-200",
-    green: "from-emerald-300 to-teal-500 text-emerald-200",
-    amber: "from-amber-300 to-orange-500 text-amber-200",
-    purple: "from-violet-300 to-fuchsia-500 text-violet-200",
+    cyan: "bg-indigo-400/75 text-indigo-200",
+    green: "bg-emerald-400/75 text-emerald-200",
+    amber: "bg-amber-400/75 text-amber-200",
+    purple: "bg-violet-400/75 text-violet-200",
   };
 
   return (
@@ -45,7 +45,7 @@ export function KpiCard({
           <div className="flex h-10 items-end gap-1">
             {sparkline.map((point, index) => (
               <span
-                className={cn("w-1.5 rounded-full bg-gradient-to-t", tones[tone])}
+                className={cn("w-1.5 rounded-full", tones[tone])}
                 key={`${label}-${index}`}
                 style={{ height: `${Math.min(100, Math.max(point, 18))}%` }}
               />

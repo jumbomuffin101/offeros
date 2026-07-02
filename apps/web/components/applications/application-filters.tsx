@@ -76,7 +76,7 @@ export function ApplicationFilters({
             Filter
           </Button>
           {filterOpen ? (
-            <div className="absolute right-0 z-20 mt-2 w-80 rounded-3xl border border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <div className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-slate-700/45 bg-[#202336]/98 p-4 shadow-xl shadow-black/20 backdrop-blur-xl">
               <div className="mb-4 flex items-center justify-between">
                 <div className="text-sm font-semibold text-white">Filters</div>
                 <button
@@ -132,7 +132,7 @@ export function ApplicationFilters({
             Sort
           </Button>
           {sortOpen ? (
-            <div className="absolute right-0 z-20 mt-2 w-64 rounded-3xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-700/45 bg-[#202336]/98 p-2 shadow-xl shadow-black/20 backdrop-blur-xl">
               {sortOptions.map((option) => (
                 <button
                   className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition hover:bg-white/[0.055] ${

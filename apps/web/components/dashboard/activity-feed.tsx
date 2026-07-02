@@ -16,7 +16,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
         <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
       </CardHeader>
       <CardContent>
-        {activities.length ? <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-gradient-to-b before:from-cyan-300/40 before:via-slate-700 before:to-transparent">
+        {activities.length ? <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-gradient-to-b before:from-indigo-300/35 before:via-slate-700 before:to-transparent">
         {activities.map((activity) => (
           <div key={activity.id} className="relative flex gap-4">
             <div className="pt-1.5">

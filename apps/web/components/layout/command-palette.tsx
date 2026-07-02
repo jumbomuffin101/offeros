@@ -59,13 +59,13 @@ export function CommandPalette() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/72 px-4 pt-20 backdrop-blur-xl">
-      <div className="glass-card page-enter w-full max-w-2xl rounded-3xl">
-        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
-          <Search className="size-5 text-cyan-200" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#0d0f18]/80 px-4 pt-20 backdrop-blur-lg">
+      <div className="glass-card page-enter w-full max-w-2xl rounded-xl">
+        <div className="flex items-center gap-3 border-b border-slate-700/40 px-5 py-4">
+          <Search className="size-5 text-indigo-200" />
           <div className="flex-1">
             <div className="text-sm font-semibold text-white">Command menu</div>
-            <div className="text-xs text-slate-500">Navigate OfferOS or jump to a mock action</div>
+            <div className="text-xs text-slate-500">Navigate OfferOS or start a workspace action</div>
           </div>
           <button
             aria-label="Close command menu"
@@ -81,7 +81,7 @@ export function CommandPalette() {
             const Icon = command.icon;
             const content = (
               <>
-                <span className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-200 transition group-hover:border-cyan-300/30 group-hover:bg-cyan-300/10">
+                <span className="flex size-10 items-center justify-center rounded-lg border border-slate-700/40 bg-slate-800/35 text-indigo-200 transition group-hover:border-indigo-400/25 group-hover:bg-indigo-400/10">
                   <Icon className="size-4" />
                 </span>
                 <span className="min-w-0 flex-1">

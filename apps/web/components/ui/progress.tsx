@@ -10,17 +10,17 @@ export function Progress({
   tone?: "cyan" | "green" | "amber" | "purple" | "red";
 }) {
   const tones = {
-    cyan: "from-cyan-300 to-blue-500",
-    green: "from-emerald-300 to-teal-500",
-    amber: "from-amber-300 to-orange-500",
-    purple: "from-violet-300 to-fuchsia-500",
-    red: "from-rose-300 to-red-500",
+    cyan: "bg-indigo-400",
+    green: "bg-emerald-400",
+    amber: "bg-amber-400",
+    purple: "bg-violet-400",
+    red: "bg-rose-400",
   };
 
   return (
-    <div className={cn("h-2 overflow-hidden rounded-full bg-slate-900/90 ring-1 ring-white/10", className)}>
+    <div className={cn("h-2 overflow-hidden rounded-full bg-slate-800/85 ring-1 ring-slate-700/45", className)}>
       <div
-        className={cn("progress-fill h-full rounded-full bg-gradient-to-r shadow-[0_0_18px_rgba(34,211,238,0.18)]", tones[tone])}
+        className={cn("progress-fill h-full rounded-full", tones[tone])}
         style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
       />
     </div>

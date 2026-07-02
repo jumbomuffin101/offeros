@@ -31,9 +31,9 @@ export function ApplicationDetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-md">
-      <aside className="page-enter ml-auto flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-slate-950/96 shadow-2xl shadow-black/40">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
+    <div className="fixed inset-0 z-40 bg-[#0d0f18]/72 backdrop-blur-md">
+      <aside className="page-enter ml-auto flex h-full w-full max-w-xl flex-col border-l border-slate-700/40 bg-[#1b1d2b]/98 shadow-xl shadow-black/25">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-700/40 px-6 py-5">
           <div>
             <div className="mb-3 flex flex-wrap gap-2">
               <Badge tone={priorityTone[application.priority]}>{application.priority}</Badge>

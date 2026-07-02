@@ -16,7 +16,7 @@ export function RecruitingPlan({ items }: { items: RecruitingPlanItem[] }) {
             className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3.5 py-3.5 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"
           >
             {item.complete ? (
-              <span className="flex size-6 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-300/15 text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.15)]">
+              <span className="flex size-6 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
                 <Check className="size-3.5" />
               </span>
             ) : (
