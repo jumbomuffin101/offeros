@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { FileUp, X } from "lucide-react";
+import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { FileCheck2, FileUp, X } from "lucide-react";
 import type { ResumeVersion } from "@/lib/types";
 import { parseResumeList } from "@/lib/resume-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useModalBehavior } from "@/hooks/use-modal-behavior";
+import { cn } from "@/lib/utils";
 
 export type ResumeFormPayload = Omit<ResumeVersion, "id" | "createdAt" | "updatedAt" | "lastUpdated">;
 
@@ -14,6 +16,14 @@ const emptyForm: ResumeFormPayload = {
   keywordMatchScore: 0, tags: [], strengths: [], weaknesses: [], missingKeywords: [],
   suggestedImprovement: "", notes: "", fileName: "",
 };
+
+const allowedFileExtensions = [".pdf", ".doc", ".docx"];
+const allowedFileTypes = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/octet-stream",
+]);
 
 export function ResumeFormModal({ open, resume, onClose, onSubmit }: {
   open: boolean;
@@ -30,6 +40,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (payload: ResumeFormPayload) => void;
 }) {
+  const dialogRef = useModalBehavior();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ResumeFormPayload>(() => resume ? payloadFromResume(resume) : emptyForm);
   const [lists, setLists] = useState(() => ({
     tags: resume?.tags.join(", ") ?? "",
@@ -38,9 +50,37 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
     missingKeywords: resume?.missingKeywords.join(", ") ?? "",
   }));
   const [error, setError] = useState("");
+  const [fileError, setFileError] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
   function update<K extends keyof ResumeFormPayload>(key: K, value: ResumeFormPayload[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function selectFile(file: File | undefined) {
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const validExtension = allowedFileExtensions.some((extension) => lowerName.endsWith(extension));
+    const validType = !file.type || allowedFileTypes.has(file.type);
+    if (!validExtension || !validType) {
+      setFileError("Choose a PDF, DOC, or DOCX file. Other file types are not supported.");
+      return;
+    }
+
+    update("fileName", file.name);
+    setFileError("");
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    selectFile(event.currentTarget.files?.[0]);
+    event.currentTarget.value = "";
+  }
+
+  function handleDrop(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    selectFile(event.dataTransfer.files?.[0]);
   }
 
   function submit() {
@@ -60,20 +100,48 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 py-8 backdrop-blur-xl">
-      <div className="glass-card page-enter flex max-h-[92vh] w-full max-w-4xl flex-col rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="resume-form-title">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/75 p-2 backdrop-blur-xl sm:p-4">
+      <div className="glass-card page-enter flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl sm:max-h-[90dvh]" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="resume-form-title">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
           <div><h2 className="text-xl font-semibold text-white" id="resume-form-title">{resume ? "Edit resume" : "Add resume version"}</h2><p className="mt-1 text-sm text-slate-500">Store targeting notes and the local file reference.</p></div>
           <button aria-label="Close resume form" className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button"><X className="size-4" /></button>
         </div>
-        <div className="overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-5 pb-8 sm:px-6">
           {error ? <div className="mb-4 rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
-          <label className="mb-5 flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-cyan-300/25 bg-cyan-300/[0.035] px-5 py-6 text-center transition hover:bg-cyan-300/[0.06]">
-            <FileUp className="size-6 text-cyan-200" /><span className="mt-2 text-sm font-medium text-white">Choose a PDF, DOC, or DOCX</span><span className="mt-1 text-xs text-slate-500">Only the file name is stored locally.</span>
-            <input accept=".pdf,.doc,.docx" className="sr-only" onChange={(event) => update("fileName", event.target.files?.[0]?.name ?? form.fileName)} type="file" />
-          </label>
+          <div className="mb-5">
+            <button
+              aria-describedby={fileError ? "resume-file-error" : "resume-file-help"}
+              aria-label="Choose or drop a resume file"
+              className={cn(
+                "flex w-full flex-col items-center rounded-xl border border-dashed px-5 py-5 text-center transition focus:outline-none focus:ring-2 focus:ring-indigo-400/30",
+                dragActive
+                  ? "border-indigo-300/55 bg-indigo-400/10"
+                  : "border-indigo-400/25 bg-indigo-400/[0.04] hover:border-indigo-400/40 hover:bg-indigo-400/[0.07]",
+              )}
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleDrop}
+              type="button"
+            >
+              {form.fileName ? <FileCheck2 className="size-6 text-emerald-300" /> : <FileUp className="size-6 text-indigo-200" />}
+              <span className="mt-2 text-sm font-medium text-white">{form.fileName ? form.fileName : "Choose a PDF, DOC, or DOCX"}</span>
+              <span className="mt-1 text-xs text-slate-500" id="resume-file-help">Click to browse or drop a file here. Only the file name is stored locally.</span>
+            </button>
+            <input
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              aria-label="Resume file"
+              className="sr-only"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              tabIndex={-1}
+              type="file"
+            />
+            {fileError ? <p className="mt-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.08] px-3 py-2 text-sm text-rose-200" id="resume-file-error" role="alert">{fileError}</p> : null}
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Resume name" required><Input value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
+            <Field label="Resume name" required><Input data-autofocus value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
             <Field label="Target role" required><Input value={form.targetRole} onChange={(event) => update("targetRole", event.target.value)} /></Field>
             <Field label="Status"><Select value={form.status} onChange={(value) => update("status", value as ResumeVersion["status"])} /></Field>
             <Field label="File name"><Input placeholder="resume-backend.pdf" value={form.fileName} onChange={(event) => update("fileName", event.target.value)} /></Field>
@@ -88,7 +156,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             <Field className="md:col-span-2" label="Notes"><Textarea value={form.notes} onChange={(value) => update("notes", value)} /></Field>
           </div>
         </div>
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 px-6 py-5 sm:flex-row sm:justify-end"><Button onClick={onClose} variant="ghost">Cancel</Button><Button onClick={submit} variant="primary">{resume ? "Save changes" : "Create resume"}</Button></div>
+        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#1b1d2b]/95 px-4 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6 sm:py-5"><Button onClick={onClose} variant="ghost">Cancel</Button><Button onClick={submit} variant="primary">{resume ? "Save changes" : "Create resume"}</Button></div>
       </div>
     </div>
   );

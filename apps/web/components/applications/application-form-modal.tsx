@@ -7,6 +7,7 @@ import { parseTags } from "@/lib/application-utils";
 import type { Application, ApplicationPriority, ApplicationStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useModalBehavior } from "@/hooks/use-modal-behavior";
 
 export type ApplicationFormPayload = Omit<Application, "id" | "createdAt" | "updatedAt" | "category">;
 
@@ -64,6 +65,7 @@ function ApplicationFormModalContent({
   onClose: () => void;
   onSubmit: (payload: ApplicationFormPayload) => void;
 }) {
+  const dialogRef = useModalBehavior();
   const [form, setForm] = useState<ApplicationFormPayload>(() =>
     application ? payloadFromApplication(application) : emptyForm,
   );
@@ -100,11 +102,17 @@ function ApplicationFormModalContent({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 py-8 backdrop-blur-xl">
-      <div className="glass-card page-enter flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/75 p-2 backdrop-blur-xl sm:p-4">
+      <div
+        aria-labelledby="application-form-title"
+        aria-modal="true"
+        className="glass-card page-enter flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl sm:max-h-[90dvh]"
+        ref={dialogRef}
+        role="dialog"
+      >
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
           <div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-white" id="application-form-title">
               {application ? "Edit application" : "Add application"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -121,7 +129,7 @@ function ApplicationFormModalContent({
           </button>
         </div>
 
-        <div className="overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-5 pb-8 sm:px-6">
           {error ? (
             <div className="mb-4 rounded-2xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">
               {error}
@@ -130,7 +138,7 @@ function ApplicationFormModalContent({
 
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Company name" required>
-              <Input value={form.company} onChange={(event) => updateField("company", event.target.value)} />
+              <Input data-autofocus value={form.company} onChange={(event) => updateField("company", event.target.value)} />
             </Field>
             <Field label="Role title" required>
               <Input value={form.role} onChange={(event) => updateField("role", event.target.value)} />
@@ -197,7 +205,7 @@ function ApplicationFormModalContent({
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 px-6 py-5 sm:flex-row sm:justify-end">
+        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#1b1d2b]/95 px-4 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6 sm:py-5">
           <Button onClick={onClose} type="button" variant="ghost">
             Cancel
           </Button>
