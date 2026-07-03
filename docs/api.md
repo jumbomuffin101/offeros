@@ -7,7 +7,7 @@ The API is the stable boundary for the Next.js application, Chrome extension, wo
 Base URL:
 
 ```text
-https://api.offeros.com/v1
+https://api.offeros.com/api/v1
 ```
 
 The backend does not exist yet. Paths in this document are the implementation contract for the backend phase.

@@ -174,7 +174,7 @@ Public:
 
 Protected:
 
-- All `/v1/users/me`, profile, application, resume, prep, analytics, notification, setting, saved-job, extension, and AI routes.
+- All `/api/v1/users/me`, profile, application, resume, prep, analytics, notification, setting, saved-job, extension, and AI routes.
 
 Operational routes should be on a separate hostname or network policy where possible, require an OfferOS admin role, and generate audit events.
 

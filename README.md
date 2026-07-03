@@ -2,7 +2,7 @@
 
 OfferOS is a polished, installable recruiting workspace for software engineering students. It brings applications, resume versions, coding prep, behavioral prep, deadlines, and recruiting analytics into one local-first app.
 
-OfferOS is frontend-only. Workspace data is stored in the browser with `localStorage`; there are no backend routes, accounts, or cloud data services.
+The active product remains local-first: workspace data is stored in the browser with `localStorage`, with no accounts or cloud sync. An initial FastAPI backend scaffold now lives in `backend/`, but the frontend is intentionally not connected to it yet.
 
 ## MVP Features
 
@@ -22,6 +22,7 @@ OfferOS is frontend-only. Workspace data is stored in the browser with `localSto
 - Tailwind CSS
 - Browser `localStorage`
 - shadcn-style local UI primitives
+- FastAPI, Pydantic, SQLAlchemy, Alembic, and PostgreSQL-ready backend scaffold
 
 ## Run Locally
 
@@ -31,6 +32,12 @@ npm run dev
 ```
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
+
+## Backend Scaffold
+
+The production backend foundation lives in `backend/`. It includes versioned REST routes, SQLAlchemy models, Alembic migrations, a temporary demo-user dependency, Docker Compose, and pytest coverage.
+
+See [`backend/README.md`](backend/README.md) for setup, migrations, API startup, and tests. This scaffold does not change current frontend behavior or replace localStorage.
 
 ## Production Build
 

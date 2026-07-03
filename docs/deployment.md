@@ -142,7 +142,7 @@ flowchart LR
 1. Build immutable frontend and backend artifacts tagged with commit SHA.
 2. Apply backward-compatible database migrations through a one-off migration job.
 3. Deploy API and workers; verify readiness and error rate.
-4. Promote frontend referencing the compatible `/v1` contract.
+4. Promote frontend referencing the compatible `/api/v1` contract.
 5. Run authenticated smoke tests.
 6. Monitor error rate, latency, queue age, and database load.
 

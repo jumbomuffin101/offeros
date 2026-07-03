@@ -44,7 +44,7 @@ Make OfferOS a secure multi-device product without changing the core user model.
 1. Create FastAPI modular monolith and PostgreSQL migrations.
 2. Implement Clerk Google, GitHub, and email authentication.
 3. Provision users, profiles, settings, and ownership-scoped authorization.
-4. Implement `/v1` applications, resumes metadata, prep, goals, and analytics APIs.
+4. Implement `/api/v1` applications, resumes metadata, prep, goals, and analytics APIs.
 5. Add typed OpenAPI client/repositories to Next.js.
 6. Build one-time localStorage import with client-generated idempotency keys.
 7. Add cloud synchronization and conflict/version handling.

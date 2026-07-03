@@ -1,0 +1,68 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Response, status
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.user import User
+from app.schemas.common import DataResponse
+from app.schemas.resume import ResumeCreate, ResumeResponse, ResumeUpdate
+from app.services.resumes import ResumeService
+
+
+router = APIRouter(prefix="/resumes", tags=["resumes"])
+
+
+@router.get("", response_model=DataResponse[list[ResumeResponse]])
+def list_resumes(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> DataResponse[list[ResumeResponse]]:
+    return DataResponse(data=ResumeService(db).list(user.id))
+
+
+@router.post("", response_model=DataResponse[ResumeResponse], status_code=status.HTTP_201_CREATED)
+def create_resume(
+    payload: ResumeCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[ResumeResponse]:
+    return DataResponse(data=ResumeService(db).create(user.id, payload))
+
+
+@router.get("/{resume_id}", response_model=DataResponse[ResumeResponse])
+def get_resume(
+    resume_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[ResumeResponse]:
+    return DataResponse(data=ResumeService(db).get(user.id, resume_id))
+
+
+@router.patch("/{resume_id}", response_model=DataResponse[ResumeResponse])
+def update_resume(
+    resume_id: UUID,
+    payload: ResumeUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[ResumeResponse]:
+    return DataResponse(data=ResumeService(db).update(user.id, resume_id, payload))
+
+
+@router.post("/{resume_id}/duplicate", response_model=DataResponse[ResumeResponse], status_code=201)
+def duplicate_resume(
+    resume_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[ResumeResponse]:
+    return DataResponse(data=ResumeService(db).duplicate(user.id, resume_id))
+
+
+@router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(
+    resume_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    ResumeService(db).delete(user.id, resume_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
