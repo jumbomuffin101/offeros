@@ -25,7 +25,7 @@ export function DashboardContent() {
 
   if (!hydrated) return <WorkspaceSkeleton cards={8} />;
 
-  if (completelyEmpty) return <div className="space-y-6"><section className="rounded-2xl border border-slate-700/40 bg-[#1b1d2b] px-6 py-14 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200"><Target className="size-6" /></div><h2 className="mt-5 text-2xl font-semibold text-white">Let&apos;s build your recruiting workspace.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Start with one application, one resume, or one focused prep task. OfferOS will turn those actions into a useful daily operating view.</p><div className="mx-auto mt-6 max-w-3xl"><QuickActions compact /></div></section><RecentlyViewedCard /></div>;
+  if (completelyEmpty) return <div className="space-y-6"><section className="rounded-2xl border border-slate-700/40 bg-[#1b1d2b] px-6 py-14 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200"><Target className="size-6" /></div><h2 className="mt-5 text-2xl font-semibold text-white">Build your technical recruiting workspace.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Start with one SWE application, one targeted resume, or one interview prep task. OfferOS turns those actions into a focused daily plan.</p><div className="mx-auto mt-6 max-w-3xl"><QuickActions compact /></div></section><RecentlyViewedCard /></div>;
 
   return <div className="space-y-6">
     <div className="flex justify-end"><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-100">Local workspace synced</span></div>

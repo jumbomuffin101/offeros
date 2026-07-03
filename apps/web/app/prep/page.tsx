@@ -7,8 +7,8 @@ export default function PrepPage() {
     <>
       <PageHeader
         eyebrow="Prep"
-        title="Interview prep"
-        subtitle="Daily coding, behavioral practice, system design prompts, and consistency tracking."
+        title="Technical interview prep"
+        subtitle="Build coding fluency, reusable STAR stories, and system design judgment in one workspace."
       />
       <PrepWorkspace initialData={prepWorkspaceData} />
     </>

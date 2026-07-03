@@ -135,7 +135,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             >
               {form.fileName ? <FileCheck2 className="size-6 text-emerald-300" /> : <FileUp className="size-6 text-indigo-200" />}
               <span className="mt-2 text-sm font-medium text-white">{form.fileName ? form.fileName : "Choose a PDF, DOC, or DOCX"}</span>
-              <span className="mt-1 text-xs text-slate-500" id="resume-file-help">Click to browse or drop a file here. Only the file name is stored locally.</span>
+              <span className="mt-1 max-w-2xl text-xs leading-5 text-slate-500" id="resume-file-help">For now, OfferOS stores only the file name locally. Resume text extraction and role-specific AI analysis are planned for the backend and AI phase.</span>
             </button>
             <input
               accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"

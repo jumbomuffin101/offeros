@@ -39,7 +39,7 @@ export function Sidebar() {
         </div>
         <div className="min-w-0">
           <div className="text-base font-semibold tracking-normal text-white">OfferOS</div>
-          <div className="truncate text-xs text-slate-500">Aryan&apos;s recruiting workspace</div>
+          <div className="truncate text-xs text-slate-500">Technical recruiting command center</div>
         </div>
       </Link>
 

@@ -8,7 +8,7 @@ export default function ResumesPage() {
       <PageHeader
         eyebrow="Resumes"
         title="Resume manager"
-        subtitle="Track targeted resume versions, keyword alignment, and where each version is being used."
+        subtitle="Manage targeted technical resumes for SWE, backend, AI/ML, quant, fintech, and new grad roles."
       />
       <ResumeManager initialResumes={resumes} />
     </>

@@ -7,7 +7,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Workspace settings"
-        subtitle="Manage local data, productivity preferences, shortcuts, and workspace help."
+        subtitle="Manage your local technical recruiting workspace, app preferences, roadmap, and help."
       />
       <SettingsPanel />
     </>

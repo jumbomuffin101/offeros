@@ -8,7 +8,7 @@ export default function ApplicationsPage() {
       <PageHeader
         eyebrow="Applications"
         title="Application tracker"
-        subtitle="A Kanban-style pipeline for every company, resume version, deadline, and note."
+        subtitle="Track internships and new grad roles from application through OAs, interviews, and offers."
       />
       <ApplicationKanban applications={applications} />
     </>

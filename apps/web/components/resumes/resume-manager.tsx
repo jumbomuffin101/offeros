@@ -10,6 +10,7 @@ import { ResumeDetailDrawer } from "@/components/resumes/resume-detail-drawer";
 import { ResumeFilters } from "@/components/resumes/resume-filters";
 import { ResumeFormModal, type ResumeFormPayload } from "@/components/resumes/resume-form-modal";
 import { ResumeInsights } from "@/components/resumes/resume-insights";
+import { ResumeAnalysisPlaceholder } from "@/components/resumes/resume-analysis-placeholder";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/ui/toast";
 import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
@@ -114,6 +115,7 @@ export function ResumeManager({ initialResumes }: { initialResumes: ResumeVersio
         <div className="flex-1"><ResumeFilters counts={counts} search={search} sort={sort} status={status} onSearch={setSearch} onSort={setSort} onStatus={setStatus} /></div>
         <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Upload resume</Button><Button onClick={resetDemoData} variant="ghost"><RotateCcw className="size-4" />Reset demo data</Button></div>
       </div>
+      <ResumeAnalysisPlaceholder />
       {visible.length ? <div className="grid gap-5 lg:grid-cols-2">{visible.map((resume) => <ResumeCard key={resume.id} resume={resume} onOpen={() => openResume(resume)} onDuplicate={() => duplicateResume(resume)} />)}</div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><FilePlus2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">{resumes.length ? "No matching resumes" : "No resumes yet"}</h2><p className="mt-2 text-sm text-slate-500">{resumes.length ? "Adjust your search or filters to see another version." : "Create your first targeted resume version and track where it performs."}</p><Button className="mt-5" onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary">{resumes.length ? "Create another resume" : "Create your first resume"}</Button></div>}
       {resumes.length ? <ResumeInsights resumes={resumes} /> : null}
       <ResumeFormModal open={formOpen} resume={editingResume} onClose={() => { setFormOpen(false); setEditingResume(null); }} onSubmit={editingResume ? updateResume : createResume} />

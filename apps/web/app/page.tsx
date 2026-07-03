@@ -7,7 +7,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Dashboard"
         title="Welcome back, Aryan"
-        subtitle="Your recruiting pipeline, interview prep, and progress in one place."
+        subtitle="SWE applications, OAs, interviews, targeted resumes, and prep in one operating view."
       />
       <DashboardContent />
     </>

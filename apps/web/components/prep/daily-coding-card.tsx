@@ -19,7 +19,7 @@ export function DailyCodingCard({ problems, onAdd, onEdit, onStatus }: {
   return (
     <Card className="premium-hover">
       <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3"><span className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-2.5 text-cyan-200"><Code2 className="size-5" /></span><div><h2 className="text-lg font-semibold text-white">Daily coding</h2><p className="text-sm text-slate-500">One focused rep for interview speed.</p></div></div>
+        <div className="flex items-center gap-3"><span className="rounded-xl border border-indigo-300/20 bg-indigo-300/10 p-2.5 text-indigo-200"><Code2 className="size-5" /></span><div><h2 className="text-lg font-semibold text-white">Coding prep</h2><p className="text-sm text-slate-500">Build speed and pattern recognition for OAs and technical interviews.</p></div></div>
         <Button className="px-3" onClick={onAdd} variant="ghost"><Plus className="size-4" />Add</Button>
       </CardHeader>
       <CardContent>

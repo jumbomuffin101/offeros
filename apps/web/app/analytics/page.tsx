@@ -7,7 +7,7 @@ export default function AnalyticsPage() {
       <PageHeader
         eyebrow="Analytics"
         title="Recruiting analytics"
-        subtitle="Understand response rates, conversion points, resume performance, and prep consistency."
+        subtitle="Measure technical recruiting performance, interview conversion, resume usage, and prep consistency."
       />
       <AnalyticsDashboard />
     </>
