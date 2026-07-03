@@ -6,7 +6,7 @@ import type { ResumeVersion } from "@/lib/types";
 import { parseResumeList } from "@/lib/resume-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useModalBehavior } from "@/hooks/use-modal-behavior";
+import { ModalShell } from "@/components/ui/modal-shell";
 import { cn } from "@/lib/utils";
 
 export type ResumeFormPayload = Omit<ResumeVersion, "id" | "createdAt" | "updatedAt" | "lastUpdated">;
@@ -40,7 +40,6 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (payload: ResumeFormPayload) => void;
 }) {
-  const dialogRef = useModalBehavior();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ResumeFormPayload>(() => resume ? payloadFromResume(resume) : emptyForm);
   const [lists, setLists] = useState(() => ({
@@ -100,15 +99,24 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/75 p-2 backdrop-blur-xl sm:p-4">
-      <div className="glass-card page-enter flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl sm:max-h-[90dvh]" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="resume-form-title">
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
+    <ModalShell
+      className="max-w-4xl"
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button onClick={onClose} variant="ghost">Cancel</Button>
+          <Button onClick={submit} variant="primary">{resume ? "Save changes" : "Create resume"}</Button>
+        </div>
+      }
+      header={
+        <div className="flex items-center justify-between gap-4">
           <div><h2 className="text-xl font-semibold text-white" id="resume-form-title">{resume ? "Edit resume" : "Add resume version"}</h2><p className="mt-1 text-sm text-slate-500">Store targeting notes and the local file reference.</p></div>
           <button aria-label="Close resume form" className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button"><X className="size-4" /></button>
         </div>
-        <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-5 pb-8 sm:px-6">
-          {error ? <div className="mb-4 rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
-          <div className="mb-5">
+      }
+      labelledBy="resume-form-title"
+    >
+      {error ? <div className="mb-4 rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
+      <div className="mb-5">
             <button
               aria-describedby={fileError ? "resume-file-error" : "resume-file-help"}
               aria-label="Choose or drop a resume file"
@@ -139,8 +147,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
               type="file"
             />
             {fileError ? <p className="mt-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.08] px-3 py-2 text-sm text-rose-200" id="resume-file-error" role="alert">{fileError}</p> : null}
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
             <Field label="Resume name" required><Input data-autofocus value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
             <Field label="Target role" required><Input value={form.targetRole} onChange={(event) => update("targetRole", event.target.value)} /></Field>
             <Field label="Status"><Select value={form.status} onChange={(value) => update("status", value as ResumeVersion["status"])} /></Field>
@@ -154,11 +162,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             <ListField label="Missing keywords" value={lists.missingKeywords} onChange={(value) => setLists((current) => ({ ...current, missingKeywords: value }))} placeholder="Kafka, testing" />
             <Field className="md:col-span-2" label="Suggested next improvement"><Textarea value={form.suggestedImprovement} onChange={(value) => update("suggestedImprovement", value)} /></Field>
             <Field className="md:col-span-2" label="Notes"><Textarea value={form.notes} onChange={(value) => update("notes", value)} /></Field>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#1b1d2b]/95 px-4 py-4 backdrop-blur sm:flex-row sm:justify-end sm:px-6 sm:py-5"><Button onClick={onClose} variant="ghost">Cancel</Button><Button onClick={submit} variant="primary">{resume ? "Save changes" : "Create resume"}</Button></div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 
