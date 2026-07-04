@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import type { PrepStatus, SystemDesignPrompt } from "@/lib/types";
+import type { SystemDesignInput } from "@/lib/data/types";
 import { parseConcepts } from "@/lib/prep-utils";
 import { Input } from "@/components/ui/input";
 import { Field, Textarea } from "@/components/prep/coding-problem-modal";
 import { PrepModalShell } from "@/components/prep/prep-modal-shell";
 import { PrepStatusSelect } from "@/components/prep/prep-status-select";
 
-export type SystemDesignPayload = Omit<SystemDesignPrompt, "id" | "createdAt" | "updatedAt">;
+export type SystemDesignPayload = SystemDesignInput;
 const emptyPrompt: SystemDesignPayload = { title: "", prompt: "", concepts: [], status: "Not Started", notes: "" };
 
 export function SystemDesignModal({ open, designPrompt, onClose, onSubmit }: { open: boolean; designPrompt: SystemDesignPrompt | null; onClose: () => void; onSubmit: (payload: SystemDesignPayload) => void }) {

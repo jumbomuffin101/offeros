@@ -1,5 +1,5 @@
 import type { Activity, Application, ApplicationStatus, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
-import { applicationStatuses } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { calculateStreak, prepGoalProgress } from "@/lib/prep-utils";
 
 export type DashboardDeadline = {
@@ -31,7 +31,7 @@ export type MomentumSummary = {
 };
 
 export function applicationCounts(applications: Application[]) {
-  return applicationStatuses.reduce((counts, status) => {
+  return APPLICATION_STATUSES.reduce((counts, status) => {
     counts[status] = applications.filter((application) => application.status === status).length;
     return counts;
   }, {} as Record<ApplicationStatus, number>);

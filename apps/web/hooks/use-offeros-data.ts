@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { Application, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
-import { applications, prepWorkspaceData, resumes } from "@/lib/mock-data";
-import { loadStoredApplications } from "@/lib/application-storage";
-import { loadStoredResumes } from "@/lib/resume-storage";
-import { loadStoredPrep } from "@/lib/prep-storage";
+import { useDashboard } from "@/hooks/use-dashboard";
 
 export type OfferOSData = {
   applications: Application[];
@@ -18,35 +14,18 @@ export type OfferOSData = {
 const fallbackAsOf = "2026-06-30T12:00:00.000Z";
 
 export function useOfferOSData(): OfferOSData {
-  const [data, setData] = useState<OfferOSData>({
-    applications,
-    resumes,
-    prep: prepWorkspaceData,
+  const { summary } = useDashboard();
+  return summary ? {
+    applications: summary.applications,
+    resumes: summary.resumes,
+    prep: summary.prep,
+    asOf: summary.asOf,
+    hydrated: true,
+  } : {
+    applications: [],
+    resumes: [],
+    prep: { codingProblems: [], behavioralQuestions: [], systemDesignPrompts: [], sessions: [], weeklyDays: [], goals: [] },
     asOf: fallbackAsOf,
     hydrated: false,
-  });
-
-  useEffect(() => {
-    function refresh() {
-      setData({
-        applications: loadStoredApplications(applications),
-        resumes: loadStoredResumes(resumes),
-        prep: loadStoredPrep(prepWorkspaceData),
-        asOf: new Date().toISOString(),
-        hydrated: true,
-      });
-    }
-
-    window.queueMicrotask(refresh);
-    window.addEventListener("storage", refresh);
-    window.addEventListener("focus", refresh);
-    window.addEventListener("pageshow", refresh);
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("pageshow", refresh);
-    };
-  }, []);
-
-  return data;
+  };
 }

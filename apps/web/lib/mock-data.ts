@@ -7,17 +7,9 @@ import type {
   PrepWorkspaceData,
   ResumeVersion,
 } from "@/lib/types";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 
-export const applicationStatuses: ApplicationStatus[] = [
-  "Wishlist",
-  "Applying",
-  "Applied",
-  "OA",
-  "Interview",
-  "Final Round",
-  "Offer",
-  "Rejected",
-];
+export const applicationStatuses: ApplicationStatus[] = APPLICATION_STATUSES;
 
 export const applications: Application[] = [
   {

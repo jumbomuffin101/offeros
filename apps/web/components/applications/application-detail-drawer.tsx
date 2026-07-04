@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Mail, Pencil, Trash2, X } from "lucide-react";
-import { applicationStatuses } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { formatDate, formatDateTime } from "@/lib/application-utils";
 import type { Application, ApplicationStatus } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,7 @@ export function ApplicationDetailDrawer({
               onChange={(event) => onStatusChange(application.id, event.target.value as ApplicationStatus)}
               value={application.status}
             >
-              {applicationStatuses.map((status) => (
+            {APPLICATION_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>

@@ -3,13 +3,14 @@
 import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import { FileCheck2, FileUp, X } from "lucide-react";
 import type { ResumeVersion } from "@/lib/types";
+import type { ResumeInput } from "@/lib/data/types";
 import { parseResumeList } from "@/lib/resume-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { cn } from "@/lib/utils";
 
-export type ResumeFormPayload = Omit<ResumeVersion, "id" | "createdAt" | "updatedAt" | "lastUpdated">;
+export type ResumeFormPayload = ResumeInput;
 
 const emptyForm: ResumeFormPayload = {
   name: "", targetRole: "", description: "", status: "Draft", applicationsUsed: 0,

@@ -6,7 +6,7 @@ import { BarChart3, BriefcaseBusiness, Code2, FilePlus2, FileText, Gauge, Gradua
 import type { LucideIcon } from "lucide-react";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { ESCAPE_EVENT, requestWorkspaceAction, type WorkspaceAction } from "@/lib/action-events";
-import { ONBOARDING_KEY, RECENT_COMMANDS_KEY } from "@/lib/workspace-data";
+import { isOnboardingComplete, readRecentCommands, writeRecentCommands } from "@/lib/data/storage/local/preferencesStorage";
 
 type Command = { label: string; hint: string; icon: LucideIcon; group: "Navigation" | "Create" | "Settings"; href?: string; action?: WorkspaceAction | "help" };
 
@@ -45,7 +45,7 @@ export function CommandPalette() {
       router.push(requestWorkspaceAction(action));
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (!window.localStorage.getItem(ONBOARDING_KEY)) return;
+      if (!isOnboardingComplete()) return;
       const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setOpen((current) => !current); setHelpOpen(false); return; }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "n") { event.preventDefault(); runAction("application"); return; }
@@ -60,7 +60,7 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return;
     window.queueMicrotask(() => {
-      try { setRecentLabels(JSON.parse(window.localStorage.getItem(RECENT_COMMANDS_KEY) ?? "[]") as string[]); } catch { setRecentLabels([]); }
+      setRecentLabels(readRecentCommands());
     });
   }, [open]);
 
@@ -76,7 +76,7 @@ export function CommandPalette() {
     else if (command.href) router.push(command.href);
     const labels = [command.label, ...recentLabels.filter((label) => label !== command.label)].slice(0, 5);
     setRecentLabels(labels);
-    window.localStorage.setItem(RECENT_COMMANDS_KEY, JSON.stringify(labels));
+    writeRecentCommands(labels);
   }
 
   return <>

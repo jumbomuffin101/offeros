@@ -2,11 +2,12 @@
 
 import { useState, type ReactNode } from "react";
 import type { CodingProblem, PrepStatus } from "@/lib/types";
+import type { CodingProblemInput } from "@/lib/data/types";
 import { Input } from "@/components/ui/input";
 import { PrepModalShell } from "@/components/prep/prep-modal-shell";
 import { PrepStatusSelect } from "@/components/prep/prep-status-select";
 
-export type CodingProblemPayload = Omit<CodingProblem, "id" | "completedAt" | "createdAt" | "updatedAt">;
+export type CodingProblemPayload = CodingProblemInput;
 const emptyProblem: CodingProblemPayload = { title: "", difficulty: "Medium", topic: "", targetTimeMinutes: 30, status: "Not Started", notes: "", link: "" };
 
 export function CodingProblemModal({ open, problem, onClose, onSubmit }: { open: boolean; problem: CodingProblem | null; onClose: () => void; onSubmit: (payload: CodingProblemPayload) => void }) {

@@ -1,5 +1,5 @@
 import type { AnalyticsMetric, Application, ApplicationPriority, ApplicationStatus, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
-import { applicationStatuses } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { calculateStreak, prepGoalProgress } from "@/lib/prep-utils";
 import { percent, submittedApplications } from "@/lib/dashboard-utils";
 
@@ -37,7 +37,7 @@ export function buildAnalytics(applications: Application[], resumes: ResumeVersi
   return {
     metrics,
     applicationsOverTime: weeklyApplications(applications, asOf),
-    statusDistribution: applicationStatuses.map((status) => ({ label: status, value: applications.filter((item) => item.status === status).length })),
+    statusDistribution: APPLICATION_STATUSES.map((status) => ({ label: status, value: applications.filter((item) => item.status === status).length })),
     sourceDistribution: countBy(applications, (item) => item.source || "Unspecified"),
     priorityDistribution: (["High", "Medium", "Low"] as ApplicationPriority[]).map((priority) => ({ label: priority, value: applications.filter((item) => item.priority === priority).length })),
     mostUsedResume: mostUsedResume(applications, resumes),

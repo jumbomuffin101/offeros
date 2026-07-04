@@ -1,8 +1,6 @@
 import type { PrepWorkspaceData } from "@/lib/types";
-import { applications, prepWorkspaceData, resumes } from "@/lib/mock-data";
-import { saveStoredApplications } from "@/lib/application-storage";
-import { saveStoredResumes } from "@/lib/resume-storage";
-import { saveStoredPrep } from "@/lib/prep-storage";
+import { prepWorkspaceData } from "@/lib/mock-data";
+import { workspaceRepository } from "@/lib/data/repositories/workspaceRepository";
 
 export const ONBOARDING_KEY = "offeros:onboarding-complete";
 export const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
@@ -19,22 +17,8 @@ export function emptyPrepWorkspace(): PrepWorkspaceData {
   };
 }
 
-export function populateDemoWorkspace() {
-  saveStoredApplications(applications);
-  saveStoredResumes(resumes);
-  saveStoredPrep(prepWorkspaceData);
-}
+export function populateDemoWorkspace() { return workspaceRepository.populateDemo(); }
 
-export function clearWorkspaceData() {
-  saveStoredApplications([]);
-  saveStoredResumes([]);
-  saveStoredPrep(emptyPrepWorkspace());
-  window.localStorage.removeItem(RECENTLY_VIEWED_KEY);
-  window.localStorage.removeItem(RECENT_COMMANDS_KEY);
-}
+export function clearWorkspaceData() { return workspaceRepository.clearWorkspace(); }
 
-export function clearAllOfferOSData() {
-  for (const key of Object.keys(window.localStorage)) {
-    if (key.startsWith("offeros:")) window.localStorage.removeItem(key);
-  }
-}
+export function clearAllOfferOSData() { return workspaceRepository.clear("all"); }

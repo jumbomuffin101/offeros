@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
 import { usePwa } from "@/components/pwa/pwa-provider";
-import { saveStoredApplications } from "@/lib/application-storage";
-import { saveStoredResumes } from "@/lib/resume-storage";
-import { saveStoredPrep } from "@/lib/prep-storage";
-import { clearAllOfferOSData, emptyPrepWorkspace, RECENTLY_VIEWED_KEY } from "@/lib/workspace-data";
+import { useWorkspaceActions } from "@/hooks/use-workspace-actions";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 
 const shortcuts = [["Command palette", "Ctrl/Cmd + K"], ["Add application", "Ctrl/Cmd + N"], ["Upload resume", "Shift + R"], ["Shortcut help", "?"], ["Close overlay", "Esc"]];
@@ -26,6 +23,7 @@ const helpItems: Array<{ title: string; detail: string; icon: LucideIcon }> = [
 type ResetScope = "all" | "applications" | "resumes" | "prep";
 
 export function SettingsPanel() {
+  const workspace = useWorkspaceActions();
   const { canInstall, install, isInstalled, isOnline } = usePwa();
   const [toast, setToast] = useState("");
   const [toastTone, setToastTone] = useState<"success" | "info">("success");
@@ -47,12 +45,10 @@ export function SettingsPanel() {
     const accepted = await install();
     notify(accepted ? "OfferOS installed" : "Install prompt closed", accepted ? "success" : "info");
   }
-  function reset(scope: ResetScope) {
-    if (scope === "all") { clearAllOfferOSData(); window.location.reload(); return; }
-    if (scope === "applications") saveStoredApplications([]);
-    if (scope === "resumes") saveStoredResumes([]);
-    if (scope === "prep") saveStoredPrep(emptyPrepWorkspace());
-    window.localStorage.removeItem(RECENTLY_VIEWED_KEY);
+  async function reset(scope: ResetScope) {
+    const cleared = await workspace.clear(scope);
+    if (!cleared) { notify(workspace.error?.message ?? "Unable to clear local data", "info"); return; }
+    if (scope === "all") { window.location.reload(); return; }
     setPendingReset(null); notify(`${scope[0].toUpperCase()}${scope.slice(1)} data cleared`);
   }
 
@@ -119,7 +115,7 @@ export function SettingsPanel() {
 
     <section><div className="mb-4"><h2 className="text-xl font-semibold text-white">Help Center</h2><p className="mt-1 text-sm text-slate-500">A concise guide to your software engineering recruiting workspace.</p></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{helpItems.map((item) => { const Icon = item.icon; return <div className="rounded-xl border border-slate-700/40 bg-[#1b1d2b] p-4" key={item.title}><Icon className="size-5 text-indigo-300" /><h3 className="mt-4 text-sm font-semibold text-white">{item.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{item.detail}</p></div>; })}</div></section>
 
-    {pendingReset ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d0f18]/80 px-4 backdrop-blur-lg"><section className="glass-card page-enter w-full max-w-md rounded-xl p-6" role="alertdialog" aria-modal="true" aria-labelledby="reset-title"><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white" id="reset-title">{pendingReset === "all" ? "Reset OfferOS?" : `Clear ${pendingReset} data?`}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{pendingReset === "all" ? "This clears all local OfferOS data and shows onboarding again." : "This removes the local records in this workspace area. This cannot be undone."}</p></div><button aria-label="Close reset confirmation" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" onClick={() => setPendingReset(null)} type="button"><X className="size-4" /></button></div><div className="mt-6 flex justify-end gap-2"><Button onClick={() => setPendingReset(null)} variant="ghost">Cancel</Button><Button className="border-rose-400/30 bg-rose-400/15 text-rose-100 hover:bg-rose-400/20" onClick={() => reset(pendingReset)} variant="secondary">Confirm reset</Button></div></section></div> : null}
+    {pendingReset ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d0f18]/80 px-4 backdrop-blur-lg"><section className="glass-card page-enter w-full max-w-md rounded-xl p-6" role="alertdialog" aria-modal="true" aria-labelledby="reset-title"><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white" id="reset-title">{pendingReset === "all" ? "Reset OfferOS?" : `Clear ${pendingReset} data?`}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{pendingReset === "all" ? "This clears all local OfferOS data and shows onboarding again." : "This removes the local records in this workspace area. This cannot be undone."}</p></div><button aria-label="Close reset confirmation" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" onClick={() => setPendingReset(null)} type="button"><X className="size-4" /></button></div><div className="mt-6 flex justify-end gap-2"><Button onClick={() => setPendingReset(null)} variant="ghost">Cancel</Button><Button className="border-rose-400/30 bg-rose-400/15 text-rose-100 hover:bg-rose-400/20" onClick={() => void reset(pendingReset)} variant="secondary">Confirm reset</Button></div></section></div> : null}
     <Toast message={toast} tone={toastTone} />
   </div>;
 }

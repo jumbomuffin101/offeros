@@ -1,7 +1,7 @@
 "use client";
 
 import { Filter, ListFilter, RotateCcw, Search } from "lucide-react";
-import { applicationStatuses } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import type { ApplicationPriority } from "@/lib/types";
 import type {
   ApplicationFiltersState,
@@ -93,7 +93,7 @@ export function ApplicationFilters({
                   onChange={(value) =>
                     onFiltersChange({ ...filters, status: value as ApplicationFiltersState["status"] })
                   }
-                  options={["All", ...applicationStatuses]}
+          options={["All", ...APPLICATION_STATUSES]}
                   value={filters.status}
                 />
                 <FilterSelect

@@ -1,6 +1,5 @@
 import { ApplicationKanban } from "@/components/applications/application-kanban";
 import { PageHeader } from "@/components/layout/page-header";
-import { applications } from "@/lib/mock-data";
 
 export default function ApplicationsPage() {
   return (
@@ -10,7 +9,7 @@ export default function ApplicationsPage() {
         title="Application tracker"
         subtitle="Track internships and new grad roles from application through OAs, interviews, and offers."
       />
-      <ApplicationKanban applications={applications} />
+      <ApplicationKanban />
     </>
   );
 }

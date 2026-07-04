@@ -2,14 +2,15 @@
 
 import { useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { applicationStatuses, resumes } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { parseTags } from "@/lib/application-utils";
 import type { Application, ApplicationPriority, ApplicationStatus } from "@/lib/types";
+import type { ApplicationInput } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/ui/modal-shell";
 
-export type ApplicationFormPayload = Omit<Application, "id" | "createdAt" | "updatedAt" | "category">;
+export type ApplicationFormPayload = ApplicationInput;
 
 const priorities: ApplicationPriority[] = ["Low", "Medium", "High"];
 
@@ -36,11 +37,13 @@ export function ApplicationFormModal({
   application,
   onClose,
   onSubmit,
+  resumeOptions,
 }: {
   open: boolean;
   application: Application | null;
   onClose: () => void;
   onSubmit: (payload: ApplicationFormPayload) => void;
+  resumeOptions: string[];
 }) {
   if (!open) {
     return null;
@@ -52,6 +55,7 @@ export function ApplicationFormModal({
       key={application?.id ?? "new"}
       onClose={onClose}
       onSubmit={onSubmit}
+      resumeOptions={resumeOptions}
     />
   );
 }
@@ -60,10 +64,12 @@ function ApplicationFormModalContent({
   application,
   onClose,
   onSubmit,
+  resumeOptions,
 }: {
   application: Application | null;
   onClose: () => void;
   onSubmit: (payload: ApplicationFormPayload) => void;
+  resumeOptions: string[];
 }) {
   const [form, setForm] = useState<ApplicationFormPayload>(() =>
     application ? payloadFromApplication(application) : emptyForm,
@@ -155,7 +161,7 @@ function ApplicationFormModalContent({
               <Select
                 value={form.status}
                 onChange={(value) => updateField("status", value as ApplicationStatus)}
-                options={applicationStatuses}
+                options={APPLICATION_STATUSES}
               />
             </Field>
             <Field label="Date applied">
@@ -171,7 +177,7 @@ function ApplicationFormModalContent({
               <Select
                 value={form.resumeUsed}
                 onChange={(value) => updateField("resumeUsed", value)}
-                options={resumes.map((resume) => resume.name)}
+                options={Array.from(new Set([form.resumeUsed, ...resumeOptions])).filter(Boolean)}
               />
             </Field>
             <Field label="Job URL">

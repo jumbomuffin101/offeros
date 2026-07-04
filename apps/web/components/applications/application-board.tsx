@@ -11,11 +11,14 @@ import {
 } from "@/components/applications/application-form-modal";
 import { ApplicationStats } from "@/components/applications/application-stats";
 import { Button } from "@/components/ui/button";
+import { DataErrorState } from "@/components/ui/data-error-state";
 import { Toast } from "@/components/ui/toast";
 import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
+import { useApplications } from "@/hooks/use-applications";
+import { useResumes } from "@/hooks/use-resumes";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
-import { applicationStatuses } from "@/lib/mock-data";
+import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import {
   defaultApplicationFilters,
   filterApplications,
@@ -24,23 +27,15 @@ import {
   type ApplicationFiltersState,
   type ApplicationSortKey,
 } from "@/lib/application-utils";
-import {
-  loadStoredApplications,
-  resetStoredApplications,
-  saveStoredApplications,
-} from "@/lib/application-storage";
 import type { Application, ApplicationStatus } from "@/lib/types";
 
 const OPEN_ADD_EVENT = "offeros:add-application";
 const OPEN_ADD_STORAGE_KEY = "offeros:open-add-application";
 
-export function ApplicationBoard({
-  initialApplications,
-}: {
-  initialApplications: Application[];
-}) {
-  const [applications, setApplications] = useState(initialApplications);
-  const [hydrated, setHydrated] = useState(false);
+export function ApplicationBoard() {
+  const applicationData = useApplications();
+  const resumeData = useResumes();
+  const applications = applicationData.applications;
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ApplicationFiltersState>(defaultApplicationFilters);
   const [sortKey, setSortKey] = useState<ApplicationSortKey>("deadlineSoonest");
@@ -54,23 +49,12 @@ export function ApplicationBoard({
 
   useEffect(() => {
     window.queueMicrotask(() => {
-      setApplications(loadStoredApplications(initialApplications));
-      setHydrated(true);
-
       if (window.sessionStorage.getItem(OPEN_ADD_STORAGE_KEY) === "true") {
         window.sessionStorage.removeItem(OPEN_ADD_STORAGE_KEY);
         setFormOpen(true);
       }
     });
-  }, [initialApplications]);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
-    saveStoredApplications(applications);
-  }, [applications, hydrated]);
+  }, []);
 
   useEffect(() => {
     function openAddApplication() {
@@ -119,71 +103,53 @@ export function ApplicationBoard({
     filters.source !== "All" ||
     filters.resumeUsed !== "All";
 
-  function createApplication(payload: ApplicationFormPayload) {
-    const now = new Date().toISOString();
-    const application: Application = {
-      ...payload,
-      id: `${slugify(payload.company)}-${Date.now()}`,
-      category: inferCategory(payload),
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    setApplications((current) => [application, ...current]);
-    setFormOpen(false);
-    setToast("Application saved");
+  async function createApplication(payload: ApplicationFormPayload) {
+    try {
+      await applicationData.create(payload);
+      setFormOpen(false);
+      setToast("Application saved");
+    } catch { /* Hook exposes the typed error state. */ }
   }
 
-  function updateApplication(payload: ApplicationFormPayload) {
+  async function updateApplication(payload: ApplicationFormPayload) {
     if (!editingApplication) {
       return;
     }
-
-    const updated: Application = {
-      ...editingApplication,
-      ...payload,
-      category: inferCategory(payload),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setApplications((current) =>
-      current.map((application) =>
-        application.id === editingApplication.id ? updated : application,
-      ),
-    );
-    setEditingApplication(null);
-    setFormOpen(false);
-    setSelectedApplicationId(updated.id);
-    setToast("Application updated");
+    try {
+      const updated = await applicationData.update(editingApplication.id, payload);
+      setEditingApplication(null);
+      setFormOpen(false);
+      setSelectedApplicationId(updated.id);
+      setToast("Application updated");
+    } catch { /* Hook exposes the typed error state. */ }
   }
 
-  function moveApplication(id: string, status: ApplicationStatus) {
-    setApplications((current) =>
-      current.map((application) =>
-        application.id === id
-          ? { ...application, status, updatedAt: new Date().toISOString() }
-          : application,
-      ),
-    );
-    setToast(`Moved to ${status}.`);
+  async function moveApplication(id: string, status: ApplicationStatus) {
+    try {
+      await applicationData.setStatus(id, status);
+      setToast(`Moved to ${status}.`);
+    } catch { /* Hook exposes the typed error state. */ }
   }
 
-  function deleteApplication(id: string) {
-    setApplications((current) => current.filter((application) => application.id !== id));
-    setPendingDeleteId(null);
-    setSelectedApplicationId(null);
-    setToast("Deleted successfully");
+  async function deleteApplication(id: string) {
+    try {
+      await applicationData.delete(id);
+      setPendingDeleteId(null);
+      setSelectedApplicationId(null);
+      setToast("Deleted successfully");
+    } catch { /* Hook exposes the typed error state. */ }
   }
 
-  function resetDemoData() {
-    const reset = resetStoredApplications(initialApplications);
-    setApplications(reset);
-    setSelectedApplicationId(null);
-    setPendingDeleteId(null);
-    setSearch("");
-    setFilters(defaultApplicationFilters);
-    setSortKey("deadlineSoonest");
-    setToast("Demo data restored.");
+  async function resetDemoData() {
+    try {
+      await applicationData.reset();
+      setSelectedApplicationId(null);
+      setPendingDeleteId(null);
+      setSearch("");
+      setFilters(defaultApplicationFilters);
+      setSortKey("deadlineSoonest");
+      setToast("Demo data restored.");
+    } catch { /* Hook exposes the typed error state. */ }
   }
 
   function openApplication(application: Application) {
@@ -191,7 +157,9 @@ export function ApplicationBoard({
     recordRecentlyViewed({ id: application.id, type: "Application", label: application.company, detail: application.role, href: "/applications" });
   }
 
-  if (!hydrated) return <WorkspaceSkeleton cards={8} />;
+  if ((applicationData.loading && !applications.length) || resumeData.loading) return <WorkspaceSkeleton cards={8} />;
+  if (applicationData.error) return <DataErrorState error={applicationData.error} onRetry={() => void applicationData.refresh()} />;
+  if (resumeData.error) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
 
   return (
     <div className="space-y-6">
@@ -236,7 +204,7 @@ export function ApplicationBoard({
       </div>
 
       {applications.length || hasActiveQuery ? <div className="grid gap-4 xl:grid-cols-4">
-        {applicationStatuses.map((status) => (
+        {APPLICATION_STATUSES.map((status) => (
           <ApplicationColumn
             applications={visibleApplications.filter(
               (application) => application.status === status,
@@ -258,6 +226,7 @@ export function ApplicationBoard({
         }}
         onSubmit={editingApplication ? updateApplication : createApplication}
         open={formOpen}
+        resumeOptions={resumeData.resumes.map((resume) => resume.name)}
       />
 
       <ApplicationDetailDrawer
@@ -283,7 +252,7 @@ export function ApplicationBoard({
               <Button onClick={() => setPendingDeleteId(null)} type="button" variant="ghost">
                 Cancel
               </Button>
-              <Button onClick={() => deleteApplication(pendingDelete.id)} type="button" variant="primary">
+              <Button onClick={() => void deleteApplication(pendingDelete.id)} type="button" variant="primary">
                 Delete
               </Button>
             </div>
@@ -294,42 +263,4 @@ export function ApplicationBoard({
       <Toast message={toast} />
     </div>
   );
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-function inferCategory(payload: ApplicationFormPayload): Application["category"] {
-  const content = [
-    payload.company,
-    payload.role,
-    payload.source,
-    payload.resumeUsed,
-    payload.notes,
-    ...payload.tags,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  if (content.includes("google") || content.includes("meta")) {
-    return "Big Tech";
-  }
-
-  if (content.includes("finance") || content.includes("bank") || content.includes("quant")) {
-    return "Finance";
-  }
-
-  if (content.includes("stripe") || content.includes("capital") || content.includes("payment")) {
-    return "Fintech";
-  }
-
-  if (content.includes("data") || content.includes("observability")) {
-    return "Data";
-  }
-
-  return "Startup";
 }

@@ -9,8 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
-
-const INSTALL_DISMISSED_KEY = "offeros:install-dismissed";
+import { clearInstallDismissal, dismissInstall as persistInstallDismissal, isInstallDismissed } from "@/lib/data/storage/local/preferencesStorage";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -44,7 +43,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     queueMicrotask(() => {
       setIsOnline(navigator.onLine);
       setIsInstalled(standalone || installedOnIos);
-      setInstallDismissed(window.localStorage.getItem(INSTALL_DISMISSED_KEY) === "true");
+      setInstallDismissed(isInstallDismissed());
     });
 
     function handleInstallAvailable(event: Event) {
@@ -55,7 +54,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     function handleInstalled() {
       setInstallEvent(null);
       setIsInstalled(true);
-      window.localStorage.removeItem(INSTALL_DISMISSED_KEY);
+      clearInstallDismissal();
     }
 
     function handleOnline() {
@@ -87,7 +86,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const dismissInstall = useCallback(() => {
-    window.localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+    persistInstallDismissal();
     setInstallDismissed(true);
   }, []);
 
