@@ -14,6 +14,7 @@ import {
   Layers3,
 } from "lucide-react";
 import { ConnectionStatus } from "@/components/pwa/connection-status";
+import { UserAccount } from "@/components/auth/user-account";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -82,15 +83,7 @@ export function Sidebar() {
       <div className="mt-auto space-y-3">
         <ConnectionStatus />
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-indigo-400/80 text-sm font-semibold text-indigo-50">
-              AR
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-white">Aryan Rawat</div>
-              <div className="text-xs text-slate-500">CS recruiting board</div>
-            </div>
-          </div>
+          <UserAccount />
         </div>
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
         <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
@@ -120,6 +113,7 @@ export function MobileNav() {
         </Link>
         <div className="flex items-center gap-3">
           <ConnectionStatus compact />
+          <UserAccount compact />
           <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
             Ctrl K
           </span>

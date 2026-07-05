@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     clerk_issuer: str | None = None
     clerk_jwks_url: str | None = None
+    clerk_audience: str | None = None
+    auth_required: bool = False
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(

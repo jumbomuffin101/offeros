@@ -2,7 +2,7 @@
 
 OfferOS is a polished, installable recruiting workspace for software engineering students. It brings applications, resume versions, coding prep, behavioral prep, deadlines, and recruiting analytics into one local-first app.
 
-The active product remains local-first: workspace data is stored in the browser with `localStorage`, with no accounts or cloud sync. An initial FastAPI backend scaffold now lives in `backend/`, but the frontend is intentionally not connected to it yet.
+The active product remains local-first: Clerk provides account authentication, while workspace data is still stored in the browser with `localStorage` and is not cloud-synced. A FastAPI backend scaffold lives in `backend/`, but the frontend CRUD repositories are intentionally not connected to it yet.
 
 ## MVP Features
 
@@ -13,6 +13,7 @@ The active product remains local-first: workspace data is stored in the browser 
 - Analytics page with simple visual indicators for response and conversion trends
 - Responsive dark-mode-first shell with desktop sidebar and mobile navigation
 - Installable PWA with standalone display, iOS metadata, connection awareness, and basic offline asset caching
+- Clerk sign-in/sign-up, protected application routes, and account controls
 
 ## Tech Stack
 
@@ -21,6 +22,7 @@ The active product remains local-first: workspace data is stored in the browser 
 - React
 - Tailwind CSS
 - Browser `localStorage`
+- Clerk authentication
 - shadcn-style local UI primitives
 - FastAPI, Pydantic, SQLAlchemy, Alembic, and PostgreSQL-ready backend scaffold
 
@@ -28,14 +30,17 @@ The active product remains local-first: workspace data is stored in the browser 
 
 ```bash
 npm install
+Copy-Item apps/web/.env.example apps/web/.env.local
 npm run dev
 ```
+
+On macOS/Linux, use `cp apps/web/.env.example apps/web/.env.local`. Add the Clerk publishable and secret keys from the Clerk dashboard before starting the app. Sign-in and sign-up are available at `/sign-in` and `/sign-up`; all workspace routes require a session.
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
 
 ## Backend Scaffold
 
-The production backend foundation lives in `backend/`. It includes versioned REST routes, SQLAlchemy models, Alembic migrations, a temporary demo-user dependency, Docker Compose, and pytest coverage.
+The production backend foundation lives in `backend/`. It includes versioned REST routes, SQLAlchemy models, Alembic migrations, optional Clerk JWT verification, a development demo-user fallback, Docker Compose, and pytest coverage.
 
 See [`backend/README.md`](backend/README.md) for setup, migrations, API startup, and tests. This scaffold does not change current frontend behavior or replace localStorage.
 
@@ -62,7 +67,7 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 
 - Data is stored only in the current browser profile with `localStorage`.
 - There is no cloud sync or cross-device backup yet.
-- There is no authentication or account recovery.
+- Authentication does not sync or partition localStorage data yet; use one trusted account per browser profile.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.
 
 ## Planned Roadmap

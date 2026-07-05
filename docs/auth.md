@@ -4,7 +4,19 @@
 
 OfferOS will use **Clerk** as the identity provider for Google, GitHub, and email authentication. Clerk owns credential handling, OAuth exchanges, session cookies, account recovery, and identity verification. FastAPI remains authoritative for OfferOS user records, product roles, resource ownership, and feature authorization.
 
-No backend or authentication is implemented by this document.
+## Current Implementation
+
+Clerk authentication is now implemented as a foundation:
+
+- Next.js is wrapped in `ClerkProvider`.
+- `/sign-in` and `/sign-up` are public branded Clerk routes.
+- `proxy.ts` requires a Clerk session for Dashboard, Applications, Resumes, Prep, Analytics, and Settings.
+- The sidebar and mobile navigation show Clerk's `UserButton` and current identity.
+- First-run OfferOS onboarding remains inside the authenticated app shell and never renders on auth routes.
+- FastAPI can verify Clerk RS256 JWTs through cached JWKS when `AUTH_REQUIRED=true`.
+- `AUTH_REQUIRED=false` preserves the deterministic demo user and existing backend behavior.
+
+Recruiting records remain in browser `localStorage`. Authentication does not yet migrate, synchronize, or isolate that local data by Clerk user. Frontend CRUD repositories also do not call FastAPI yet.
 
 ## Authentication Flow
 
@@ -191,6 +203,28 @@ Maintain separate Clerk instances or environment configurations for development,
 - Bot/abuse protections supported by Clerk.
 
 Production must reject development issuers and audiences.
+
+Frontend environment:
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+```
+
+Backend environment:
+
+```env
+CLERK_ISSUER=
+CLERK_JWKS_URL=
+CLERK_AUDIENCE=
+AUTH_REQUIRED=false
+```
+
+Before setting `AUTH_REQUIRED=true`, configure a Clerk JWT template/audience, synchronize Clerk users into the OfferOS `users` table, and update the frontend API token provider. `apps/web/lib/data/api/apiClient.ts` already exposes `setAuthTokenProvider()` and `getAuthHeaders()` for that future integration.
 
 ## Failure Modes
 
