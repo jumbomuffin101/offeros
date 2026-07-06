@@ -1,295 +1,174 @@
 # OfferOS Production Deployment
 
-## Target Topology
+OfferOS deploys as two services:
 
-```mermaid
-flowchart TB
-    DNS["DNS / TLS"] --> Vercel["Vercel: Next.js PWA"]
-    Browser["Browser / Chrome extension"] --> Vercel
-    Browser --> API["api.offeros.com"]
-    Vercel --> API
-    API --> Runtime["Railway: FastAPI Docker replicas"]
-    Runtime --> NeonPool["Neon pooled PostgreSQL endpoint"]
-    Runtime --> Storage["Supabase private object storage"]
-    Runtime --> Redis["Managed Redis"]
-    Redis --> Workers["Celery worker deployment"]
-    Workers --> NeonPool
-    Workers --> Storage
-    Runtime --> Sentry["Sentry"]
-    Workers --> Sentry
-    Vercel --> Sentry
-    Vercel --> PostHog["PostHog"]
-    Runtime --> PostHog
+- Next.js frontend on Vercel
+- Dockerized FastAPI API on Render, Railway, or Fly.io
+- PostgreSQL on Neon or another managed PostgreSQL provider
+
+The repository includes a Render Blueprint at `render.yaml`. Railway and Fly.io can use the same `backend/Dockerfile` and `backend/start.sh` without application changes.
+
+## Production Environment
+
+### Backend
+
+```env
+APP_ENV=production
+DATABASE_URL=
+API_V1_PREFIX=/api/v1
+AUTH_REQUIRED=true
+CLERK_ISSUER=
+CLERK_JWKS_URL=
+CLERK_AUDIENCE=offeros-api
+CORS_ORIGINS=https://your-vercel-url.vercel.app
+LOG_LEVEL=INFO
 ```
 
-## Platform Decisions
+`DATABASE_URL` may use a provider-style `postgres://` or `postgresql://` URL. OfferOS normalizes it to the psycopg SQLAlchemy driver. `CORS_ORIGINS` accepts comma-separated origins, so production and preview URLs can be listed together without a wildcard.
 
-### Frontend: Vercel
+### Frontend on Vercel
 
-Vercel is the primary Next.js runtime because it supports App Router builds, preview deployments, CDN assets, managed TLS, and production promotion with minimal custom infrastructure.
-
-Responsibilities:
-
-- Build and deploy `apps/web`.
-- Serve static PWA assets and service worker.
-- Run any future Next.js server rendering needed for the authenticated shell.
-- Configure production and preview domains.
-- Apply security headers and cache policy.
-
-The frontend must call FastAPI through a configured public API origin. Next.js should not become a second business-logic backend or proxy every API request without a measured requirement.
-
-### Backend: FastAPI on Railway
-
-Initial recommendation: deploy a Dockerized FastAPI modular monolith on Railway. Railway offers a low-operations path for API and worker services while preserving standard containers and an exit path. Fly.io is a valid alternative if regional placement or private networking becomes a stronger requirement.
-
-Deploy separate process types from the same immutable image:
-
-- `api`: Uvicorn/Gunicorn FastAPI service.
-- `worker-default`: Celery general tasks.
-- `worker-ai`: future AI/extraction tasks with separate concurrency and budgets.
-- `scheduler`: one Celery Beat or equivalent scheduler instance when scheduled work begins.
-
-Do not run migrations or schedulers in every API replica.
-
-### Database: Neon PostgreSQL
-
-- Use one Neon project per environment boundary where practical.
-- API traffic uses Neon's pooled connection endpoint.
-- Migrations and administrative jobs use the direct endpoint.
-- Bound SQLAlchemy pool sizes so aggregate replicas cannot exhaust database connections.
-- Enable point-in-time recovery and define a tested restoration runbook.
-- Use Neon branches for short-lived migration testing only when cost and workflow justify it; they are not a replacement for staging acceptance tests.
-
-### Resume Storage: Supabase Storage
-
-Preferred initial choice: private Supabase Storage buckets because OfferOS needs private documents and signed upload/download URLs more than image transformation. Cloudinary remains appropriate if resume preview rendering later depends heavily on transformation pipelines.
-
-Rules:
-
-- Bucket is private; no public resume URLs.
-- Objects are namespaced by environment and internal user ID.
-- Clients upload only through short-lived signed intents issued after authorization.
-- Backend verifies object metadata before finalizing a resume version.
-- Downloads use short-lived signed URLs and generate audit events for unusual access.
-- Malware scanning and extraction run asynchronously before a file becomes analysis-ready.
-
-PostgreSQL stores object keys, checksums, size, and MIME metadata, never raw file bytes.
-
-### Queue and Workers: Redis + Celery
-
-Redis and Celery are deferred until the first asynchronous feature (resume extraction, notifications, or AI) ships. Before that, the outbox table can exist without a running broker.
-
-- Use managed Redis with TLS and authentication.
-- Separate queues by workload and latency: `default`, `imports`, `notifications`, `extraction`, `ai`.
-- Configure time limits, acknowledgement-after-completion, bounded prefetch, and dead-letter handling.
-- Workers are idempotent and keyed by durable request/event IDs.
-- Queue messages contain IDs, not full resumes or sensitive prompt bodies.
-
-## Environments
-
-| Environment | Purpose | Data policy |
-| --- | --- | --- |
-| Local | Developer workflow | Synthetic/demo data only |
-| Preview | Per-PR frontend and optional shared API | No production data; restricted integrations |
-| Staging | Release candidate and migration validation | Synthetic or sanitized fixtures |
-| Production | User traffic | Full controls, backups, monitoring |
-
-Environment credentials, Clerk instances, storage buckets/prefixes, Sentry projects, and PostHog keys must be isolated. Production services must reject staging Clerk issuers and storage references.
-
-## Container and Runtime Configuration
-
-The future backend image should:
-
-- Use a pinned supported Python version and lock dependencies.
-- Build in a multi-stage Dockerfile.
-- Run as a non-root user with a read-only filesystem where practical.
-- Include only runtime packages in the final image.
-- Expose a single HTTP port and use platform termination signals.
-- Emit structured logs to stdout.
-- Include image labels for commit SHA, build time, and version.
-- Be scanned for known vulnerabilities in CI.
-
-API startup must not run schema migrations. The readiness endpoint remains false until required dependencies are reachable, but liveness does not fail for a transient database outage.
-
-## CI/CD Pipeline
-
-GitHub Actions is the source-of-truth pipeline.
-
-```mermaid
-flowchart LR
-    PR["Pull request"] --> Checks["Lint, typecheck, tests"]
-    Checks --> Build["Web build + API image build"]
-    Build --> Preview["Vercel preview / staging image"]
-    Preview --> Contract["Contract and smoke tests"]
-    Contract --> Merge["Merge to main"]
-    Merge --> Migrate["Reviewed forward migration"]
-    Migrate --> DeployAPI["Deploy API/workers"]
-    DeployAPI --> DeployWeb["Promote web"]
-    DeployWeb --> Smoke["Production smoke checks"]
+```env
+NEXT_PUBLIC_DATA_MODE=api
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-url/api/v1
+NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 ```
 
-### Pull Request Checks
+Changes to `NEXT_PUBLIC_*` variables require a new Vercel deployment because they are embedded in the frontend build.
 
-- Frontend lint, TypeScript, unit tests, and `next build`.
-- Backend formatting, static typing, unit tests, PostgreSQL integration tests, and OpenAPI compatibility check.
-- Migration safety review and upgrade/downgrade test against an ephemeral database.
-- Docker build and vulnerability scan.
-- Secret scan and dependency audit.
-- Critical browser workflow tests on preview/staging.
+## Deploy on Render
 
-### Release Sequence
+1. Create a Neon PostgreSQL database and copy its connection string.
+2. In Render, create a Blueprint from this repository. Render reads `render.yaml` at the repository root.
+3. Enter the secret environment values requested by the Blueprint: `DATABASE_URL`, `CLERK_ISSUER`, `CLERK_JWKS_URL`, and `CORS_ORIGINS`.
+4. Deploy. Render builds `backend/Dockerfile`, runs `alembic upgrade head` as the pre-deploy command, and starts `backend/start.sh`.
+5. Confirm `https://your-backend-url/api/v1/health` returns HTTP 200.
 
-1. Build immutable frontend and backend artifacts tagged with commit SHA.
-2. Apply backward-compatible database migrations through a one-off migration job.
-3. Deploy API and workers; verify readiness and error rate.
-4. Promote frontend referencing the compatible `/api/v1` contract.
-5. Run authenticated smoke tests.
-6. Monitor error rate, latency, queue age, and database load.
+The health route is public. User-owned routes require a valid Clerk token when `AUTH_REQUIRED=true`.
 
-Schema changes use expand/migrate/contract:
+## Railway or Fly.io
 
-1. Add new nullable column/table/index.
-2. Deploy code supporting old and new forms.
-3. Backfill in bounded batches.
-4. Enforce new constraint.
-5. Remove old code/column in a later release.
+Use `backend/` as the Docker build context and `backend/Dockerfile` as the Dockerfile. Configure the same backend environment variables and expose the platform-provided `PORT`.
 
-Rollback means redeploying the previous application image. Destructive database rollback is avoided; migrations must remain compatible with the previous release during the deployment window.
+Run this once as the platform release or pre-deploy command:
 
-## Environment Variables
-
-### Next.js/Vercel
-
-```text
-NEXT_PUBLIC_APP_URL
-NEXT_PUBLIC_API_BASE_URL
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-CLERK_SECRET_KEY
-NEXT_PUBLIC_POSTHOG_KEY
-NEXT_PUBLIC_POSTHOG_HOST
-SENTRY_AUTH_TOKEN                 # build only
-NEXT_PUBLIC_SENTRY_DSN
+```bash
+alembic upgrade head
 ```
 
-### FastAPI
+The production process command is:
 
-```text
-APP_ENV
-APP_VERSION
-LOG_LEVEL
-DATABASE_URL                      # pooled runtime endpoint
-DATABASE_MIGRATION_URL            # direct endpoint, migration job only
-CLERK_ISSUER
-CLERK_AUDIENCE
-CLERK_JWKS_URL
-CLERK_WEBHOOK_SECRET
-CORS_ALLOWED_ORIGINS
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-SUPABASE_RESUME_BUCKET
-REDIS_URL                         # only when queues/rate limits ship
-SENTRY_DSN
-POSTHOG_API_KEY
-POSTHOG_HOST
+```bash
+sh ./start.sh
 ```
 
-Future provider secrets are feature-scoped: AI gateway key, email provider key, calendar OAuth credentials, and extension signing values. Worker-only secrets should not be present in the API or frontend runtime when avoidable.
+Do not run migrations in every web process startup. Use the platform's release phase, pre-deploy command, or a one-off job so concurrent replicas cannot race.
 
-## Secrets Management
+## Database Migration
 
-- Store secrets in Vercel and Railway/Fly environment secret stores, never in Git or Docker images.
-- Use separate values per environment and least-privilege service accounts.
-- Limit production secret access to production deployers and services.
-- Rotate webhook, storage, database, and AI credentials on a documented schedule and after suspected exposure.
-- Prefer short-lived credentials/OIDC for CI where providers support it.
-- Redact secrets from logs, Sentry breadcrumbs, build output, and support tools.
-- Maintain an emergency rotation and revocation runbook.
+The initial Alembic migration creates the current production schema:
 
-## Production Configuration
+- `users`
+- `applications`
+- `resume_versions`
+- `coding_problems`
+- `behavioral_questions`
+- `system_design_prompts`
+- `user_settings`
 
-### Networking and HTTP
+It also creates the analytics snapshot table used by the backend model set. To migrate manually from `backend/`:
 
-- TLS-only with HSTS after domain validation.
-- Explicit CORS allowlist.
-- Trusted proxy configuration for client IP and scheme.
-- Request body limits globally and tighter upload/import limits by endpoint.
-- API timeouts below platform hard limits; long work returns `202`.
-- Compression for safe JSON responses; no compression of secrets in reflected contexts.
-- Security headers on Vercel: CSP, frame ancestors, referrer policy, permissions policy, and MIME sniffing protection.
+```bash
+alembic upgrade head
+```
 
-### Database
+For Neon, use a direct connection for migration jobs when available. The pooled connection is appropriate for API runtime traffic.
 
-- Statement timeout and idle transaction timeout.
-- Slow query logging and query-plan review.
-- Connection pool budget per replica/process.
-- Read/write transactions use explicit scope; no global session.
-- Online/concurrent index creation for large production tables.
-- Automated backups plus quarterly restore exercises.
+## Clerk JWT Template
 
-### Object Storage
+In the Clerk Dashboard, select the production instance, open **JWT templates**, and create a blank template named `offeros-api` with these claims:
 
-- Private bucket, server-side encryption, lifecycle cleanup for abandoned upload intents.
-- Maximum size and accepted MIME allowlist.
-- Checksums and malware scan status before extraction.
-- Retention cleanup tied to account deletion and resume version lifecycle.
+```json
+{
+  "aud": "offeros-api",
+  "email": "{{user.primary_email_address}}",
+  "name": "{{user.full_name}}"
+}
+```
 
-## Monitoring and Product Analytics
+Clerk includes `sub`, `iss`, `iat`, `nbf`, and `exp` automatically. Do not add or override those claims.
 
-### Sentry
+- `CLERK_ISSUER`: the exact `iss` value in a token issued by the production Clerk instance.
+- `CLERK_JWKS_URL`: the production Clerk Frontend API URL with `/.well-known/jwks.json` appended. The Clerk API Keys page also exposes the instance JWT public key details.
+- `CLERK_AUDIENCE`: `offeros-api`, matching the template's `aud` claim.
 
-Use Sentry for frontend, API, and worker errors and distributed traces. Attach environment, release SHA, request ID, route, and job type. Do not attach resume text, STAR stories, authorization headers, or full provider prompts.
+Set `NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api` in Vercel so the frontend requests this token. Keep template lifetimes short; Clerk's SDK refreshes tokens as needed.
 
-Alert initially on:
+## Health and Smoke Tests
 
-- Elevated 5xx rate or p95 API latency.
-- Authentication/JWKS failures.
-- Database connection saturation.
-- Worker queue age and terminal failures.
-- Resume upload/extraction failure rate.
-- AI spend or error anomalies.
+The unauthenticated health response is:
 
-### PostHog
+```json
+{
+  "status": "ok",
+  "environment": "production",
+  "service": "offeros-api",
+  "version": "0.1.0"
+}
+```
 
-Use PostHog for consent-aware product analytics and feature flags. Track semantic events such as application created, status changed, prep session completed, and resume analysis requested. Avoid raw job descriptions, resumes, notes, emails, and recruiter names.
+Run the standard-library smoke script after deployment:
 
-Server-side events use the internal user ID. Identity linkage to Clerk must be deliberate and documented. Respect opt-out and deletion requests.
+```bash
+python backend/scripts/smoke_test.py \
+  --base-url https://your-backend-url/api/v1 \
+  --auth-required
+```
 
-### Clarity
+To test the authenticated applications endpoint, obtain a short-lived `offeros-api` token from a signed-in production session and set it only for the current shell:
 
-Microsoft Clarity may be used only after privacy review. Sensitive inputs and authenticated recruiting content must be masked, and session recording should be disabled on resume/STAR story surfaces if reliable masking cannot be guaranteed. Clarity is optional; Sentry and PostHog are the production baseline.
+```bash
+export OFFEROS_SMOKE_TOKEN='<short-lived-token>'
+python backend/scripts/smoke_test.py \
+  --base-url https://your-backend-url/api/v1 \
+  --auth-required
+```
 
-## Reliability, Scaling, and Cost Controls
+PowerShell equivalent:
 
-- Start with one API service and no workers until asynchronous features ship.
-- Autoscale stateless API replicas based on CPU/latency while respecting database connection budget.
-- Scale workers by queue depth and oldest-job age, with hard concurrency limits for AI.
-- Cache public/static assets at Vercel; do not cache private API responses at shared edges.
-- Apply per-user AI quotas and global daily spend caps.
-- Use retention policies for imports, AI payloads, analytics snapshots, and logs.
-- Review Neon, storage, Redis, Sentry, and PostHog usage monthly.
+```powershell
+$env:OFFEROS_SMOKE_TOKEN = '<short-lived-token>'
+python backend/scripts/smoke_test.py --base-url https://your-backend-url/api/v1 --auth-required
+Remove-Item Env:OFFEROS_SMOKE_TOKEN
+```
 
-## Disaster Recovery
+The script verifies public health, verifies that an anonymous protected request returns 401, and tests authenticated application listing when a token is present.
 
-Define and test:
+## Frontend Failure Behavior
 
-- Target RPO: initially 24 hours minimum, improved to provider PITR capability before public production.
-- Target RTO: initially four hours for the modular monolith.
-- Database point-in-time restoration to an isolated project before production cutover.
-- Object inventory/checksum reconciliation after database restore.
-- Replaying unpublished outbox events safely.
-- Clerk and storage credential rotation.
-- Status communication and incident ownership.
+API mode keeps the authenticated application shell mounted when the API cannot be reached. Data views render a friendly error state with a retry action, and account controls remain available so the user can log out. `NEXT_PUBLIC_DATA_MODE=local` remains independent of the backend.
 
-## Launch Checklist
+## Deployment Checklist
 
-- Production domains and TLS validated.
-- Clerk issuer/audience and redirect allowlists locked.
-- CORS allowlist contains no wildcard.
-- Database migrations rehearsed on staging-scale data.
-- Backup restore completed successfully.
-- Storage bucket private; signed URL expiry tested.
-- Sentry alerts and release tracking active.
-- PostHog privacy review and opt-out implemented.
-- Rate limits and request size limits enabled.
-- Account export/deletion and incident runbooks reviewed.
-- Critical authenticated smoke test passes after deployment.
+1. Create a Neon PostgreSQL database.
+2. Deploy the backend from `backend/Dockerfile` or the Render Blueprint.
+3. Set all backend environment variables.
+4. Run `alembic upgrade head`.
+5. Configure the Clerk JWT template named `offeros-api`.
+6. Add the backend API URL to Vercel as `NEXT_PUBLIC_API_BASE_URL`.
+7. Set `NEXT_PUBLIC_DATA_MODE=api` and `NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api`.
+8. Redeploy the Vercel frontend.
+9. Test production sign-in.
+10. Create an application and confirm it appears in the list.
+11. Refresh and confirm the application persists.
+12. Test the explicit Log out action and sign-in redirect.
+
+## Rollback
+
+Switching Vercel back to `NEXT_PUBLIC_DATA_MODE=local` and redeploying restores browser-local operation without deleting API data. Backend rollbacks should redeploy the previous image. Avoid destructive database downgrades; apply forward-compatible corrective migrations instead.

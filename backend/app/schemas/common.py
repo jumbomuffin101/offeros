@@ -17,6 +17,7 @@ class DataResponse(BaseModel, Generic[T]):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
+    environment: str
     service: str = "offeros-api"
     version: str
 

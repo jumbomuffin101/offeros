@@ -74,6 +74,20 @@ npm run build
 npm run start
 ```
 
+## Production API Sync
+
+The backend is deployable as a Docker service on Render, Railway, or Fly.io. A Render Blueprint is included at `render.yaml`; it builds the FastAPI image, runs Alembic before deployment, and configures `/api/v1/health` as the public health check.
+
+After deploying the API and configuring Clerk's `offeros-api` JWT template, set these Vercel build variables and redeploy:
+
+```env
+NEXT_PUBLIC_DATA_MODE=api
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-url/api/v1
+NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api
+```
+
+See [`docs/deployment.md`](docs/deployment.md) for exact backend environment values, Clerk setup, smoke tests, and the production acceptance checklist.
+
 ## Test PWA Installation Locally
 
 The service worker registers in production mode only so it does not interfere with Next.js development refreshes.

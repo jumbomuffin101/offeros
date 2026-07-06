@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: offeros-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    preDeployCommand: alembic upgrade head
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: AUTH_REQUIRED
+        value: "true"
+      - key: CLERK_AUDIENCE
+        value: offeros-api
+      - key: LOG_LEVEL
+        value: INFO
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: DATABASE_URL
+        sync: false
+      - key: CLERK_ISSUER
+        sync: false
+      - key: CLERK_JWKS_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

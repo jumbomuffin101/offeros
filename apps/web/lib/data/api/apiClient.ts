@@ -59,7 +59,7 @@ class ApiClient {
     } catch (error) {
       throw new DataError(
         "NETWORK_ERROR",
-        "OfferOS could not reach the API. Check that the backend is running.",
+        "OfferOS could not reach your workspace. Check your connection and try again.",
         { cause: error },
       );
     }
