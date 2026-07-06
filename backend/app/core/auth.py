@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from functools import lru_cache
+from hashlib import sha256
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError, PyJWKClient, PyJWKClientError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -90,16 +92,7 @@ def get_current_user(
 
     identity = verify_clerk_jwt(credentials.credentials, settings)
     user = db.scalar(select(User).where(User.clerk_user_id == identity.clerk_user_id))
-    if user is None:
-        # TODO(auth-sync): Provision users from verified Clerk webhooks before enabling cloud CRUD.
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "user_not_synced",
-                "message": "The authenticated Clerk user does not have an OfferOS account record yet.",
-            },
-        )
-    return user
+    return user or _create_clerk_user(db, identity)
 
 
 def _get_or_create_demo_user(db: Session) -> User:
@@ -114,6 +107,32 @@ def _get_or_create_demo_user(db: Session) -> User:
         db.add(user)
         db.commit()
         db.refresh(user)
+    return user
+
+
+def _create_clerk_user(db: Session, identity: ClerkIdentity) -> User:
+    synthetic_email = f"clerk-{sha256(identity.clerk_user_id.encode()).hexdigest()[:24]}@users.offeros.local"
+    email = identity.email or synthetic_email
+    if db.scalar(select(User.id).where(User.email == email)) is not None:
+        email = synthetic_email
+
+    user = User(
+        clerk_user_id=identity.clerk_user_id,
+        email=email,
+        name=identity.name or (identity.email.split("@", 1)[0] if identity.email else "OfferOS User"),
+    )
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        concurrent_user = db.scalar(
+            select(User).where(User.clerk_user_id == identity.clerk_user_id)
+        )
+        if concurrent_user is None:
+            raise
+        return concurrent_user
+    db.refresh(user)
     return user
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { dashboardRepository } from "@/lib/data/repositories/dashboardRepository";
+import { dashboardRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 
 const loadDashboard = () => dashboardRepository.summary();

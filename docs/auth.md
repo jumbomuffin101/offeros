@@ -13,10 +13,12 @@ Clerk authentication is now implemented as a foundation:
 - `proxy.ts` requires a Clerk session for Dashboard, Applications, Resumes, Prep, Analytics, and Settings.
 - The sidebar and mobile navigation show Clerk's `UserButton` and current identity.
 - First-run OfferOS onboarding remains inside the authenticated app shell and never renders on auth routes.
-- FastAPI can verify Clerk RS256 JWTs through cached JWKS when `AUTH_REQUIRED=true`.
+- FastAPI verifies Clerk RS256 JWTs through cached JWKS when `AUTH_REQUIRED=true`.
 - `AUTH_REQUIRED=false` preserves the deterministic demo user and existing backend behavior.
+- The frontend API client obtains short-lived Clerk tokens in memory and sends them as bearer tokens in API mode.
+- Users have an explicit Log out action in desktop and mobile account controls in addition to Clerk's account menu.
 
-Recruiting records remain in browser `localStorage`. Authentication does not yet migrate, synchronize, or isolate that local data by Clerk user. Frontend CRUD repositories also do not call FastAPI yet.
+`NEXT_PUBLIC_DATA_MODE=local` keeps recruiting records in browser localStorage. `NEXT_PUBLIC_DATA_MODE=api` routes domain repositories through FastAPI. Switching modes does not automatically migrate records.
 
 ## Authentication Flow
 
@@ -224,7 +226,7 @@ CLERK_AUDIENCE=
 AUTH_REQUIRED=false
 ```
 
-Before setting `AUTH_REQUIRED=true`, configure a Clerk JWT template/audience, synchronize Clerk users into the OfferOS `users` table, and update the frontend API token provider. `apps/web/lib/data/api/apiClient.ts` already exposes `setAuthTokenProvider()` and `getAuthHeaders()` for that future integration.
+Before setting `AUTH_REQUIRED=true`, configure a Clerk JWT template whose audience matches `CLERK_AUDIENCE`. The frontend token bridge configures `setAuthTokenProvider()` from Clerk after session hydration. FastAPI creates the local user record on the first validated request; webhooks remain the future source for full identity lifecycle updates.
 
 ## Failure Modes
 

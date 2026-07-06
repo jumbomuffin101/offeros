@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { ResumeVersion } from "@/lib/types";
 import type { ResumeInput } from "@/lib/data/types";
-import { resumeRepository } from "@/lib/data/repositories/resumeRepository";
+import { resumeRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 
 const loadResumes = () => resumeRepository.list();

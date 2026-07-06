@@ -1,6 +1,6 @@
 "use client";
 
-import { analyticsRepository } from "@/lib/data/repositories/analyticsRepository";
+import { analyticsRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 
 const loadAnalytics = () => analyticsRepository.summary();

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import type { ApplicationStatus } from "@/lib/types";
 import type { ApplicationInput } from "@/lib/data/types";
-import { applicationRepository } from "@/lib/data/repositories/applicationRepository";
+import { applicationRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 
 const loadApplications = () => applicationRepository.list();

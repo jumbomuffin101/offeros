@@ -1,0 +1,176 @@
+import type {
+  Application,
+  ApplicationPriority,
+  ApplicationStatus,
+  BehavioralQuestion,
+  CodingProblem,
+  PrepStatus,
+  ResumeVersion,
+  SystemDesignPrompt,
+} from "@/lib/types";
+import type {
+  ApplicationInput,
+  CodingProblemInput,
+  PrepUpdateInput,
+  ResumeInput,
+  SystemDesignInput,
+} from "@/lib/data/types";
+import type {
+  ApiApplication,
+  ApiBehavioralQuestion,
+  ApiCodingProblem,
+  ApiPrepStatus,
+  ApiResume,
+  ApiSystemDesignPrompt,
+} from "@/lib/data/api/contracts";
+
+const applicationStatusToApi: Record<ApplicationStatus, ApiApplication["status"]> = {
+  Wishlist: "wishlist", Applying: "applying", Applied: "applied", OA: "oa",
+  Interview: "interview", "Final Round": "final_round", Offer: "offer", Rejected: "rejected",
+};
+const applicationStatusFromApi = invert(applicationStatusToApi);
+const priorityToApi: Record<ApplicationPriority, ApiApplication["priority"]> = { Low: "low", Medium: "medium", High: "high" };
+const priorityFromApi = invert(priorityToApi);
+const prepStatusToApi: Record<PrepStatus, ApiPrepStatus> = {
+  "Not Started": "not_started", "In Progress": "in_progress", Completed: "completed", Skipped: "skipped",
+};
+const prepStatusFromApi = invert(prepStatusToApi);
+
+export function fromApiApplication(value: ApiApplication): Application {
+  const application: Application = {
+    id: value.id,
+    company: value.company,
+    role: value.role,
+    location: value.location,
+    status: applicationStatusFromApi[value.status],
+    dateApplied: value.date_applied ?? "",
+    deadline: value.deadline ?? "",
+    source: value.source,
+    resumeUsed: value.resume_used,
+    jobUrl: value.job_url ?? "",
+    recruiterName: value.recruiter_name,
+    recruiterEmail: value.recruiter_email ?? "",
+    salaryRange: value.salary_range,
+    priority: priorityFromApi[value.priority],
+    notes: value.notes,
+    tags: value.tags,
+    createdAt: value.created_at,
+    updatedAt: value.updated_at,
+    category: "Startup",
+  };
+  return { ...application, category: inferCategory(application) };
+}
+
+export function toApiApplication(value: Partial<ApplicationInput>) {
+  return defined({
+    company: value.company,
+    role: value.role,
+    location: value.location,
+    status: value.status ? applicationStatusToApi[value.status] : undefined,
+    date_applied: value.dateApplied === undefined ? undefined : value.dateApplied || null,
+    deadline: value.deadline === undefined ? undefined : value.deadline || null,
+    source: value.source,
+    resume_used: value.resumeUsed,
+    job_url: value.jobUrl === undefined ? undefined : value.jobUrl || null,
+    recruiter_name: value.recruiterName,
+    recruiter_email: value.recruiterEmail === undefined ? undefined : value.recruiterEmail || null,
+    salary_range: value.salaryRange,
+    priority: value.priority ? priorityToApi[value.priority] : undefined,
+    notes: value.notes,
+    tags: value.tags,
+  });
+}
+
+export function fromApiResume(value: ApiResume): ResumeVersion {
+  return {
+    id: value.id, name: value.name, targetRole: value.target_role, description: value.description,
+    status: value.status === "active" ? "Active" : "Draft", lastUpdated: value.updated_at,
+    applicationsUsed: 0, keywordMatchScore: value.keyword_match_score, tags: value.tags,
+    strengths: value.strengths, weaknesses: value.weaknesses, missingKeywords: value.missing_keywords,
+    suggestedImprovement: value.suggested_improvement, notes: value.notes, fileName: value.file_name,
+    createdAt: value.created_at, updatedAt: value.updated_at,
+  };
+}
+
+export function toApiResume(value: Partial<ResumeInput>) {
+  return defined({
+    name: value.name, target_role: value.targetRole, description: value.description,
+    status: value.status?.toLowerCase(), keyword_match_score: value.keywordMatchScore,
+    tags: value.tags, strengths: value.strengths, weaknesses: value.weaknesses,
+    missing_keywords: value.missingKeywords, suggested_improvement: value.suggestedImprovement,
+    notes: value.notes, file_name: value.fileName,
+  });
+}
+
+export function fromApiCoding(value: ApiCodingProblem): CodingProblem {
+  return {
+    id: value.id, title: value.title, difficulty: titleCase(value.difficulty) as CodingProblem["difficulty"],
+    topic: value.topic, targetTimeMinutes: value.target_time_minutes,
+    status: prepStatusFromApi[value.status], notes: value.notes, link: value.link ?? "",
+    completedAt: value.completed_at ?? "", createdAt: value.created_at, updatedAt: value.updated_at,
+  };
+}
+
+export function toApiCoding(value: Partial<CodingProblemInput>) {
+  return defined({
+    title: value.title, difficulty: value.difficulty?.toLowerCase(), topic: value.topic,
+    target_time_minutes: value.targetTimeMinutes,
+    status: value.status ? prepStatusToApi[value.status] : undefined,
+    notes: value.notes, link: value.link === undefined ? undefined : value.link || null,
+  });
+}
+
+export function fromApiBehavioral(value: ApiBehavioralQuestion): BehavioralQuestion {
+  return {
+    id: value.id, question: value.question, category: value.category,
+    starSituation: value.star_situation, starTask: value.star_task, starAction: value.star_action,
+    starResult: value.star_result, confidenceScore: value.confidence_score,
+    status: prepStatusFromApi[value.status], createdAt: value.created_at, updatedAt: value.updated_at,
+  };
+}
+
+export function toApiBehavioral(value: Partial<BehavioralQuestion>) {
+  return defined({
+    question: value.question, category: value.category, star_situation: value.starSituation,
+    star_task: value.starTask, star_action: value.starAction, star_result: value.starResult,
+    confidence_score: value.confidenceScore,
+    status: value.status ? prepStatusToApi[value.status] : undefined,
+  });
+}
+
+export function fromApiSystemDesign(value: ApiSystemDesignPrompt): SystemDesignPrompt {
+  return {
+    id: value.id, title: value.title, prompt: value.prompt, concepts: value.concepts,
+    status: prepStatusFromApi[value.status], notes: value.notes,
+    createdAt: value.created_at, updatedAt: value.updated_at,
+  };
+}
+
+export function toApiSystemDesign(value: Partial<SystemDesignInput>) {
+  return defined({
+    title: value.title, prompt: value.prompt, concepts: value.concepts,
+    status: value.status ? prepStatusToApi[value.status] : undefined, notes: value.notes,
+  });
+}
+
+export function toApiPrepUpdate(input: PrepUpdateInput) {
+  if (input.type === "coding") return toApiCoding(input.value);
+  if (input.type === "behavioral") return toApiBehavioral(input.value);
+  return toApiSystemDesign(input.value);
+}
+
+function defined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
+}
+function invert<K extends string, V extends string>(value: Record<K, V>) {
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [item, key])) as Record<V, K>;
+}
+function titleCase(value: string) { return `${value.charAt(0).toUpperCase()}${value.slice(1)}`; }
+function inferCategory(input: ApplicationInput | Application): Application["category"] {
+  const content = [input.company, input.role, input.source, input.resumeUsed, input.notes, ...input.tags].join(" ").toLowerCase();
+  if (content.includes("google") || content.includes("meta")) return "Big Tech";
+  if (content.includes("finance") || content.includes("bank") || content.includes("quant")) return "Finance";
+  if (content.includes("stripe") || content.includes("capital") || content.includes("payment")) return "Fintech";
+  if (content.includes("data") || content.includes("observability")) return "Data";
+  return "Startup";
+}

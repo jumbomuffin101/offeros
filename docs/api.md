@@ -28,6 +28,9 @@ The authenticated user is derived from the token subject, never from a client-pr
 
 - Request and response bodies use `application/json`.
 - JSON fields use `snake_case` at the API boundary. The generated TypeScript client may map names if desired, but one convention should be used consistently.
+- The frontend API repositories map snake_case payloads and lowercase API enums into the existing camelCase OfferOS domain types.
+- Successful endpoints return `{ "data": ... }`; deletes return `204 No Content`.
+- `NEXT_PUBLIC_DATA_MODE=local` selects localStorage repositories. `NEXT_PUBLIC_DATA_MODE=api` selects authenticated FastAPI repositories without changing UI hooks.
 - Dates use `YYYY-MM-DD`; timestamps use ISO 8601 UTC.
 - IDs are opaque UUID strings.
 - Missing optional fields and explicit `null` have different PATCH semantics.

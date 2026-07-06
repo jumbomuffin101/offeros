@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import type { BehavioralQuestion, PrepGoal, PrepStatus } from "@/lib/types";
 import type { CodingProblemInput, SystemDesignInput } from "@/lib/data/types";
 import { DataError } from "@/lib/data/errors";
-import { prepRepository } from "@/lib/data/repositories/prepRepository";
+import { prepRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 
 const loadPrep = () => prepRepository.list();
