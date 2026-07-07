@@ -15,7 +15,8 @@ export type ResumeFormPayload = ResumeInput;
 const emptyForm: ResumeFormPayload = {
   name: "", targetRole: "", description: "", status: "Draft", applicationsUsed: 0,
   keywordMatchScore: 0, tags: [], strengths: [], weaknesses: [], missingKeywords: [],
-  suggestedImprovement: "", notes: "", fileName: "",
+  suggestedImprovement: "", notes: "", fileName: "", originalFileName: "", extractedText: "",
+  textExtractionStatus: "not_started", textExtractionError: "",
 };
 
 const allowedFileExtensions = [".pdf", ".doc", ".docx"];
@@ -91,7 +92,9 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
     onSubmit({
       ...form,
       name: form.name.trim(), targetRole: form.targetRole.trim(), description: form.description.trim(),
-      fileName: form.fileName.trim(), suggestedImprovement: form.suggestedImprovement.trim(), notes: form.notes.trim(),
+      fileName: form.fileName.trim(), originalFileName: form.originalFileName.trim() || form.fileName.trim(),
+      extractedText: form.extractedText.trim(), textExtractionStatus: form.extractedText.trim() ? "manual" : form.textExtractionStatus,
+      textExtractionError: form.textExtractionError.trim(), suggestedImprovement: form.suggestedImprovement.trim(), notes: form.notes.trim(),
       keywordMatchScore: Math.min(100, Math.max(0, form.keywordMatchScore)),
       applicationsUsed: Math.max(0, form.applicationsUsed),
       tags: parseResumeList(lists.tags), strengths: parseResumeList(lists.strengths),
@@ -136,7 +139,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             >
               {form.fileName ? <FileCheck2 className="size-6 text-emerald-300" /> : <FileUp className="size-6 text-indigo-200" />}
               <span className="mt-2 text-sm font-medium text-white">{form.fileName ? form.fileName : "Choose a PDF, DOC, or DOCX"}</span>
-              <span className="mt-1 max-w-2xl text-xs leading-5 text-slate-500" id="resume-file-help">For now, OfferOS stores only the file name locally. Resume text extraction and role-specific AI analysis are planned for the backend and AI phase.</span>
+              <span className="mt-1 max-w-2xl text-xs leading-5 text-slate-500" id="resume-file-help">For now, OfferOS stores only the file name. PDF/DOCX parsing is coming soon. Paste resume text below for AI analysis.</span>
             </button>
             <input
               accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -157,6 +160,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             <Field label="Keyword match score"><Input min={0} max={100} type="number" value={form.keywordMatchScore} onChange={(event) => update("keywordMatchScore", Number(event.target.value))} /></Field>
             <Field label="Applications used"><Input min={0} type="number" value={form.applicationsUsed} onChange={(event) => update("applicationsUsed", Number(event.target.value))} /></Field>
             <Field className="md:col-span-2" label="Description"><Textarea value={form.description} onChange={(value) => update("description", value)} /></Field>
+            <Field className="md:col-span-2" label="Resume text"><Textarea minHeight="min-h-40" value={form.extractedText} onChange={(value) => update("extractedText", value)} placeholder="Paste the plain text version of your resume for AI analysis. PDF/DOCX parsing is coming soon." /></Field>
             <ListField label="Tags" value={lists.tags} onChange={(value) => setLists((current) => ({ ...current, tags: value }))} placeholder="backend, TypeScript, APIs" />
             <ListField label="Strengths" value={lists.strengths} onChange={(value) => setLists((current) => ({ ...current, strengths: value }))} placeholder="API design, reliability" />
             <ListField label="Weaknesses" value={lists.weaknesses} onChange={(value) => setLists((current) => ({ ...current, weaknesses: value }))} placeholder="few metrics, long summary" />
@@ -181,8 +185,8 @@ function ListField({ label, value, onChange, placeholder }: { label: string; val
   return <Field label={label}><Input placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} /></Field>;
 }
 
-function Textarea({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return <textarea className="min-h-24 w-full rounded-xl border border-slate-700/70 bg-slate-950/45 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/15" value={value} onChange={(event) => onChange(event.target.value)} />;
+function Textarea({ value, onChange, placeholder, minHeight = "min-h-24" }: { value: string; onChange: (value: string) => void; placeholder?: string; minHeight?: string }) {
+  return <textarea className={`${minHeight} w-full rounded-xl border border-slate-700/70 bg-slate-950/45 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/15`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
 function Select({ value, onChange }: { value: string; onChange: (value: string) => void }) {

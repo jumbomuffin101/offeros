@@ -93,6 +93,9 @@ CLERK_ISSUER=
 CLERK_JWKS_URL=
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=https://your-vercel-url.vercel.app
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+AI_MODEL=gpt-4.1-mini
 LOG_LEVEL=INFO
 ```
 
@@ -130,6 +133,9 @@ Set `OFFEROS_SMOKE_TOKEN` to a short-lived `offeros-api` Clerk token to also ver
 | `CLERK_JWKS_URL` | Clerk JWKS endpoint used by the cached signing-key client |
 | `CLERK_AUDIENCE` | Expected API token audience; optional only while auth is disabled |
 | `AUTH_REQUIRED` | Require valid Clerk JWTs when `true`; defaults to `false` |
+| `AI_PROVIDER` | `openai` for production resume analysis, `disabled` or blank for no configured provider |
+| `OPENAI_API_KEY` | Server-side OpenAI API key; never exposed to the frontend |
+| `AI_MODEL` | OpenAI model used by Resume Intelligence |
 | `LOG_LEVEL` | Python logging level |
 
 The public `GET /api/v1/health` route returns `status`, `environment`, `service`, and `version`. It never requires authentication and is suitable for platform health checks.
@@ -147,6 +153,26 @@ Behavior:
 - The endpoint returns counts for the recreated records.
 
 The frontend uses this endpoint for page-level demo reset buttons and Settings reset actions in API mode. Local mode continues to use localStorage reset behavior.
+
+## AI Resume Intelligence
+
+Resume versions now store manual resume text fields:
+
+- `extracted_text`
+- `original_file_name`
+- `text_extraction_status`
+- `text_extraction_error`
+
+PDF/DOCX parsing is intentionally a TODO. Users paste plain resume text in the web app today.
+
+Analysis endpoints:
+
+- `POST /api/v1/resumes/{resume_id}/analyze`
+- `GET /api/v1/resumes/{resume_id}/analyses`
+- `GET /api/v1/resume-analyses/{analysis_id}`
+- `DELETE /api/v1/resume-analyses/{analysis_id}`
+
+All analysis reads and writes are scoped to the current authenticated user. The backend uses `app/services/ai_resume_analysis.py` as the provider boundary. `AI_PROVIDER=openai` with `OPENAI_API_KEY` calls OpenAI from the backend using strict JSON output. Local and test environments fall back to deterministic mock analysis so UI flows and tests do not require external AI access. Production without AI configuration returns a clear `ai_not_configured` error.
 
 ## Local Import
 

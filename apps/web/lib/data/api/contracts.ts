@@ -46,6 +46,37 @@ export type ApiResume = {
   suggested_improvement: string;
   notes: string;
   file_name: string;
+  original_file_name: string;
+  extracted_text: string;
+  text_extraction_status: "not_started" | "manual" | "parsed" | "failed";
+  text_extraction_error: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ApiResumeAnalysis = {
+  id: string;
+  user_id: string;
+  resume_version_id: string;
+  target_role: string;
+  job_description: string;
+  overall_score: number;
+  keyword_score: number;
+  impact_score: number;
+  clarity_score: number;
+  technical_depth_score: number;
+  missing_keywords: string[];
+  strong_keywords: string[];
+  weak_bullets: string[];
+  suggested_bullet_rewrites: Array<{ original: string; rewrite: string; rationale: string }>;
+  strengths: string[];
+  risks: string[];
+  recommendations: string[];
+  summary: string;
+  provider: string;
+  model: string;
+  status: "completed" | "failed" | "pending";
+  error_message: string;
   created_at: string;
   updated_at: string;
 };

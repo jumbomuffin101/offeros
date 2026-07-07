@@ -1,7 +1,7 @@
 import type { ResumeRepository } from "@/lib/data/types/repositories";
-import type { ApiDataResponse, ApiResume } from "@/lib/data/api/contracts";
+import type { ApiDataResponse, ApiResume, ApiResumeAnalysis } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
-import { fromApiResume, toApiResume } from "@/lib/data/api/mappers";
+import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { resumes as demoResumes } from "@/lib/mock-data";
 
 export const apiResumeRepository: ResumeRepository = {
@@ -38,5 +38,20 @@ export const apiResumeRepository: ResumeRepository = {
       system_design_prompts: [],
     });
     return this.list();
+  },
+  async analyzeResume(resumeId, payload) {
+    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalysis>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));
+    return fromApiResumeAnalysis(response.data);
+  },
+  async listResumeAnalyses(resumeId) {
+    const response = await apiClient.get<ApiDataResponse<ApiResumeAnalysis[]>>(`/resumes/${resumeId}/analyses`);
+    return response.data.map(fromApiResumeAnalysis);
+  },
+  async getResumeAnalysis(id) {
+    const response = await apiClient.get<ApiDataResponse<ApiResumeAnalysis>>(`/resume-analyses/${id}`);
+    return fromApiResumeAnalysis(response.data);
+  },
+  async deleteResumeAnalysis(id) {
+    await apiClient.delete(`/resume-analyses/${id}`);
   },
 };

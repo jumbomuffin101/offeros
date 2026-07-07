@@ -9,6 +9,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Dashboard with recruiting KPIs, today's plan, deadlines, activity, and pipeline summary
 - Kanban-style application tracker for internship and job opportunities
 - Resume manager with targeted versions, keyword scores, and mock insights
+- AI Resume Intelligence for SWE role fit, keyword gaps, bullet rewrites, and technical-depth feedback
 - Interview prep workspace for coding, behavioral, and system design practice
 - Analytics page with simple visual indicators for response and conversion trends
 - Responsive dark-mode-first shell with desktop sidebar and mobile navigation
@@ -47,6 +48,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 
 Applications, resumes, and prep continue using the existing localStorage repositories. The backend is not required.
 
+Resume analysis in local mode uses a deterministic local mock. It is clearly labeled as local/mock and is useful for testing the UX without sending data to an AI provider.
+
 ### API Data Mode
 
 Configure a Clerk JWT template whose audience matches `CLERK_AUDIENCE`, then set:
@@ -58,6 +61,16 @@ NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api
 ```
 
 Start PostgreSQL and FastAPI as documented in `backend/README.md`. API mode sends a fresh Clerk token with every request. Applications, resumes, and prep tasks use FastAPI; Dashboard and Analytics derive their current UI models from those API-backed lists.
+
+AI Resume Intelligence runs only on the backend. To enable production OpenAI analysis, set these backend variables:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+AI_MODEL=gpt-4.1-mini
+```
+
+If the backend is local/test or AI is not configured, OfferOS uses a deterministic mock analysis. In production, missing AI config returns a clear setup error.
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
 
@@ -112,6 +125,7 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 - Local mode data is stored only in the current browser profile and is not partitioned by Clerk user.
 - API mode does not automatically migrate existing localStorage records; use the manual Settings import when needed.
 - Resume `applicationsUsed` is not persisted by the current backend schema and displays as zero in API mode.
+- Resume PDF/DOCX text extraction is not implemented yet. Paste resume text manually before running AI analysis.
 - Prep goals remain local in API mode; completion sessions are derived from completed API tasks.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.
 
@@ -119,4 +133,5 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 
 - Portable export
 - Optional account and cloud synchronization
+- PDF/DOCX resume text extraction
 - Calendar and reminder integrations

@@ -6,6 +6,7 @@ import type {
   CodingProblem,
   PrepStatus,
   ResumeVersion,
+  ResumeAnalysis,
   SystemDesignPrompt,
 } from "@/lib/types";
 import type {
@@ -13,6 +14,7 @@ import type {
   CodingProblemInput,
   PrepUpdateInput,
   ResumeInput,
+  ResumeAnalysisInput,
   SystemDesignInput,
 } from "@/lib/data/types";
 import type {
@@ -21,6 +23,7 @@ import type {
   ApiCodingProblem,
   ApiPrepStatus,
   ApiResume,
+  ApiResumeAnalysis,
   ApiSystemDesignPrompt,
 } from "@/lib/data/api/contracts";
 
@@ -88,6 +91,8 @@ export function fromApiResume(value: ApiResume): ResumeVersion {
     applicationsUsed: 0, keywordMatchScore: value.keyword_match_score, tags: value.tags,
     strengths: value.strengths, weaknesses: value.weaknesses, missingKeywords: value.missing_keywords,
     suggestedImprovement: value.suggested_improvement, notes: value.notes, fileName: value.file_name,
+    originalFileName: value.original_file_name, extractedText: value.extracted_text,
+    textExtractionStatus: value.text_extraction_status, textExtractionError: value.text_extraction_error,
     createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
@@ -98,7 +103,45 @@ export function toApiResume(value: Partial<ResumeInput>) {
     status: value.status?.toLowerCase(), keyword_match_score: value.keywordMatchScore,
     tags: value.tags, strengths: value.strengths, weaknesses: value.weaknesses,
     missing_keywords: value.missingKeywords, suggested_improvement: value.suggestedImprovement,
-    notes: value.notes, file_name: value.fileName,
+    notes: value.notes, file_name: value.fileName, original_file_name: value.originalFileName,
+    extracted_text: value.extractedText, text_extraction_status: value.textExtractionStatus,
+    text_extraction_error: value.textExtractionError,
+  });
+}
+
+export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis {
+  return {
+    id: value.id,
+    resumeVersionId: value.resume_version_id,
+    targetRole: value.target_role,
+    jobDescription: value.job_description,
+    overallScore: value.overall_score,
+    keywordScore: value.keyword_score,
+    impactScore: value.impact_score,
+    clarityScore: value.clarity_score,
+    technicalDepthScore: value.technical_depth_score,
+    missingKeywords: value.missing_keywords,
+    strongKeywords: value.strong_keywords,
+    weakBullets: value.weak_bullets,
+    suggestedBulletRewrites: value.suggested_bullet_rewrites,
+    strengths: value.strengths,
+    risks: value.risks,
+    recommendations: value.recommendations,
+    summary: value.summary,
+    provider: value.provider,
+    model: value.model,
+    status: value.status,
+    errorMessage: value.error_message,
+    createdAt: value.created_at,
+    updatedAt: value.updated_at,
+  };
+}
+
+export function toApiResumeAnalysis(value: ResumeAnalysisInput) {
+  return defined({
+    target_role: value.targetRole,
+    job_description: value.jobDescription,
+    resume_text: value.resumeText,
   });
 }
 

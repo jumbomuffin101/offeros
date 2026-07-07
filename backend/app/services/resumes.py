@@ -55,6 +55,10 @@ class ResumeService:
             "suggested_improvement": resume.suggested_improvement,
             "notes": resume.notes,
             "file_name": resume.file_name,
+            "original_file_name": resume.original_file_name,
+            "extracted_text": resume.extracted_text,
+            "text_extraction_status": resume.text_extraction_status,
+            "text_extraction_error": resume.text_extraction_error,
         }
         duplicate = self.repository.create(user_id, values)
         self.db.commit()

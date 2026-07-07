@@ -7,7 +7,10 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import DataResponse
+from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeAnalysisResponse
+from app.core.config import Settings, get_settings
 from app.schemas.resume import ResumeCreate, ResumeResponse, ResumeUpdate
+from app.services.resume_analysis import ResumeAnalysisService
 from app.services.resumes import ResumeService
 
 
@@ -66,3 +69,24 @@ def delete_resume(
 ) -> Response:
     ResumeService(db).delete(user.id, resume_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{resume_id}/analyze", response_model=DataResponse[ResumeAnalysisResponse])
+def analyze_resume(
+    resume_id: UUID,
+    payload: ResumeAnalysisCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> DataResponse[ResumeAnalysisResponse]:
+    return DataResponse(data=ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload))
+
+
+@router.get("/{resume_id}/analyses", response_model=DataResponse[list[ResumeAnalysisResponse]])
+def list_resume_analyses(
+    resume_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> DataResponse[list[ResumeAnalysisResponse]]:
+    return DataResponse(data=ResumeAnalysisService(db, settings).list_for_resume(user.id, resume_id))

@@ -215,6 +215,8 @@ Validation: ownership of referenced resume version, allowed state/date combinati
 | GET | `/resumes/{resume_id}` | Resume with version summary |
 | PATCH | `/resumes/{resume_id}` | Rename/archive/update targeting |
 | DELETE | `/resumes/{resume_id}` | Soft delete when references permit |
+| POST | `/resumes/{resume_id}/analyze` | Analyze a stored or pasted resume against a SWE target role |
+| GET | `/resumes/{resume_id}/analyses` | List analysis history for one owned resume |
 | POST | `/resumes/{resume_id}/versions/upload-url` | Create signed upload intent |
 | POST | `/resumes/{resume_id}/versions` | Finalize uploaded version metadata |
 | GET | `/resumes/{resume_id}/versions` | List immutable versions |
@@ -223,6 +225,8 @@ Validation: ownership of referenced resume version, allowed state/date combinati
 | DELETE | `/resume-versions/{version_id}` | Schedule version deletion |
 
 Upload is two-step so file bytes go directly to private object storage rather than through FastAPI. Finalization validates storage key ownership, MIME type, size, checksum, and upload intent expiry, then queues scanning/extraction.
+
+Current MVP stores manual resume text on the resume version. PDF/DOCX parsing is not implemented yet; users paste plain text into `extracted_text` or provide `resume_text` in the analysis request.
 
 Finalize request:
 
@@ -240,8 +244,8 @@ Finalize request:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/resume-analyses` | Queue analysis for exact resume/job version |
-| GET | `/resume-analyses` | List analyses |
+| POST | `/resumes/{resume_id}/analyze` | Run role-fit analysis for an owned resume |
+| GET | `/resumes/{resume_id}/analyses` | List analyses for an owned resume |
 | GET | `/resume-analyses/{analysis_id}` | Read status/result |
 | DELETE | `/resume-analyses/{analysis_id}` | Remove user-visible result |
 
@@ -249,11 +253,9 @@ Request:
 
 ```json
 {
-  "resume_version_id": "0195f...",
-  "target": {
-    "application_id": "0195e..."
-  },
-  "analysis_type": "role_fit"
+  "target_role": "Backend Software Engineer Intern",
+  "job_description": "Python, FastAPI, PostgreSQL, distributed systems...",
+  "resume_text": "Optional override. If omitted, stored extracted_text is used."
 }
 ```
 
@@ -263,14 +265,25 @@ Response:
 {
   "data": {
     "id": "01960...",
-    "status": "queued",
-    "analysis_type": "role_fit",
-    "created_at": "2026-07-03T15:00:00Z"
+    "status": "completed",
+    "overall_score": 84,
+    "keyword_score": 78,
+    "impact_score": 88,
+    "clarity_score": 82,
+    "technical_depth_score": 80,
+    "missing_keywords": ["contract testing"],
+    "strong_keywords": ["FastAPI", "PostgreSQL"],
+    "weak_bullets": [],
+    "suggested_bullet_rewrites": [],
+    "strengths": [],
+    "risks": [],
+    "recommendations": [],
+    "summary": "Concise role-fit summary."
   }
 }
 ```
 
-The endpoint returns `202`. AI output is not accepted from clients and is unavailable until extraction is complete and consent requirements are satisfied.
+The endpoint returns `200` with a stored analysis. If neither `resume_text` nor stored `extracted_text` exists, the API returns `422`. OpenAI calls happen only on the backend; clients never send provider API keys.
 
 ### Coding Prep
 

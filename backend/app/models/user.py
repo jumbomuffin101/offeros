@@ -13,6 +13,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     applications = relationship("Application", back_populates="user")
     resumes = relationship("ResumeVersion", back_populates="user")
+    resume_analyses = relationship("ResumeAnalysis", back_populates="user")
     coding_problems = relationship("CodingProblem", back_populates="user")
     behavioral_questions = relationship("BehavioralQuestion", back_populates="user")
     system_design_prompts = relationship("SystemDesignPrompt", back_populates="user")

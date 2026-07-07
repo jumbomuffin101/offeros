@@ -1,4 +1,4 @@
-import type { Application, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
+import type { Application, PrepWorkspaceData, ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -7,6 +7,7 @@ import type {
   PrepItem,
   PrepUpdateInput,
   ResumeInput,
+  ResumeAnalysisInput,
 } from "@/lib/data/types";
 
 export interface ApplicationRepository {
@@ -27,6 +28,10 @@ export interface ResumeRepository {
   delete(id: string): Promise<void>;
   duplicate(id: string): Promise<ResumeVersion>;
   reset(): Promise<ResumeVersion[]>;
+  analyzeResume(resumeId: string, payload: ResumeAnalysisInput): Promise<ResumeAnalysis>;
+  listResumeAnalyses(resumeId: string): Promise<ResumeAnalysis[]>;
+  getResumeAnalysis(id: string): Promise<ResumeAnalysis | null>;
+  deleteResumeAnalysis(id: string): Promise<void>;
 }
 
 export interface PrepRepository {

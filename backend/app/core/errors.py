@@ -20,6 +20,11 @@ class NotFoundError(AppError):
         super().__init__("not_found", f"{resource} was not found.", status.HTTP_404_NOT_FOUND)
 
 
+class ValidationError(AppError):
+    def __init__(self, message: str, details: Any = None) -> None:
+        super().__init__("validation_error", message, status.HTTP_422_UNPROCESSABLE_ENTITY, details)
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:

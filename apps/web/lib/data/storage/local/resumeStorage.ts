@@ -37,7 +37,12 @@ function normalizeResume(value: unknown): ResumeVersion | null {
     tags: stringArray(item.tags), strengths: stringArray(item.strengths),
     weaknesses: stringArray(item.weaknesses), missingKeywords: stringArray(item.missingKeywords),
     suggestedImprovement: stringValue(item.suggestedImprovement), notes: stringValue(item.notes),
-    fileName: stringValue(item.fileName), createdAt: stringValue(item.createdAt) || updatedAt, updatedAt,
+    fileName: stringValue(item.fileName),
+    originalFileName: stringValue(item.originalFileName) || stringValue(item.fileName),
+    extractedText: stringValue(item.extractedText),
+    textExtractionStatus: resumeTextStatus(item.textExtractionStatus),
+    textExtractionError: stringValue(item.textExtractionError),
+    createdAt: stringValue(item.createdAt) || updatedAt, updatedAt,
   };
 }
 
@@ -47,3 +52,6 @@ function stringValue(value: unknown) { return typeof value === "string" ? value 
 function numberValue(value: unknown, fallback: number) { return typeof value === "number" && Number.isFinite(value) ? value : fallback; }
 function stringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function dateFromLegacy(value: unknown) { if (typeof value !== "string" || !value) return ""; const parsed = new Date(`${value}, ${new Date().getFullYear()}`); return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString(); }
+function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"] {
+  return value === "manual" || value === "parsed" || value === "failed" ? value : "not_started";
+}

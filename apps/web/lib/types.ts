@@ -48,6 +48,36 @@ export type ResumeVersion = {
   suggestedImprovement: string;
   notes: string;
   fileName: string;
+  originalFileName: string;
+  extractedText: string;
+  textExtractionStatus: "not_started" | "manual" | "parsed" | "failed";
+  textExtractionError: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResumeAnalysis = {
+  id: string;
+  resumeVersionId: string;
+  targetRole: string;
+  jobDescription: string;
+  overallScore: number;
+  keywordScore: number;
+  impactScore: number;
+  clarityScore: number;
+  technicalDepthScore: number;
+  missingKeywords: string[];
+  strongKeywords: string[];
+  weakBullets: string[];
+  suggestedBulletRewrites: Array<{ original: string; rewrite: string; rationale: string }>;
+  strengths: string[];
+  risks: string[];
+  recommendations: string[];
+  summary: string;
+  provider: string;
+  model: string;
+  status: "completed" | "failed" | "pending";
+  errorMessage: string;
   createdAt: string;
   updatedAt: string;
 };

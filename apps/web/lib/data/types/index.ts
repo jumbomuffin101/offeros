@@ -8,6 +8,7 @@ import type {
   PrepStatus,
   PrepWorkspaceData,
   ResumeVersion,
+  ResumeAnalysis,
   SystemDesignPrompt,
 } from "@/lib/types";
 import type { AnalyticsModel } from "@/lib/analytics-utils";
@@ -19,6 +20,12 @@ import type {
 
 export type ApplicationInput = Omit<Application, "id" | "createdAt" | "updatedAt" | "category">;
 export type ResumeInput = Omit<ResumeVersion, "id" | "createdAt" | "updatedAt" | "lastUpdated">;
+export type ResumeAnalysisInput = {
+  targetRole: string;
+  jobDescription: string;
+  resumeText?: string;
+};
+export type { ResumeAnalysis };
 export type CodingProblemInput = Omit<CodingProblem, "id" | "completedAt" | "createdAt" | "updatedAt">;
 export type SystemDesignInput = Omit<SystemDesignPrompt, "id" | "createdAt" | "updatedAt">;
 

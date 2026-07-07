@@ -21,6 +21,9 @@ CLERK_ISSUER=
 CLERK_JWKS_URL=
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=https://your-vercel-url.vercel.app
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+AI_MODEL=gpt-4.1-mini
 LOG_LEVEL=INFO
 ```
 
@@ -180,8 +183,17 @@ Troubleshooting:
 - `401`: verify the user is signed in, `NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api`, and the backend `CLERK_AUDIENCE` matches.
 - `403`: verify the token audience and route permissions.
 - `422`: inspect the response `error.details` for invalid fields, usually a URL/email or length validation issue.
+- `503 ai_not_configured`: set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and `AI_MODEL` on the backend, then redeploy.
 - Network timeout: verify `NEXT_PUBLIC_API_BASE_URL`, backend health, and CORS origins.
 - Reset does not update UI: hard refresh once, then confirm the frontend was redeployed with `NEXT_PUBLIC_DATA_MODE=api`.
+
+## AI Resume Intelligence QA
+
+- OpenAI keys are backend-only. Do not add them to Vercel frontend env vars.
+- Local mode uses deterministic mock analysis in browser localStorage.
+- Backend local/test mode uses deterministic mock analysis when no OpenAI key is configured.
+- Production API mode requires `AI_PROVIDER=openai` and `OPENAI_API_KEY`; otherwise the UI shows a setup error.
+- Users must paste resume text before analysis. PDF/DOCX parsing is still a future extraction task.
 
 ## Deployment Checklist
 
@@ -199,6 +211,7 @@ Troubleshooting:
 12. Test the explicit Log out action and sign-in redirect.
 13. Reset Applications and confirm no duplicate demo records appear after a second reset.
 14. Reset all cloud data from Settings and confirm Dashboard and Analytics update after refresh/refetch.
+15. Paste resume text, run AI Resume Analysis, refresh, and confirm analysis history persists.
 
 ## Rollback
 

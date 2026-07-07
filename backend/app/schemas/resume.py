@@ -20,6 +20,10 @@ class ResumeCreate(ORMModel):
     suggested_improvement: str = Field(default="", max_length=20_000)
     notes: str = Field(default="", max_length=20_000)
     file_name: str = Field(default="", max_length=500)
+    original_file_name: str = Field(default="", max_length=500)
+    extracted_text: str = Field(default="", max_length=120_000)
+    text_extraction_status: str = Field(default="not_started", max_length=40)
+    text_extraction_error: str = Field(default="", max_length=2_000)
 
 
 class ResumeUpdate(ORMModel):
@@ -35,6 +39,10 @@ class ResumeUpdate(ORMModel):
     suggested_improvement: str | None = Field(default=None, max_length=20_000)
     notes: str | None = Field(default=None, max_length=20_000)
     file_name: str | None = Field(default=None, max_length=500)
+    original_file_name: str | None = Field(default=None, max_length=500)
+    extracted_text: str | None = Field(default=None, max_length=120_000)
+    text_extraction_status: str | None = Field(default=None, max_length=40)
+    text_extraction_error: str | None = Field(default=None, max_length=2_000)
 
 
 class ResumeResponse(ORMModel):
@@ -52,5 +60,9 @@ class ResumeResponse(ORMModel):
     suggested_improvement: str
     notes: str
     file_name: str
+    original_file_name: str
+    extracted_text: str
+    text_extraction_status: str
+    text_extraction_error: str
     created_at: datetime
     updated_at: datetime

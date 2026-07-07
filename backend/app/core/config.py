@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     clerk_jwks_url: str | None = None
     clerk_audience: str | None = None
     auth_required: bool = False
+    ai_provider: str = "disabled"
+    openai_api_key: str | None = None
+    ai_model: str = "gpt-4.1-mini"
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(
