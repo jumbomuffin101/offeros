@@ -86,13 +86,13 @@ export function toApiApplication(value: Partial<ApplicationInput>) {
 
 export function fromApiResume(value: ApiResume): ResumeVersion {
   return {
-    id: value.id, name: value.name, targetRole: value.target_role, description: value.description,
+    id: value.id, name: value.name, targetRole: value.target_role, description: value.description ?? "",
     status: value.status === "active" ? "Active" : "Draft", lastUpdated: value.updated_at,
-    applicationsUsed: 0, keywordMatchScore: value.keyword_match_score, tags: value.tags,
-    strengths: value.strengths, weaknesses: value.weaknesses, missingKeywords: value.missing_keywords,
-    suggestedImprovement: value.suggested_improvement, notes: value.notes, fileName: value.file_name,
-    originalFileName: value.original_file_name, extractedText: value.extracted_text,
-    textExtractionStatus: value.text_extraction_status, textExtractionError: value.text_extraction_error,
+    applicationsUsed: 0, keywordMatchScore: safeScore(value.keyword_match_score), tags: stringArray(value.tags),
+    strengths: stringArray(value.strengths), weaknesses: stringArray(value.weaknesses), missingKeywords: stringArray(value.missing_keywords),
+    suggestedImprovement: value.suggested_improvement ?? "", notes: value.notes ?? "", fileName: value.file_name ?? "",
+    originalFileName: value.original_file_name ?? "", extractedText: value.extracted_text ?? "",
+    textExtractionStatus: resumeTextStatus(value.text_extraction_status), textExtractionError: value.text_extraction_error ?? "",
     createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
@@ -209,6 +209,14 @@ function invert<K extends string, V extends string>(value: Record<K, V>) {
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [item, key])) as Record<V, K>;
 }
 function titleCase(value: string) { return `${value.charAt(0).toUpperCase()}${value.slice(1)}`; }
+function stringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
+function safeScore(value: unknown) {
+  const score = Number(value);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+}
+function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"] {
+  return value === "manual" || value === "parsed" || value === "failed" ? value : "not_started";
+}
 function inferCategory(input: ApplicationInput | Application): Application["category"] {
   const content = [input.company, input.role, input.source, input.resumeUsed, input.notes, ...input.tags].join(" ").toLowerCase();
   if (content.includes("google") || content.includes("meta")) return "Big Tech";

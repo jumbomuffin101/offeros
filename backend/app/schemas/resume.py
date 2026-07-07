@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.models.base import ResumeStatus
 from app.schemas.common import NonEmptyStr, ORMModel
@@ -66,3 +67,53 @@ class ResumeResponse(ORMModel):
     text_extraction_error: str
     created_at: datetime
     updated_at: datetime
+
+    @field_validator(
+        "description",
+        "suggested_improvement",
+        "notes",
+        "file_name",
+        "original_file_name",
+        "extracted_text",
+        "text_extraction_error",
+        mode="before",
+    )
+    @classmethod
+    def _string_default(cls, value: Any) -> str:
+        return "" if value is None else str(value)
+
+    @field_validator("text_extraction_status", mode="before")
+    @classmethod
+    def _text_extraction_status_default(cls, value: Any) -> str:
+        allowed = {"not_started", "manual", "parsed", "failed"}
+        status = "" if value is None else str(value)
+        return status if status in allowed else "not_started"
+
+    @field_validator("tags", "strengths", "weaknesses", "missing_keywords", mode="before")
+    @classmethod
+    def _list_default(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item) for item in value if item is not None]
+        return []
+
+    @field_validator("keyword_match_score", mode="before")
+    @classmethod
+    def _score_default(cls, value: Any) -> int:
+        if value is None:
+            return 0
+        try:
+            return max(0, min(100, int(value)))
+        except (TypeError, ValueError):
+            return 0
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _status_default(cls, value: Any) -> ResumeStatus:
+        if isinstance(value, ResumeStatus):
+            return value
+        try:
+            return ResumeStatus(str(value).lower())
+        except ValueError:
+            return ResumeStatus.DRAFT
