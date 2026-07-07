@@ -10,7 +10,7 @@ Base URL:
 https://api.offeros.com/api/v1
 ```
 
-The backend does not exist yet. Paths in this document are the implementation contract for the backend phase.
+The FastAPI backend implements the current MVP subset of this contract. Future resources in this document remain architectural guidance until implemented.
 
 ## Standards
 
@@ -171,6 +171,7 @@ Company creation normalizes name/domain and may return an existing canonical mat
 | GET | `/applications/{application_id}` | Read one application |
 | PATCH | `/applications/{application_id}` | Partial update or status transition |
 | DELETE | `/applications/{application_id}` | Soft delete |
+| POST | `/workspace/reset` | Replace scoped authenticated workspace data with supplied demo/default records |
 | POST | `/applications/{application_id}/restore` | Restore during retention window |
 | GET | `/applications/{application_id}/activity` | Status/update history |
 
@@ -368,6 +369,27 @@ Clients cannot create arbitrary provider notifications. Product services emit do
 | PATCH | `/settings` | Update supported settings |
 
 Validation uses a strict allowlist. Security roles, Clerk identity, and AI usage limits are not mutable through this endpoint.
+
+### Workspace Commands
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/workspace/reset` | Transactionally replace scoped user-owned workspace rows |
+
+Current request shape:
+
+```json
+{
+  "scope": "all",
+  "applications": [],
+  "resumes": [],
+  "coding_problems": [],
+  "behavioral_questions": [],
+  "system_design_prompts": []
+}
+```
+
+`scope` is one of `all`, `applications`, `resumes`, or `prep`. The server derives the user from the Clerk token, deletes existing rows for only that user and scope, recreates the supplied rows in the same transaction, and returns counts. This endpoint powers API-mode demo reset buttons and Settings reset actions. It is intentionally not a cross-user admin operation.
 
 ### Saved Jobs
 

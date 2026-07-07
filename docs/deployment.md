@@ -152,7 +152,36 @@ The script verifies public health, verifies that an anonymous protected request 
 
 ## Frontend Failure Behavior
 
-API mode keeps the authenticated application shell mounted when the API cannot be reached. Data views render a friendly error state with a retry action, and account controls remain available so the user can log out. `NEXT_PUBLIC_DATA_MODE=local` remains independent of the backend.
+API mode keeps the authenticated application shell mounted when the API cannot be reached. Data views render a friendly error state with a retry action, and account controls remain available so the user can log out. Expired sessions show a reauthentication action. Requests time out instead of hanging indefinitely. `NEXT_PUBLIC_DATA_MODE=local` remains independent of the backend.
+
+## Reset and Import QA
+
+In local mode, reset behavior remains browser-local:
+
+- Application, Resume, and Prep demo reset buttons restore the bundled demo data in localStorage.
+- Settings clear actions remove the selected local records.
+- Reset all local data clears OfferOS local keys and restarts onboarding.
+
+In API mode, reset behavior is cloud-scoped:
+
+- Application, Resume, Prep, and Settings reset actions call `POST /api/v1/workspace/reset`.
+- The backend deletes and recreates only the authenticated user's rows for the selected scope.
+- Repeating a reset should leave one copy of the demo records, not duplicates.
+- Dashboard and Analytics should update after the reset because repository hooks listen for the shared data-change event and refetch from the API.
+
+Manual local import:
+
+- If the same browser still has localStorage records while `NEXT_PUBLIC_DATA_MODE=api`, Settings shows **Import local workspace**.
+- Import is one-click, never automatic, and skips likely duplicate applications, resumes, and prep items.
+- Use this only after signing into the intended account.
+
+Troubleshooting:
+
+- `401`: verify the user is signed in, `NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api`, and the backend `CLERK_AUDIENCE` matches.
+- `403`: verify the token audience and route permissions.
+- `422`: inspect the response `error.details` for invalid fields, usually a URL/email or length validation issue.
+- Network timeout: verify `NEXT_PUBLIC_API_BASE_URL`, backend health, and CORS origins.
+- Reset does not update UI: hard refresh once, then confirm the frontend was redeployed with `NEXT_PUBLIC_DATA_MODE=api`.
 
 ## Deployment Checklist
 
@@ -168,6 +197,8 @@ API mode keeps the authenticated application shell mounted when the API cannot b
 10. Create an application and confirm it appears in the list.
 11. Refresh and confirm the application persists.
 12. Test the explicit Log out action and sign-in redirect.
+13. Reset Applications and confirm no duplicate demo records appear after a second reset.
+14. Reset all cloud data from Settings and confirm Dashboard and Analytics update after refresh/refetch.
 
 ## Rollback
 

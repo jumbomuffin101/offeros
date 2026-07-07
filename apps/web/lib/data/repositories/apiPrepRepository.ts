@@ -83,18 +83,15 @@ export const apiPrepRepository: PrepRepository = {
     return this.list();
   },
   async reset() {
-    const current = await this.list();
-    await Promise.all([
-      ...current.codingProblems.map((item) => apiClient.delete(`/prep/coding/${item.id}`)),
-      ...current.behavioralQuestions.map((item) => apiClient.delete(`/prep/behavioral/${item.id}`)),
-      ...current.systemDesignPrompts.map((item) => apiClient.delete(`/prep/system-design/${item.id}`)),
-    ]);
     writeApiPrepGoals(prepWorkspaceData.goals);
-    await Promise.all([
-      ...prepWorkspaceData.codingProblems.map(({ id: _id, completedAt: _completedAt, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => this.create({ type: "coding", value })),
-      ...prepWorkspaceData.behavioralQuestions.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => this.create({ type: "behavioral", value })),
-      ...prepWorkspaceData.systemDesignPrompts.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => this.create({ type: "systemDesign", value })),
-    ]);
+    await apiClient.post("/workspace/reset", {
+      scope: "prep",
+      applications: [],
+      resumes: [],
+      coding_problems: prepWorkspaceData.codingProblems.map(({ id: _id, completedAt: _completedAt, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiCoding(value)),
+      behavioral_questions: prepWorkspaceData.behavioralQuestions.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiBehavioral(value)),
+      system_design_prompts: prepWorkspaceData.systemDesignPrompts.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiSystemDesign(value)),
+    });
     return this.list();
   },
 };

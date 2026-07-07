@@ -106,7 +106,7 @@ Tests use an isolated in-memory SQLite database through FastAPI dependency overr
 pytest
 ```
 
-The initial suite verifies app startup, health, and an application create/list flow.
+The suite verifies app startup, health, application create/list, and workspace reset replacement behavior.
 
 After deployment, run the dependency-free smoke test:
 
@@ -133,6 +133,24 @@ Set `OFFEROS_SMOKE_TOKEN` to a short-lived `offeros-api` Clerk token to also ver
 | `LOG_LEVEL` | Python logging level |
 
 The public `GET /api/v1/health` route returns `status`, `environment`, `service`, and `version`. It never requires authentication and is suitable for platform health checks.
+
+## Workspace Reset
+
+`POST /api/v1/workspace/reset` is the API-mode reset command used by the frontend. It requires the current user dependency when `AUTH_REQUIRED=true`.
+
+Behavior:
+
+- `scope=applications`, `resumes`, `prep`, or `all` selects which user-owned tables are replaced.
+- Existing rows for the authenticated user and scope are deleted in the same transaction that recreates the supplied demo records.
+- Other users' rows are never selected or modified.
+- Repeating the same reset does not duplicate demo records.
+- The endpoint returns counts for the recreated records.
+
+The frontend uses this endpoint for page-level demo reset buttons and Settings reset actions in API mode. Local mode continues to use localStorage reset behavior.
+
+## Local Import
+
+When `NEXT_PUBLIC_DATA_MODE=api`, the Settings page can detect existing browser-local OfferOS records and offer a manual import into the signed-in cloud workspace. The client compares simple stable keys, creates only missing records through the existing authenticated APIs, and then refreshes the workspace views. The backend does not read browser localStorage directly.
 
 ## Structure
 

@@ -29,8 +29,14 @@ export const apiResumeRepository: ResumeRepository = {
     return fromApiResume(response.data);
   },
   async reset() {
-    const current = await this.list();
-    await Promise.all(current.map((item) => this.delete(item.id)));
-    return Promise.all(demoResumes.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, lastUpdated: _lastUpdated, ...input }) => this.create(input)));
+    await apiClient.post("/workspace/reset", {
+      scope: "resumes",
+      applications: [],
+      resumes: demoResumes.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, lastUpdated: _lastUpdated, ...input }) => toApiResume(input)),
+      coding_problems: [],
+      behavioral_questions: [],
+      system_design_prompts: [],
+    });
+    return this.list();
   },
 };

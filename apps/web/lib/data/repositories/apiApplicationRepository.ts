@@ -31,8 +31,14 @@ export const apiApplicationRepository: ApplicationRepository = {
     return this.create({ ...input, company: `${source.company} Copy` });
   },
   async reset() {
-    const current = await this.list();
-    await Promise.all(current.map((item) => this.delete(item.id)));
-    return Promise.all(demoApplications.map(({ id: _id, category: _category, createdAt: _createdAt, updatedAt: _updatedAt, ...input }) => this.create(input)));
+    await apiClient.post("/workspace/reset", {
+      scope: "applications",
+      applications: demoApplications.map(({ id: _id, category: _category, createdAt: _createdAt, updatedAt: _updatedAt, ...input }) => toApiApplication(input)),
+      resumes: [],
+      coding_problems: [],
+      behavioral_questions: [],
+      system_design_prompts: [],
+    });
+    return this.list();
   },
 };

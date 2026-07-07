@@ -2,6 +2,7 @@ import { DataError } from "@/lib/data/errors";
 
 export type RequestOptions = { headers?: Record<string, string>; signal?: AbortSignal };
 export type AuthTokenProvider = () => Promise<string | null>;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 let authTokenProvider: AuthTokenProvider | null = null;
 let providerWaiters: Array<(provider: AuthTokenProvider) => void> = [];
@@ -50,18 +51,28 @@ class ApiClient {
     if (init.body) headers.set("Content-Type", "application/json");
 
     let response: Response;
+    const timeoutController = init.signal ? null : new AbortController();
+    const timeoutId = timeoutController
+      ? globalThis.setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS)
+      : null;
     try {
       response = await fetch(`${baseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
         ...init,
         headers,
         cache: "no-store",
+        signal: init.signal ?? timeoutController?.signal,
       });
     } catch (error) {
+      const aborted = error instanceof DOMException && error.name === "AbortError";
       throw new DataError(
-        "NETWORK_ERROR",
-        "OfferOS could not reach your workspace. Check your connection and try again.",
+        aborted ? "NETWORK_ERROR" : "NETWORK_ERROR",
+        aborted
+          ? "OfferOS timed out while reaching your workspace. Try again in a moment."
+          : "OfferOS could not reach your workspace. Check your connection and try again.",
         { cause: error },
       );
+    } finally {
+      if (timeoutId) globalThis.clearTimeout(timeoutId);
     }
 
     const payload = await parseResponse(response);

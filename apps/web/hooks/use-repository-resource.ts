@@ -10,16 +10,18 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<DataError | null>(null);
   const mounted = useRef(true);
+  const requestId = useRef(0);
 
   const refresh = useCallback(async () => {
+    const currentRequest = ++requestId.current;
     setError(null);
     try {
       const next = await loader();
-      if (mounted.current) setData(next);
+      if (mounted.current && currentRequest === requestId.current) setData(next);
     } catch (cause) {
-      if (mounted.current) setError(toDataError(cause, "Unable to load local workspace data."));
+      if (mounted.current && currentRequest === requestId.current) setError(toDataError(cause, "Unable to load workspace data."));
     } finally {
-      if (mounted.current) setLoading(false);
+      if (mounted.current && currentRequest === requestId.current) setLoading(false);
     }
   }, [loader]);
 
@@ -41,16 +43,17 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
   }, [refresh]);
 
   const mutate = useCallback(async <TResult,>(operation: () => Promise<TResult>) => {
+    const currentRequest = ++requestId.current;
     setError(null);
     try {
       const result = await operation();
       const next = await loader();
-      if (mounted.current) setData(next);
+      if (mounted.current && currentRequest === requestId.current) setData(next);
       announceDataChange();
       return result;
     } catch (cause) {
-      const nextError = toDataError(cause, "Unable to update local workspace data.");
-      if (mounted.current) setError(nextError);
+      const nextError = toDataError(cause, "Unable to update workspace data.");
+      if (mounted.current && currentRequest === requestId.current) setError(nextError);
       throw nextError;
     }
   }, [loader]);

@@ -61,6 +61,13 @@ Start PostgreSQL and FastAPI as documented in `backend/README.md`. API mode send
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
 
+### Reset and Import Behavior
+
+- Local mode reset actions keep the existing browser-local behavior: page-level demo resets restore demo records, while Settings can clear local workspace areas or restart onboarding.
+- API mode reset actions call the authenticated FastAPI workspace reset endpoint. The backend deletes only the signed-in user's scoped rows, recreates the selected demo workspace records in one transaction, and Dashboard/Analytics refresh from the updated API data.
+- Brand-new signed-in users who choose **Start Fresh** get an empty cloud workspace with the existing polished empty states and CTAs.
+- If browser-local records exist while running API mode, Settings offers **Import local workspace**. The import is manual, skips likely duplicates, and stores only normal OfferOS records in the authenticated API account.
+
 ## Backend Scaffold
 
 The backend foundation lives in `backend/`. It includes versioned REST routes, ownership-scoped SQLAlchemy repositories, Alembic migrations, Clerk JWT verification, a development demo-user fallback, Docker Compose, and pytest coverage.
@@ -103,13 +110,13 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 ## Current Limitations
 
 - Local mode data is stored only in the current browser profile and is not partitioned by Clerk user.
-- API mode does not automatically migrate existing localStorage records.
+- API mode does not automatically migrate existing localStorage records; use the manual Settings import when needed.
 - Resume `applicationsUsed` is not persisted by the current backend schema and displays as zero in API mode.
 - Prep goals remain local in API mode; completion sessions are derived from completed API tasks.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.
 
 ## Planned Roadmap
 
-- Portable import and export
+- Portable export
 - Optional account and cloud synchronization
 - Calendar and reminder integrations

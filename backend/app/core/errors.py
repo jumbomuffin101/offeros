@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -40,3 +40,40 @@ def register_error_handlers(app: FastAPI) -> None:
                 }
             },
         )
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_error(_: Request, exc: HTTPException) -> JSONResponse:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        code = detail.get("code") if isinstance(detail.get("code"), str) else _http_error_code(exc.status_code)
+        message = (
+            detail.get("message")
+            if isinstance(detail.get("message"), str)
+            else str(exc.detail or "The request could not be completed.")
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers=exc.headers,
+            content=jsonable_encoder({"error": {"code": code, "message": message}}),
+        )
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(_: Request, __: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": {
+                    "code": "internal_server_error",
+                    "message": "The OfferOS API could not complete this request.",
+                }
+            },
+        )
+
+
+def _http_error_code(status_code: int) -> str:
+    if status_code == status.HTTP_401_UNAUTHORIZED:
+        return "unauthorized"
+    if status_code == status.HTTP_403_FORBIDDEN:
+        return "forbidden"
+    if status_code == status.HTTP_404_NOT_FOUND:
+        return "not_found"
+    return "http_error"

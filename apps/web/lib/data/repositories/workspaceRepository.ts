@@ -5,11 +5,11 @@ import { writeApplications } from "@/lib/data/storage/local/applicationStorage";
 import { writeResumes } from "@/lib/data/storage/local/resumeStorage";
 import { writePrep } from "@/lib/data/storage/local/prepStorage";
 import { clearOfferOSStorage, removePreference } from "@/lib/data/storage/local/preferencesStorage";
+import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/lib/data/types/repositories";
 
-export type WorkspaceScope = "all" | "applications" | "resumes" | "prep";
 const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
-export const workspaceRepository = {
+export const workspaceRepository: WorkspaceRepository = {
   async populateDemo() {
     try { writeApplications(applications); writeResumes(resumes); writePrep(prepWorkspaceData); }
     catch (error) { throw toDataError(error, "Unable to prepare the demo workspace."); }
@@ -30,11 +30,28 @@ export const workspaceRepository = {
       removePreference("offeros:recent-commands");
     } catch (error) { throw toDataError(error, "Unable to prepare a fresh workspace."); }
   },
+  async getLocalImportStatus() {
+    return emptyImportStatus();
+  },
+  async importLocalWorkspace() {
+    return emptyImportStatus();
+  },
 };
 
 function emptyPrepWorkspace(): PrepWorkspaceData {
   return {
     codingProblems: [], behavioralQuestions: [], systemDesignPrompts: [], sessions: [], weeklyDays: [],
     goals: prepWorkspaceData.goals.map((goal) => ({ ...goal, current: 0 })),
+  };
+}
+
+function emptyImportStatus(): LocalImportStatus {
+  return {
+    available: false,
+    applications: 0,
+    resumes: 0,
+    codingProblems: 0,
+    behavioralQuestions: 0,
+    systemDesignPrompts: 0,
   };
 }

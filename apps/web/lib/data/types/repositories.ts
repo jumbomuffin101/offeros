@@ -46,3 +46,22 @@ export interface DashboardRepository {
 export interface AnalyticsRepository {
   summary(): Promise<AnalyticsSummary>;
 }
+
+export type WorkspaceScope = "all" | "applications" | "resumes" | "prep";
+
+export type LocalImportStatus = {
+  available: boolean;
+  applications: number;
+  resumes: number;
+  codingProblems: number;
+  behavioralQuestions: number;
+  systemDesignPrompts: number;
+};
+
+export interface WorkspaceRepository {
+  populateDemo(): Promise<void>;
+  clear(scope: WorkspaceScope): Promise<void>;
+  clearWorkspace(): Promise<void>;
+  getLocalImportStatus(): Promise<LocalImportStatus>;
+  importLocalWorkspace(): Promise<LocalImportStatus>;
+}
