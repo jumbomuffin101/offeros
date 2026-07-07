@@ -1,15 +1,8 @@
 import type { Application, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
-import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/lib/data/types/repositories";
+import type { LocalImportStatus, WorkspaceRepository, WorkspaceResetMode, WorkspaceScope } from "@/lib/data/types/repositories";
 import { apiClient } from "@/lib/data/api/apiClient";
 import type { ApiDataResponse } from "@/lib/data/api/contracts";
-import {
-  toApiApplication,
-  toApiBehavioral,
-  toApiCoding,
-  toApiResume,
-  toApiSystemDesign,
-} from "@/lib/data/api/mappers";
-import { applications as demoApplications, prepWorkspaceData, resumes as demoResumes } from "@/lib/mock-data";
+import { prepWorkspaceData } from "@/lib/mock-data";
 import { readApplications } from "@/lib/data/storage/local/applicationStorage";
 import { readPrep } from "@/lib/data/storage/local/prepStorage";
 import { readResumes } from "@/lib/data/storage/local/resumeStorage";
@@ -23,22 +16,18 @@ const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
 type WorkspaceResetPayload = {
   scope: WorkspaceScope;
-  applications: Array<Record<string, unknown>>;
-  resumes: Array<Record<string, unknown>>;
-  coding_problems: Array<Record<string, unknown>>;
-  behavioral_questions: Array<Record<string, unknown>>;
-  system_design_prompts: Array<Record<string, unknown>>;
+  mode: WorkspaceResetMode;
 };
 
 export const apiWorkspaceRepository: WorkspaceRepository = {
   async populateDemo() {
-    await resetCloudWorkspace("all", demoWorkspace());
+    await resetCloudWorkspace("all", "demo");
   },
-  async clear(scope) {
-    await resetCloudWorkspace(scope, demoWorkspace());
+  async clear(scope, mode = "demo") {
+    await resetCloudWorkspace(scope, mode);
   },
   async clearWorkspace() {
-    await resetCloudWorkspace("all", emptyWorkspace());
+    await resetCloudWorkspace("all", "empty");
     removePreference(RECENTLY_VIEWED_KEY);
     removePreference("offeros:recent-commands");
   },
@@ -109,30 +98,9 @@ export const apiWorkspaceRepository: WorkspaceRepository = {
   },
 };
 
-async function resetCloudWorkspace(scope: WorkspaceScope, workspace: WorkspaceSnapshot) {
-  await apiClient.post<ApiDataResponse<unknown>, WorkspaceResetPayload>("/workspace/reset", resetPayload(scope, workspace));
-  if (scope === "all" || scope === "prep") writeApiPrepGoals(workspace.prep.goals);
-}
-
-function resetPayload(scope: WorkspaceScope, workspace: WorkspaceSnapshot): WorkspaceResetPayload {
-  return {
-    scope,
-    applications: scope === "all" || scope === "applications"
-      ? workspace.applications.map(({ id: _id, category: _category, createdAt: _createdAt, updatedAt: _updatedAt, ...input }) => toApiApplication(input))
-      : [],
-    resumes: scope === "all" || scope === "resumes"
-      ? workspace.resumes.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, lastUpdated: _lastUpdated, ...input }) => toApiResume(input))
-      : [],
-    coding_problems: scope === "all" || scope === "prep"
-      ? workspace.prep.codingProblems.map(({ id: _id, completedAt: _completedAt, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiCoding(value))
-      : [],
-    behavioral_questions: scope === "all" || scope === "prep"
-      ? workspace.prep.behavioralQuestions.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiBehavioral(value))
-      : [],
-    system_design_prompts: scope === "all" || scope === "prep"
-      ? workspace.prep.systemDesignPrompts.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiSystemDesign(value))
-      : [],
-  };
+async function resetCloudWorkspace(scope: WorkspaceScope, mode: WorkspaceResetMode) {
+  await apiClient.post<ApiDataResponse<unknown>, WorkspaceResetPayload>("/workspace/reset", { scope, mode });
+  if (scope === "all" || scope === "prep") writeApiPrepGoals(mode === "demo" ? prepWorkspaceData.goals : []);
 }
 
 type WorkspaceSnapshot = {
@@ -140,22 +108,6 @@ type WorkspaceSnapshot = {
   resumes: ResumeVersion[];
   prep: PrepWorkspaceData;
 };
-
-function demoWorkspace(): WorkspaceSnapshot {
-  return {
-    applications: structuredClone(demoApplications),
-    resumes: structuredClone(demoResumes),
-    prep: structuredClone(prepWorkspaceData),
-  };
-}
-
-function emptyWorkspace(): WorkspaceSnapshot {
-  return {
-    applications: [],
-    resumes: [],
-    prep: emptyPrepWorkspace(),
-  };
-}
 
 function readLocalSnapshot(): WorkspaceSnapshot {
   return {

@@ -86,11 +86,7 @@ export const apiPrepRepository: PrepRepository = {
     writeApiPrepGoals(prepWorkspaceData.goals);
     await apiClient.post("/workspace/reset", {
       scope: "prep",
-      applications: [],
-      resumes: [],
-      coding_problems: prepWorkspaceData.codingProblems.map(({ id: _id, completedAt: _completedAt, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiCoding(value)),
-      behavioral_questions: prepWorkspaceData.behavioralQuestions.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiBehavioral(value)),
-      system_design_prompts: prepWorkspaceData.systemDesignPrompts.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...value }) => toApiSystemDesign(value)),
+      mode: "demo",
     });
     return this.list();
   },

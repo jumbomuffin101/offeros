@@ -2,7 +2,6 @@ import type { ResumeRepository } from "@/lib/data/types/repositories";
 import type { ApiDataResponse, ApiResume, ApiResumeAnalysis } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
-import { resumes as demoResumes } from "@/lib/mock-data";
 
 export const apiResumeRepository: ResumeRepository = {
   async list() {
@@ -31,11 +30,7 @@ export const apiResumeRepository: ResumeRepository = {
   async reset() {
     await apiClient.post("/workspace/reset", {
       scope: "resumes",
-      applications: [],
-      resumes: demoResumes.map(({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, lastUpdated: _lastUpdated, ...input }) => toApiResume(input)),
-      coding_problems: [],
-      behavioral_questions: [],
-      system_design_prompts: [],
+      mode: "demo",
     });
     return this.list();
   },

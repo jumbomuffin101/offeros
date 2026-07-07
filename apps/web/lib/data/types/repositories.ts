@@ -53,6 +53,7 @@ export interface AnalyticsRepository {
 }
 
 export type WorkspaceScope = "all" | "applications" | "resumes" | "prep";
+export type WorkspaceResetMode = "empty" | "demo";
 
 export type LocalImportStatus = {
   available: boolean;
@@ -65,7 +66,7 @@ export type LocalImportStatus = {
 
 export interface WorkspaceRepository {
   populateDemo(): Promise<void>;
-  clear(scope: WorkspaceScope): Promise<void>;
+  clear(scope: WorkspaceScope, mode?: WorkspaceResetMode): Promise<void>;
   clearWorkspace(): Promise<void>;
   getLocalImportStatus(): Promise<LocalImportStatus>;
   importLocalWorkspace(): Promise<LocalImportStatus>;

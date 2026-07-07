@@ -168,7 +168,10 @@ In local mode, reset behavior remains browser-local:
 In API mode, reset behavior is cloud-scoped:
 
 - Application, Resume, Prep, and Settings reset actions call `POST /api/v1/workspace/reset`.
-- The backend deletes and recreates only the authenticated user's rows for the selected scope.
+- Requests use `{ "scope": "all" | "applications" | "resumes" | "prep", "mode": "demo" | "empty" }`.
+- The backend deletes only the authenticated user's rows for the selected scope.
+- `mode=demo` recreates server-owned demo records. `mode=empty` leaves the selected scope empty, which is what Start Fresh uses.
+- Resume resets also delete that user's resume analysis rows.
 - Repeating a reset should leave one copy of the demo records, not duplicates.
 - Dashboard and Analytics should update after the reset because repository hooks listen for the shared data-change event and refetch from the API.
 
@@ -185,7 +188,7 @@ Troubleshooting:
 - `422`: inspect the response `error.details` for invalid fields, usually a URL/email or length validation issue.
 - `503 ai_not_configured`: set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and `AI_MODEL` on the backend, then redeploy.
 - Network timeout: verify `NEXT_PUBLIC_API_BASE_URL`, backend health, and CORS origins.
-- Reset does not update UI: hard refresh once, then confirm the frontend was redeployed with `NEXT_PUBLIC_DATA_MODE=api`.
+- Reset does not update UI: confirm the frontend was redeployed with `NEXT_PUBLIC_DATA_MODE=api`, then verify the reset response contains the expected `scope`, `mode`, `deleted`, and `created` fields.
 
 ## AI Resume Intelligence QA
 

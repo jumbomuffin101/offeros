@@ -2,7 +2,6 @@ import type { ApplicationRepository } from "@/lib/data/types/repositories";
 import type { ApiApplication, ApiDataResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiApplication, toApiApplication } from "@/lib/data/api/mappers";
-import { applications as demoApplications } from "@/lib/mock-data";
 
 export const apiApplicationRepository: ApplicationRepository = {
   async list() {
@@ -33,11 +32,7 @@ export const apiApplicationRepository: ApplicationRepository = {
   async reset() {
     await apiClient.post("/workspace/reset", {
       scope: "applications",
-      applications: demoApplications.map(({ id: _id, category: _category, createdAt: _createdAt, updatedAt: _updatedAt, ...input }) => toApiApplication(input)),
-      resumes: [],
-      coding_problems: [],
-      behavioral_questions: [],
-      system_design_prompts: [],
+      mode: "demo",
     });
     return this.list();
   },

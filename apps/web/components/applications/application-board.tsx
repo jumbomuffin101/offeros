@@ -46,6 +46,7 @@ export function ApplicationBoard() {
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -141,6 +142,8 @@ export function ApplicationBoard() {
   }
 
   async function resetDemoData() {
+    if (resetting) return;
+    setResetting(true);
     try {
       await applicationData.reset();
       setSelectedApplicationId(null);
@@ -149,7 +152,11 @@ export function ApplicationBoard() {
       setFilters(defaultApplicationFilters);
       setSortKey("deadlineSoonest");
       setToast("Demo data restored.");
-    } catch { /* Hook exposes the typed error state. */ }
+    } catch (cause) {
+      setToast(cause instanceof Error ? cause.message : "Unable to reset applications.");
+    } finally {
+      setResetting(false);
+    }
   }
 
   function openApplication(application: Application) {
@@ -196,9 +203,9 @@ export function ApplicationBoard() {
             <Plus className="size-4" />
             Add Application
           </Button>
-          <Button onClick={resetDemoData} type="button" variant="ghost">
+          <Button disabled={resetting} onClick={resetDemoData} type="button" variant="ghost">
             <RotateCcw className="size-4" />
-            Reset demo data
+            {resetting ? "Resetting..." : "Reset demo data"}
           </Button>
         </div>
       </div>

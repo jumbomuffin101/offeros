@@ -3,9 +3,11 @@ import { DataError } from "@/lib/data/errors";
 export type RequestOptions = { headers?: Record<string, string>; signal?: AbortSignal };
 export type AuthTokenProvider = () => Promise<string | null>;
 const REQUEST_TIMEOUT_MS = 20_000;
+const GET_CACHE_MS = 1_500;
 
 let authTokenProvider: AuthTokenProvider | null = null;
 let providerWaiters: Array<(provider: AuthTokenProvider) => void> = [];
+const getCache = new Map<string, { expiresAt: number; value: Promise<unknown> }>();
 
 export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
   authTokenProvider = provider;
@@ -50,13 +52,30 @@ class ApiClient {
     for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
     if (init.body) headers.set("Content-Type", "application/json");
 
+    const method = init.method ?? "GET";
+    const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    if (method === "GET" && !init.signal) {
+      const cached = getCache.get(url);
+      if (cached && cached.expiresAt > Date.now()) return cached.value as Promise<T>;
+      const value = this.fetchJson<T>(url, init, headers);
+      getCache.set(url, { value, expiresAt: Date.now() + GET_CACHE_MS });
+      value.catch(() => getCache.delete(url));
+      return value;
+    }
+
+    const result = await this.fetchJson<T>(url, init, headers);
+    if (method !== "GET") getCache.clear();
+    return result;
+  }
+
+  private async fetchJson<T>(url: string, init: RequestInit, headers: Headers): Promise<T> {
     let response: Response;
     const timeoutController = init.signal ? null : new AbortController();
     const timeoutId = timeoutController
       ? globalThis.setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS)
       : null;
     try {
-      response = await fetch(`${baseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
+      response = await fetch(url, {
         ...init,
         headers,
         cache: "no-store",
@@ -67,7 +86,7 @@ class ApiClient {
       throw new DataError(
         aborted ? "NETWORK_ERROR" : "NETWORK_ERROR",
         aborted
-          ? "OfferOS timed out while reaching your workspace. Try again in a moment."
+          ? "Starting cloud workspace took longer than expected. Try again in a moment."
           : "OfferOS could not reach your workspace. Check your connection and try again.",
         { cause: error },
       );

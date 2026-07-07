@@ -28,16 +28,17 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
   useEffect(() => {
     mounted.current = true;
     window.queueMicrotask(() => void refresh());
-    const handleRefresh = () => void refresh();
+    let refreshTimer: number | null = null;
+    const handleRefresh = () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void refresh(), 80);
+    };
     window.addEventListener("storage", handleRefresh);
-    window.addEventListener("focus", handleRefresh);
-    window.addEventListener("pageshow", handleRefresh);
     window.addEventListener(OFFEROS_DATA_CHANGED_EVENT, handleRefresh);
     return () => {
       mounted.current = false;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       window.removeEventListener("storage", handleRefresh);
-      window.removeEventListener("focus", handleRefresh);
-      window.removeEventListener("pageshow", handleRefresh);
       window.removeEventListener(OFFEROS_DATA_CHANGED_EVENT, handleRefresh);
     };
   }, [refresh]);

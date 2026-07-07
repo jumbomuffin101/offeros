@@ -13,10 +13,12 @@ from app.schemas.resume import ResumeCreate
 
 
 WorkspaceResetScope = Literal["all", "applications", "resumes", "prep"]
+WorkspaceResetMode = Literal["empty", "demo"]
 
 
 class WorkspaceResetRequest(ORMModel):
     scope: WorkspaceResetScope = "all"
+    mode: WorkspaceResetMode = "demo"
     applications: list[ApplicationCreate] = Field(default_factory=list)
     resumes: list[ResumeCreate] = Field(default_factory=list)
     coding_problems: list[CodingProblemCreate] = Field(default_factory=list)
@@ -26,8 +28,6 @@ class WorkspaceResetRequest(ORMModel):
 
 class WorkspaceResetResponse(ORMModel):
     scope: WorkspaceResetScope
-    applications: int = 0
-    resumes: int = 0
-    coding_problems: int = 0
-    behavioral_questions: int = 0
-    system_design_prompts: int = 0
+    mode: WorkspaceResetMode
+    deleted: dict[str, int] = Field(default_factory=dict)
+    created: dict[str, int] = Field(default_factory=dict)

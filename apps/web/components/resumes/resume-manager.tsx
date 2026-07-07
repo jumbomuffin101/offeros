@@ -32,6 +32,7 @@ export function ResumeManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ResumeVersion | null>(null);
   const [toast, setToast] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -90,8 +91,11 @@ export function ResumeManager() {
   }
 
   async function resetDemoData() {
+    if (resetting) return;
+    setResetting(true);
     try { await resumeData.reset(); setSearch(""); setStatus("All"); setSort("updated"); setSelectedId(null); setToast("Resume demo data restored."); }
-    catch { /* Hook exposes the typed error state. */ }
+    catch (cause) { setToast(cause instanceof Error ? cause.message : "Unable to reset resumes."); }
+    finally { setResetting(false); }
   }
 
   function openResume(resume: ResumeVersion) {
@@ -106,7 +110,7 @@ export function ResumeManager() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex-1"><ResumeFilters counts={counts} search={search} sort={sort} status={status} onSearch={setSearch} onSort={setSort} onStatus={setStatus} /></div>
-        <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Upload resume</Button><Button onClick={resetDemoData} variant="ghost"><RotateCcw className="size-4" />Reset demo data</Button></div>
+        <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Upload resume</Button><Button disabled={resetting} onClick={resetDemoData} variant="ghost"><RotateCcw className="size-4" />{resetting ? "Resetting..." : "Reset demo data"}</Button></div>
       </div>
       <ResumeAnalysisPlaceholder />
       {visible.length ? <div className="grid gap-5 lg:grid-cols-2">{visible.map((resume) => <ResumeCard key={resume.id} resume={resume} onOpen={() => openResume(resume)} onDuplicate={() => duplicateResume(resume)} />)}</div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><FilePlus2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">{resumes.length ? "No matching resumes" : "No resumes yet"}</h2><p className="mt-2 text-sm text-slate-500">{resumes.length ? "Adjust your search or filters to see another version." : "Create your first targeted resume version and track where it performs."}</p><Button className="mt-5" onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary">{resumes.length ? "Create another resume" : "Create your first resume"}</Button></div>}

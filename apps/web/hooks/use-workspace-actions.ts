@@ -10,10 +10,13 @@ import { announceDataChange } from "@/lib/data/repositories/events";
 export function useWorkspaceActions() {
   const [error, setError] = useState<DataError | null>(null);
   const [localImportStatus, setLocalImportStatus] = useState<LocalImportStatus | null>(null);
+  const [running, setRunning] = useState(false);
   const run = useCallback(async (operation: () => Promise<void>) => {
     setError(null);
+    setRunning(true);
     try { await operation(); announceDataChange(); return true; }
     catch (cause) { setError(toDataError(cause, "Unable to update the workspace.")); return false; }
+    finally { setRunning(false); }
   }, []);
   const populateDemo = useCallback(() => run(() => workspaceRepository.populateDemo()), [run]);
   const clearWorkspace = useCallback(() => run(() => workspaceRepository.clearWorkspace()), [run]);
@@ -40,5 +43,5 @@ export function useWorkspaceActions() {
       return null;
     }
   }, []);
-  return { populateDemo, clearWorkspace, clear, checkLocalImport, importLocalWorkspace, localImportStatus, dataMode, error };
+  return { populateDemo, clearWorkspace, clear, checkLocalImport, importLocalWorkspace, localImportStatus, dataMode, error, running };
 }
