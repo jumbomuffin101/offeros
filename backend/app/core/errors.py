@@ -1,9 +1,13 @@
+import logging
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
+
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -46,6 +50,24 @@ def register_error_handlers(app: FastAPI) -> None:
             },
         )
 
+    @app.exception_handler(ResponseValidationError)
+    async def handle_response_validation_error(request: Request, exc: ResponseValidationError) -> JSONResponse:
+        logger.exception(
+            "Response validation failed for %s %s: %s",
+            request.method,
+            request.url.path,
+            exc.errors(),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": {
+                    "code": "response_validation_error",
+                    "message": "The OfferOS API returned an invalid response shape.",
+                }
+            },
+        )
+
     @app.exception_handler(HTTPException)
     async def handle_http_error(_: Request, exc: HTTPException) -> JSONResponse:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
@@ -62,7 +84,8 @@ def register_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def handle_unexpected_error(_: Request, __: Exception) -> JSONResponse:
+    async def handle_unexpected_error(request: Request, _: Exception) -> JSONResponse:
+        logger.exception("Unexpected API error for %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
