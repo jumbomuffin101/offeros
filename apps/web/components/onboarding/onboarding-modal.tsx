@@ -15,15 +15,15 @@ const benefits = [
 export function OnboardingModal() {
   const workspace = useWorkspaceActions();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState<"demo" | "fresh" | null>(null);
+  const [loading, setLoading] = useState<"sample" | "fresh" | null>(null);
 
   useEffect(() => {
     window.queueMicrotask(() => setOpen(!isOnboardingComplete()));
   }, []);
 
-  async function complete(mode: "demo" | "fresh") {
+  async function complete(mode: "sample" | "fresh") {
     setLoading(mode);
-    const completeWorkspace = mode === "demo" ? await workspace.populateDemo() : await workspace.clearWorkspace();
+    const completeWorkspace = mode === "sample" ? await workspace.populateDemo() : await workspace.clearWorkspace();
     if (!completeWorkspace) { setLoading(null); return; }
     completeOnboarding();
     window.location.reload();
@@ -43,8 +43,8 @@ export function OnboardingModal() {
           {benefits.map((benefit) => { const Icon = benefit.icon; return <div className="rounded-xl border border-slate-700/40 bg-slate-900/30 p-4" key={benefit.title}><Icon className="size-5 text-indigo-300" /><h2 className="mt-4 text-sm font-semibold text-white">{benefit.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{benefit.detail}</p></div>; })}
         </div>
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
-          <Button disabled={loading !== null} onClick={() => void complete("fresh")} variant="secondary">{loading === "fresh" ? "Preparing workspace..." : "Start Fresh"}</Button>
-          <Button disabled={loading !== null} onClick={() => void complete("demo")} variant="primary">{loading === "demo" ? "Loading demo data..." : "Start with Demo Data"}</Button>
+          <Button disabled={loading !== null} onClick={() => void complete("sample")} variant="ghost">{loading === "sample" ? "Loading sample workspace..." : "Load sample workspace"}</Button>
+          <Button disabled={loading !== null} onClick={() => void complete("fresh")} variant="primary">{loading === "fresh" ? "Preparing workspace..." : "Start fresh"}</Button>
         </div>
       </section>
     </div>

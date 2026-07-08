@@ -147,15 +147,15 @@ The public `GET /api/v1/health` route returns `status`, `environment`, `service`
 Behavior:
 
 - `scope=applications`, `resumes`, `prep`, or `all` selects which user-owned tables are replaced.
-- `mode=demo` recreates server-owned demo records after deletion.
+- `mode=sample` recreates server-owned sample records after deletion. Legacy `mode=demo` requests are accepted as an alias.
 - `mode=empty` leaves the selected workspace area empty after deletion.
-- Existing rows for the authenticated user and scope are deleted in the same transaction that optionally recreates demo records.
+- Existing rows for the authenticated user and scope are deleted in the same transaction that optionally recreates sample records.
 - Resume resets also delete that user's resume analysis history so orphaned analysis rows are not left behind.
 - Other users' rows are never selected or modified.
-- Repeating the same reset does not duplicate demo records.
+- Repeating the same sample reset does not duplicate records.
 - The endpoint returns normalized deleted/created counts.
 
-The frontend uses this endpoint for page-level demo reset buttons and Settings reset actions in API mode. Local mode continues to use localStorage reset behavior.
+The frontend uses this endpoint for Settings clear actions and optional sample workspace loading in API mode. Local mode continues to use localStorage reset behavior.
 
 ## AI Resume Intelligence
 

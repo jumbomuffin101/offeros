@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FilePlus2, RotateCcw } from "lucide-react";
+import { FilePlus2 } from "lucide-react";
 import type { ResumeVersion } from "@/lib/types";
 import { filterResumes, sortResumes, type ResumeSortKey, type ResumeStatusFilter } from "@/lib/resume-utils";
 import { useResumes } from "@/hooks/use-resumes";
@@ -32,7 +32,6 @@ export function ResumeManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ResumeVersion | null>(null);
   const [toast, setToast] = useState("");
-  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -90,14 +89,6 @@ export function ResumeManager() {
     catch { /* Hook exposes the typed error state. */ }
   }
 
-  async function resetDemoData() {
-    if (resetting) return;
-    setResetting(true);
-    try { await resumeData.reset(); setSearch(""); setStatus("All"); setSort("updated"); setSelectedId(null); setToast("Resume demo data restored."); }
-    catch (cause) { setToast(cause instanceof Error ? cause.message : "Unable to reset resumes."); }
-    finally { setResetting(false); }
-  }
-
   function openResume(resume: ResumeVersion) {
     setSelectedId(resume.id);
     recordRecentlyViewed({ id: resume.id, type: "Resume", label: resume.name, detail: resume.targetRole, href: "/resumes" });
@@ -110,14 +101,14 @@ export function ResumeManager() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="flex-1"><ResumeFilters counts={counts} search={search} sort={sort} status={status} onSearch={setSearch} onSort={setSort} onStatus={setStatus} /></div>
-        <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Upload resume</Button><Button disabled={resetting} onClick={resetDemoData} variant="ghost"><RotateCcw className="size-4" />{resetting ? "Resetting..." : "Reset demo data"}</Button></div>
+        <div className="flex gap-2"><Button onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary"><FilePlus2 className="size-4" />Add resume</Button></div>
       </div>
       <ResumeAnalysisPlaceholder />
       {visible.length ? <div className="grid gap-5 lg:grid-cols-2">{visible.map((resume) => <ResumeCard key={resume.id} resume={resume} onOpen={() => openResume(resume)} onDuplicate={() => duplicateResume(resume)} />)}</div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><FilePlus2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">{resumes.length ? "No matching resumes" : "No resumes yet"}</h2><p className="mt-2 text-sm text-slate-500">{resumes.length ? "Adjust your search or filters to see another version." : "Create your first targeted resume version and track where it performs."}</p><Button className="mt-5" onClick={() => { setEditingResume(null); setFormOpen(true); }} variant="primary">{resumes.length ? "Create another resume" : "Create your first resume"}</Button></div>}
       {resumes.length ? <ResumeInsights resumes={resumes} /> : null}
       <ResumeFormModal open={formOpen} resume={editingResume} onClose={() => { setFormOpen(false); setEditingResume(null); }} onSubmit={editingResume ? updateResume : createResume} />
       <ResumeDetailDrawer resume={selected} onClose={() => setSelectedId(null)} onDelete={setPendingDelete} onDuplicate={(resume) => void duplicateResume(resume)} onEdit={(resume) => { setEditingResume(resume); setFormOpen(true); }} onToggleStatus={(resume) => void toggleStatus(resume)} onAnalyze={resumeData.analyzeResume} onDeleteAnalysis={resumeData.deleteResumeAnalysis} onListAnalyses={resumeData.listResumeAnalyses} />
-      {pendingDelete ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-xl"><div className="glass-card page-enter w-full max-w-md rounded-3xl p-6" role="alertdialog" aria-modal="true"><h2 className="text-xl font-semibold text-white">Delete resume version?</h2><p className="mt-2 text-sm leading-6 text-slate-400">{resumes.length <= 1 ? "This is your final resume version and cannot be deleted. Reset demo data or create another version first." : `This removes ${pendingDelete.name} from your local resume library.`}</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button onClick={() => setPendingDelete(null)} variant="ghost">Cancel</Button><Button className="text-rose-100" disabled={resumes.length <= 1} onClick={() => void deleteResume(pendingDelete)} variant="primary">Delete</Button></div></div></div> : null}
+      {pendingDelete ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-xl"><div className="glass-card page-enter w-full max-w-md rounded-3xl p-6" role="alertdialog" aria-modal="true"><h2 className="text-xl font-semibold text-white">Delete resume version?</h2><p className="mt-2 text-sm leading-6 text-slate-400">{resumes.length <= 1 ? "This is your final resume version. Create another version before deleting it." : `This removes ${pendingDelete.name} from your resume library.`}</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button onClick={() => setPendingDelete(null)} variant="ghost">Cancel</Button><Button className="text-rose-100" disabled={resumes.length <= 1} onClick={() => void deleteResume(pendingDelete)} variant="primary">Delete</Button></div></div></div> : null}
       <Toast message={toast} />
     </div>
   );

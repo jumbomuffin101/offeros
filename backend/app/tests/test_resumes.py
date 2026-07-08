@@ -42,8 +42,8 @@ def test_create_and_list_resume(client: TestClient) -> None:
     assert resumes[0]["id"] == created["id"]
 
 
-def test_resume_demo_reset_creates_valid_list_rows(client: TestClient) -> None:
-    response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "demo"})
+def test_resume_sample_reset_creates_valid_list_rows(client: TestClient) -> None:
+    response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "sample"})
 
     assert response.status_code == 200
     assert response.json()["data"]["created"]["resumes"] > 0

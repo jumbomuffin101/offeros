@@ -18,9 +18,9 @@ export const apiWorkspaceRepository: WorkspaceRepository = {
     return resetCloudWorkspace(scope, mode);
   },
   async populateDemo() {
-    await resetCloudWorkspace("all", "demo");
+    await resetCloudWorkspace("all", "sample");
   },
-  async clear(scope, mode = "demo") {
+  async clear(scope, mode = "empty") {
     await resetCloudWorkspace(scope, mode);
   },
   async clearWorkspace() {
@@ -97,7 +97,7 @@ export const apiWorkspaceRepository: WorkspaceRepository = {
 
 async function resetCloudWorkspace(scope: WorkspaceScope, mode: WorkspaceResetMode) {
   const response = await resetApiWorkspace(scope, mode);
-  if (scope === "all" || scope === "prep") writeApiPrepGoals(mode === "demo" ? prepWorkspaceData.goals : []);
+  if (scope === "all" || scope === "prep") writeApiPrepGoals(mode === "sample" ? prepWorkspaceData.goals : []);
   return response;
 }
 

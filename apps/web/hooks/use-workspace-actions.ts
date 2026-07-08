@@ -19,9 +19,9 @@ export function useWorkspaceActions() {
     finally { setRunning(false); }
   }, []);
   const reset = useCallback((scope: WorkspaceScope, mode: WorkspaceResetMode) => run(() => workspaceRepository.reset(scope, mode)), [run]);
-  const populateDemo = useCallback(() => reset("all", "demo"), [reset]);
+  const populateDemo = useCallback(() => reset("all", "sample"), [reset]);
   const clearWorkspace = useCallback(() => dataMode === "api" ? reset("all", "empty") : run(() => workspaceRepository.clearWorkspace()), [reset, run]);
-  const clear = useCallback((scope: WorkspaceScope) => dataMode === "api" ? reset(scope, "demo") : run(() => workspaceRepository.clear(scope)), [reset, run]);
+  const clear = useCallback((scope: WorkspaceScope) => dataMode === "api" ? reset(scope, "empty") : run(() => workspaceRepository.clear(scope)), [reset, run]);
   const checkLocalImport = useCallback(async () => {
     try {
       const status = await workspaceRepository.getLocalImportStatus();

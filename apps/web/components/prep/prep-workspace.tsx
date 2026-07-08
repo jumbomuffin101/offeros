@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Code2, RotateCcw } from "lucide-react";
+import { Code2 } from "lucide-react";
 import type { BehavioralQuestion, CodingProblem, PrepGoal, PrepStatus, SystemDesignPrompt } from "@/lib/types";
 import { usePrep } from "@/hooks/use-prep";
 import { BehavioralAnswerDrawer } from "@/components/prep/behavioral-answer-drawer";
@@ -29,7 +29,6 @@ export function PrepWorkspace() {
   const [systemOpen, setSystemOpen] = useState(false);
   const [editingSystem, setEditingSystem] = useState<SystemDesignPrompt | null>(null);
   const [toast, setToast] = useState("");
-  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -101,20 +100,11 @@ export function PrepWorkspace() {
   }
 
   async function saveGoals(goals: PrepGoal[]) { try { await prepData.saveGoals(goals); setToast("Prep goal updated"); } catch { /* Hook exposes the typed error state. */ } }
-  async function resetDemo() {
-    if (resetting) return;
-    setResetting(true);
-    try { await prepData.reset(); setEditingCoding(null); setBehavioralOpen(null); setEditingSystem(null); setToast("Prep demo data restored."); }
-    catch (cause) { setToast(cause instanceof Error ? cause.message : "Unable to reset prep."); }
-    finally { setResetting(false); }
-  }
-
   if (prepData.error) return <DataErrorState error={prepData.error} onRetry={() => void prepData.refresh()} />;
   if (prepData.loading || !data) return <WorkspaceSkeleton cards={5} />;
   const isEmpty = !data.codingProblems.length && !data.behavioralQuestions.length && !data.systemDesignPrompts.length && !data.sessions.length;
 
   return <div className="space-y-5">
-    <div className="flex justify-end"><Button disabled={resetting} onClick={resetDemo} variant="ghost"><RotateCcw className="size-4" />{resetting ? "Resetting..." : "Reset prep demo data"}</Button></div>
     {isEmpty ? <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><Code2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">No prep history yet</h2><p className="mt-2 text-sm text-slate-500">Start with one focused problem and build a technical interview practice rhythm.</p><Button className="mt-5" onClick={() => setCodingOpen(true)} variant="primary"><Code2 className="size-4" />Start today&apos;s coding problem</Button></div> : <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"><div className="space-y-6"><DailyCodingCard problems={data.codingProblems} onAdd={() => { setEditingCoding(null); setCodingOpen(true); }} onEdit={(problem) => { setEditingCoding(problem); recordRecentlyViewed({ id: problem.id, type: "Prep", label: problem.title, detail: `${problem.topic} coding problem`, href: "/prep" }); setCodingOpen(true); }} onStatus={changeCodingStatus} /><BehavioralPracticeCard questions={data.behavioralQuestions} onEdit={(question) => { recordRecentlyViewed({ id: question.id, type: "Prep", label: question.question, detail: "Behavioral practice", href: "/prep" }); setBehavioralOpen(question); }} onStatus={changeBehavioralStatus} /><SystemDesignCard prompts={data.systemDesignPrompts} onAdd={() => { setEditingSystem(null); setSystemOpen(true); }} onEdit={(prompt) => { recordRecentlyViewed({ id: prompt.id, type: "Prep", label: prompt.title, detail: "System design prompt", href: "/prep" }); setEditingSystem(prompt); setSystemOpen(true); }} onStatus={changeSystemStatus} /></div><aside className="space-y-6"><WeeklyProgress days={data.weeklyDays} sessions={data.sessions} /><PrepGoals days={data.weeklyDays} goals={data.goals} sessions={data.sessions} onSave={saveGoals} /></aside></div>}
     <LeetCodePlaceholder />
     <CodingProblemModal open={codingOpen} problem={editingCoding} onClose={() => { setCodingOpen(false); setEditingCoding(null); }} onSubmit={saveCoding} />

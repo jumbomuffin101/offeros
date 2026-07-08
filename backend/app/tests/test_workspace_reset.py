@@ -12,13 +12,13 @@ from app.schemas.workspace import WorkspaceResetRequest
 from app.services.workspace import WorkspaceService
 
 
-def test_workspace_reset_all_demo_matches_contract(client: TestClient) -> None:
-    response = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "demo"})
+def test_workspace_reset_all_sample_matches_contract(client: TestClient) -> None:
+    response = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "sample"})
 
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["scope"] == "all"
-    assert data["mode"] == "demo"
+    assert data["mode"] == "sample"
     assert set(data["deleted"]) == {"applications", "resumes", "coding", "behavioral", "systemDesign", "analyses"}
     assert set(data["created"]) == {"applications", "resumes", "coding", "behavioral", "systemDesign"}
     assert data["created"]["applications"] > 0
@@ -29,7 +29,7 @@ def test_workspace_reset_all_demo_matches_contract(client: TestClient) -> None:
 
 
 def test_workspace_reset_all_empty_clears_workspace(client: TestClient) -> None:
-    client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "demo"})
+    client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "sample"})
 
     response = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "empty"})
 
@@ -44,11 +44,11 @@ def test_workspace_reset_all_empty_clears_workspace(client: TestClient) -> None:
     assert client.get("/api/v1/prep/system-design").json()["data"] == []
 
 
-def test_workspace_reset_applications_demo_replaces_only_applications(client: TestClient) -> None:
+def test_workspace_reset_applications_sample_replaces_only_applications(client: TestClient) -> None:
     client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "empty"})
     resume = client.post("/api/v1/resumes", json={"name": "Custom Resume", "target_role": "SWE"}).json()["data"]
 
-    response = client.post("/api/v1/workspace/reset", json={"scope": "applications", "mode": "demo"})
+    response = client.post("/api/v1/workspace/reset", json={"scope": "applications", "mode": "sample"})
 
     assert response.status_code == 200
     assert response.json()["data"]["created"]["applications"] > 0
@@ -57,7 +57,7 @@ def test_workspace_reset_applications_demo_replaces_only_applications(client: Te
     assert [item["id"] for item in resumes] == [resume["id"]]
 
 
-def test_workspace_reset_resumes_demo_creates_valid_resumes_and_clears_analyses(client: TestClient) -> None:
+def test_workspace_reset_resumes_sample_creates_valid_resumes_and_clears_analyses(client: TestClient) -> None:
     resume = client.post(
         "/api/v1/resumes",
         json={
@@ -71,7 +71,7 @@ def test_workspace_reset_resumes_demo_creates_valid_resumes_and_clears_analyses(
         json={"target_role": "Backend Engineer", "job_description": "FastAPI PostgreSQL Docker"},
     )
 
-    response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "demo"})
+    response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "sample"})
     resumes = client.get("/api/v1/resumes").json()["data"]
 
     assert response.status_code == 200
@@ -83,14 +83,14 @@ def test_workspace_reset_resumes_demo_creates_valid_resumes_and_clears_analyses(
     assert all(resume["text_extraction_error"] is not None for resume in resumes)
 
 
-def test_workspace_reset_prep_demo_replaces_prep_only(client: TestClient) -> None:
+def test_workspace_reset_prep_sample_replaces_prep_only(client: TestClient) -> None:
     client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "empty"})
     application = client.post(
         "/api/v1/applications",
         json={"company": "Acme", "role": "SWE Intern", "status": "applied"},
     ).json()["data"]
 
-    response = client.post("/api/v1/workspace/reset", json={"scope": "prep", "mode": "demo"})
+    response = client.post("/api/v1/workspace/reset", json={"scope": "prep", "mode": "sample"})
 
     assert response.status_code == 200
     assert response.json()["data"]["created"]["coding"] > 0
@@ -100,14 +100,22 @@ def test_workspace_reset_prep_demo_replaces_prep_only(client: TestClient) -> Non
     assert [item["id"] for item in applications] == [application["id"]]
 
 
-def test_workspace_reset_demo_is_idempotent(client: TestClient) -> None:
-    first = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "demo"}).json()["data"]
-    second = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "demo"}).json()["data"]
+def test_workspace_reset_sample_is_idempotent(client: TestClient) -> None:
+    first = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "sample"}).json()["data"]
+    second = client.post("/api/v1/workspace/reset", json={"scope": "all", "mode": "sample"}).json()["data"]
 
     assert second["created"] == first["created"]
     assert len(client.get("/api/v1/applications").json()["data"]) == first["created"]["applications"]
     assert len(client.get("/api/v1/resumes").json()["data"]) == first["created"]["resumes"]
     assert len(client.get("/api/v1/prep/coding").json()["data"]) == first["created"]["coding"]
+
+
+def test_workspace_reset_accepts_legacy_demo_alias(client: TestClient) -> None:
+    response = client.post("/api/v1/workspace/reset", json={"scope": "applications", "mode": "demo"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["mode"] == "sample"
+    assert response.json()["data"]["created"]["applications"] > 0
 
 
 def test_workspace_reset_only_affects_selected_user() -> None:

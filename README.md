@@ -76,8 +76,8 @@ The web app lives in `apps/web`. The root workspace scripts forward to that app.
 
 ### Reset and Import Behavior
 
-- Local mode reset actions keep the existing browser-local behavior: page-level demo resets restore demo records, while Settings can clear local workspace areas or restart onboarding.
-- API mode reset actions call the authenticated FastAPI workspace reset endpoint. The backend deletes only the signed-in user's scoped rows, recreates the selected demo workspace records in one transaction, and Dashboard/Analytics refresh from the updated API data.
+- Local mode reset actions clear browser-local workspace areas from Settings.
+- API mode reset actions call the authenticated FastAPI workspace reset endpoint. The backend deletes only the signed-in user's scoped rows and Dashboard/Analytics refresh from the updated API data.
 - Brand-new signed-in users who choose **Start Fresh** get an empty cloud workspace with the existing polished empty states and CTAs.
 - If browser-local records exist while running API mode, Settings offers **Import local workspace**. The import is manual, skips likely duplicates, and stores only normal OfferOS records in the authenticated API account.
 

@@ -4,7 +4,7 @@ import { toDataError } from "@/lib/data/errors";
 import { writeApplications } from "@/lib/data/storage/local/applicationStorage";
 import { writeResumes } from "@/lib/data/storage/local/resumeStorage";
 import { writePrep } from "@/lib/data/storage/local/prepStorage";
-import { clearOfferOSStorage, removePreference } from "@/lib/data/storage/local/preferencesStorage";
+import { removePreference } from "@/lib/data/storage/local/preferencesStorage";
 import { writeResumeAnalyses } from "@/lib/data/storage/local/resumeAnalysisStorage";
 import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/lib/data/types/repositories";
 
@@ -12,7 +12,7 @@ const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
 export const workspaceRepository: WorkspaceRepository = {
   async reset(scope, mode) {
-    if (mode === "demo") {
+    if (mode === "sample") {
       try {
         if (scope === "all" || scope === "applications") writeApplications(applications);
         if (scope === "all" || scope === "resumes") { writeResumes(resumes); writeResumeAnalyses([]); }
@@ -24,11 +24,19 @@ export const workspaceRepository: WorkspaceRepository = {
   },
   async populateDemo() {
     try { writeApplications(applications); writeResumes(resumes); writePrep(prepWorkspaceData); }
-    catch (error) { throw toDataError(error, "Unable to prepare the demo workspace."); }
+    catch (error) { throw toDataError(error, "Unable to prepare the sample workspace."); }
   },
   async clear(scope: WorkspaceScope) {
     try {
-      if (scope === "all") { clearOfferOSStorage(); return; }
+      if (scope === "all") {
+        writeApplications([]);
+        writeResumes([]);
+        writeResumeAnalyses([]);
+        writePrep(emptyPrepWorkspace());
+        removePreference(RECENTLY_VIEWED_KEY);
+        removePreference("offeros:recent-commands");
+        return;
+      }
       if (scope === "applications") writeApplications([]);
       if (scope === "resumes") { writeResumes([]); writeResumeAnalyses([]); }
       if (scope === "prep") writePrep(emptyPrepWorkspace());

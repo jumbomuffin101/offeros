@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, BookOpen, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Moon, RotateCcw, Smartphone, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { BarChart3, BookOpen, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Monitor, Moon, RotateCcw, Smartphone, Sun, Upload, Wifi, WifiOff, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
 import { usePwa } from "@/components/pwa/pwa-provider";
 import { useWorkspaceActions } from "@/hooks/use-workspace-actions";
+import { useTheme } from "@/components/theme/theme-provider";
+import type { ThemePreference } from "@/lib/theme";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 import type { LocalImportStatus } from "@/lib/data/types/repositories";
 
@@ -25,6 +27,7 @@ type ResetScope = "all" | "applications" | "resumes" | "prep";
 
 export function SettingsPanel() {
   const workspace = useWorkspaceActions();
+  const theme = useTheme();
   const dataMode = workspace.dataMode;
   const checkLocalImport = workspace.checkLocalImport;
   const { canInstall, install, isInstalled, isOnline } = usePwa();
@@ -55,9 +58,8 @@ export function SettingsPanel() {
     if (workspace.running) return;
     const result = await workspace.clear(scope);
     if (!result) { notify(workspace.error?.message ?? "Unable to reset workspace data", "info"); return; }
-    if (scope === "all" && workspace.dataMode === "local") { window.location.reload(); return; }
     setPendingReset(null);
-    notify(workspace.dataMode === "api" ? resetSummary(result) : `${scope[0].toUpperCase()}${scope.slice(1)} data cleared`);
+    notify(resetSummary(scope));
   }
   async function importLocalWorkspace() {
     const imported = await workspace.importLocalWorkspace();
@@ -67,7 +69,7 @@ export function SettingsPanel() {
 
   return <div className="space-y-6">
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card><CardHeader><div className="flex items-center gap-3"><Moon className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Appearance</h2><p className="mt-1 text-sm text-slate-500">Theme preference for this local workspace.</p></div></div></CardHeader><CardContent><div className="grid grid-cols-3 gap-2">{["Dark", "System", "Light"].map((theme) => <button className={`rounded-lg border px-3 py-3 text-sm font-medium ${theme === "Dark" ? "border-indigo-400/30 bg-indigo-400/10 text-indigo-100" : "cursor-not-allowed border-slate-700/35 bg-slate-900/20 text-slate-600"}`} disabled={theme !== "Dark"} key={theme} onClick={() => notify("Dark theme is active")} type="button">{theme}</button>)}</div><p className="mt-3 text-xs text-slate-500">System and light themes are planned for a future release.</p></CardContent></Card>
+      <Card><CardHeader><div className="flex items-center gap-3"><Moon className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Appearance</h2><p className="mt-1 text-sm text-slate-500">Choose how OfferOS should look on this device.</p></div></div></CardHeader><CardContent><div className="grid grid-cols-3 gap-2">{themeOptions.map((option) => { const Icon = option.icon; const active = theme.theme === option.value; return <button className={`rounded-lg border px-3 py-3 text-sm font-medium transition ${active ? "border-indigo-400/35 bg-indigo-400/10 text-indigo-100" : "border-slate-700/35 bg-slate-900/20 text-slate-400 hover:border-slate-600/50 hover:bg-slate-800/35 hover:text-slate-100"}`} key={option.value} onClick={() => { void theme.setTheme(option.value); notify(`${option.label} theme applied`); }} type="button"><Icon className="mx-auto mb-2 size-4" />{option.label}</button>; })}</div><p className="mt-3 text-xs text-slate-500">Current mode: {theme.resolvedTheme === "light" ? "Light" : "Dark"}.</p></CardContent></Card>
       <Card><CardHeader><div className="flex items-center gap-3"><Upload className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Import & Export</h2><p className="mt-1 text-sm text-slate-500">{workspace.dataMode === "api" ? "Move browser-local records into your authenticated cloud workspace when needed." : "Portable workspace data is on the roadmap."}</p></div></div></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2"><Button onClick={() => notify("Export is coming soon", "info")} variant="secondary">Export data</Button>{workspace.dataMode === "api" && workspace.localImportStatus?.available ? <Button onClick={() => void importLocalWorkspace()} variant="primary">Import local workspace</Button> : <Button onClick={() => notify(workspace.dataMode === "api" ? "No local workspace records found to import" : "Import is coming soon", "info")} variant="secondary">Import data</Button>}</div>{workspace.dataMode === "api" && workspace.localImportStatus?.available ? <p className="text-xs leading-5 text-slate-500">Found local records on this device: {importStatusLabel(workspace.localImportStatus)}. Import safely skips records already in your cloud account.</p> : null}</CardContent></Card>
     </div>
 
@@ -119,7 +121,7 @@ export function SettingsPanel() {
       </CardContent>
     </Card>
 
-    <Card><CardHeader><div className="flex items-center gap-3"><Database className="size-5 text-amber-300" /><div><h2 className="text-lg font-semibold text-white">{workspace.dataMode === "api" ? "Cloud Data" : "Local Data"}</h2><p className="mt-1 text-sm text-slate-500">{workspace.dataMode === "api" ? "Restore demo data for one cloud workspace area or the full authenticated account." : "Clear one workspace area or restart the full first-run experience."}</p></div></div></CardHeader><CardContent><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{(["applications", "resumes", "prep"] as ResetScope[]).map((scope) => <Button disabled={workspace.running} key={scope} onClick={() => setPendingReset(scope)} variant="secondary"><RotateCcw className="size-4" />{workspace.dataMode === "api" ? "Reset" : "Clear"} {scope}</Button>)}<Button className="border-rose-400/25 text-rose-200 hover:bg-rose-400/10" disabled={workspace.running} onClick={() => setPendingReset("all")} variant="ghost"><RotateCcw className="size-4" />Reset all data</Button></div></CardContent></Card>
+    <Card><CardHeader><div className="flex items-center gap-3"><Database className="size-5 text-amber-300" /><div><h2 className="text-lg font-semibold text-white">{workspace.dataMode === "api" ? "Cloud Data" : "Local Data"}</h2><p className="mt-1 text-sm text-slate-500">Clear workspace areas when you want to start over. This cannot be undone.</p></div></div></CardHeader><CardContent><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{(["applications", "resumes", "prep"] as ResetScope[]).map((scope) => <Button disabled={workspace.running} key={scope} onClick={() => setPendingReset(scope)} variant="secondary"><RotateCcw className="size-4" />Clear {scope === "prep" ? "prep data" : scope}</Button>)}<Button className="border-rose-400/25 text-rose-200 hover:bg-rose-400/10" disabled={workspace.running} onClick={() => setPendingReset("all")} variant="ghost"><RotateCcw className="size-4" />Reset workspace</Button></div></CardContent></Card>
 
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
       <Card><CardHeader><div className="flex items-center gap-3"><Command className="size-5 text-indigo-300" /><h2 className="text-lg font-semibold text-white">Keyboard Shortcuts</h2></div></CardHeader><CardContent className="space-y-2">{shortcuts.map(([label, keys]) => <div className="flex items-center justify-between rounded-lg border border-slate-700/35 bg-slate-900/20 px-3 py-3" key={label}><span className="text-sm text-slate-300">{label}</span><kbd className="rounded-md border border-slate-600/45 bg-slate-800/60 px-2 py-1 text-xs text-slate-300">{keys}</kbd></div>)}</CardContent></Card>
@@ -128,7 +130,7 @@ export function SettingsPanel() {
 
     <section><div className="mb-4"><h2 className="text-xl font-semibold text-white">Help Center</h2><p className="mt-1 text-sm text-slate-500">A concise guide to your software engineering recruiting workspace.</p></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{helpItems.map((item) => { const Icon = item.icon; return <div className="rounded-xl border border-slate-700/40 bg-[#1b1d2b] p-4" key={item.title}><Icon className="size-5 text-indigo-300" /><h3 className="mt-4 text-sm font-semibold text-white">{item.title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{item.detail}</p></div>; })}</div></section>
 
-    {pendingReset ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d0f18]/80 px-4 backdrop-blur-lg"><section className="glass-card page-enter w-full max-w-md rounded-xl p-6" role="alertdialog" aria-modal="true" aria-labelledby="reset-title"><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white" id="reset-title">{pendingReset === "all" ? "Reset OfferOS?" : `${workspace.dataMode === "api" ? "Reset" : "Clear"} ${pendingReset} data?`}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{workspace.dataMode === "api" ? "This replaces your authenticated cloud records for this scope with the default demo workspace. Other users are not affected." : pendingReset === "all" ? "This clears all local OfferOS data and shows onboarding again." : "This removes the local records in this workspace area. This cannot be undone."}</p></div><button aria-label="Close reset confirmation" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" disabled={workspace.running} onClick={() => setPendingReset(null)} type="button"><X className="size-4" /></button></div><div className="mt-6 flex justify-end gap-2"><Button disabled={workspace.running} onClick={() => setPendingReset(null)} variant="ghost">Cancel</Button><Button className="border-rose-400/30 bg-rose-400/15 text-rose-100 hover:bg-rose-400/20" disabled={workspace.running} onClick={() => void reset(pendingReset)} variant="secondary">{workspace.running ? "Resetting..." : "Confirm reset"}</Button></div></section></div> : null}
+    {pendingReset ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d0f18]/80 px-4 backdrop-blur-lg"><section className="glass-card page-enter w-full max-w-md rounded-xl p-6" role="alertdialog" aria-modal="true" aria-labelledby="reset-title"><div className="flex items-start justify-between"><div><h2 className="text-xl font-semibold text-white" id="reset-title">{pendingReset === "all" ? "Reset workspace?" : `Clear ${pendingReset === "prep" ? "prep data" : pendingReset}?`}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{pendingReset === "all" ? "This deletes your applications, resumes, prep data, saved analysis history, and workspace settings for this account or device." : `This deletes every ${pendingReset === "prep" ? "prep item" : pendingReset.slice(0, -1)} in this workspace area and leaves it empty.`} Other users are not affected.</p></div><button aria-label="Close reset confirmation" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" disabled={workspace.running} onClick={() => setPendingReset(null)} type="button"><X className="size-4" /></button></div><div className="mt-6 flex justify-end gap-2"><Button disabled={workspace.running} onClick={() => setPendingReset(null)} variant="ghost">Cancel</Button><Button className="border-rose-400/30 bg-rose-400/15 text-rose-100 hover:bg-rose-400/20" disabled={workspace.running} onClick={() => void reset(pendingReset)} variant="secondary">{workspace.running ? "Clearing..." : "Confirm clear"}</Button></div></section></div> : null}
     <Toast message={toast} tone={toastTone} />
   </div>;
 }
@@ -152,9 +154,14 @@ function importStatusLabel(status: LocalImportStatus) {
   ].filter(([count]) => Number(count) > 0).map(([count, label]) => `${count} ${label}`).join(", ");
 }
 
-function resetSummary(result: unknown) {
-  if (!result || typeof result !== "object" || !("created" in result)) return "Demo workspace restored in your cloud account";
-  const created = (result as { created?: Record<string, number> }).created ?? {};
-  const total = Object.values(created).reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
-  return total > 0 ? `Demo workspace restored with ${total} records` : "Workspace reset complete";
+const themeOptions: Array<{ label: string; value: ThemePreference; icon: LucideIcon }> = [
+  { label: "Dark", value: "dark", icon: Moon },
+  { label: "System", value: "system", icon: Monitor },
+  { label: "Light", value: "light", icon: Sun },
+];
+
+function resetSummary(scope: ResetScope) {
+  if (scope === "all") return "Workspace reset. Your account is empty.";
+  if (scope === "prep") return "Prep data cleared.";
+  return `${scope[0].toUpperCase()}${scope.slice(1)} cleared.`;
 }

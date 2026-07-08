@@ -84,7 +84,7 @@ export const apiPrepRepository: PrepRepository = {
     return this.list();
   },
   async reset() {
-    await resetApiWorkspace("prep", "demo");
+    await resetApiWorkspace("prep", "sample");
     writeApiPrepGoals(prepWorkspaceData.goals);
     return this.list();
   },

@@ -53,7 +53,7 @@ export interface AnalyticsRepository {
 }
 
 export type WorkspaceScope = "all" | "applications" | "resumes" | "prep";
-export type WorkspaceResetMode = "empty" | "demo";
+export type WorkspaceResetMode = "empty" | "sample";
 export type WorkspaceResetResult = {
   scope: WorkspaceScope;
   mode: WorkspaceResetMode;

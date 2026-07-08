@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AuthenticatedShell } from "@/components/auth/authenticated-shell";
+import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -44,8 +45,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  colorScheme: "dark",
-  themeColor: "#151722",
+  colorScheme: "dark light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f7fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#151722" },
+  ],
 };
 
 export default function RootLayout({
@@ -54,7 +58,10 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
+      </head>
       <body className="font-sans antialiased">
         <ClerkProvider>
           <AuthenticatedShell>{children}</AuthenticatedShell>

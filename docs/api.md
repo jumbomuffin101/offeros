@@ -171,7 +171,7 @@ Company creation normalizes name/domain and may return an existing canonical mat
 | GET | `/applications/{application_id}` | Read one application |
 | PATCH | `/applications/{application_id}` | Partial update or status transition |
 | DELETE | `/applications/{application_id}` | Soft delete |
-| POST | `/workspace/reset` | Reset scoped authenticated workspace data to demo or empty state |
+| POST | `/workspace/reset` | Reset scoped authenticated workspace data to sample or empty state |
 | POST | `/applications/{application_id}/restore` | Restore during retention window |
 | GET | `/applications/{application_id}/activity` | Status/update history |
 
@@ -394,18 +394,18 @@ Current request shape:
 ```json
 {
   "scope": "all",
-  "mode": "demo"
+  "mode": "sample"
 }
 ```
 
-`scope` is one of `all`, `applications`, `resumes`, or `prep`. `mode` is `demo` or `empty`. The server derives the user from the Clerk token, deletes existing rows for only that user and scope, recreates server-owned demo records only when `mode` is `demo`, and returns normalized deleted/created counts. This endpoint powers API-mode demo reset buttons, Start Fresh, and Settings reset actions. It is intentionally not a cross-user admin operation.
+`scope` is one of `all`, `applications`, `resumes`, or `prep`. `mode` is `sample` or `empty`. The server derives the user from the Clerk token, deletes existing rows for only that user and scope, recreates server-owned sample records only when `mode` is `sample`, and returns normalized deleted/created counts. The legacy `demo` mode is accepted as an alias for older clients. Settings clear actions use `mode=empty`. It is intentionally not a cross-user admin operation.
 
 Example response:
 
 ```json
 {
   "scope": "all",
-  "mode": "demo",
+  "mode": "sample",
   "deleted": {
     "applications": 4,
     "resumes": 2,

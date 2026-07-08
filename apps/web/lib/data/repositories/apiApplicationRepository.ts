@@ -31,7 +31,7 @@ export const apiApplicationRepository: ApplicationRepository = {
     return this.create({ ...input, company: `${source.company} Copy` });
   },
   async reset() {
-    await resetApiWorkspace("applications", "demo");
+    await resetApiWorkspace("applications", "sample");
     return this.list();
   },
 };

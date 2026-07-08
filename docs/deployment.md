@@ -161,18 +161,19 @@ API mode keeps the authenticated application shell mounted when the API cannot b
 
 In local mode, reset behavior remains browser-local:
 
-- Application, Resume, and Prep demo reset buttons restore the bundled demo data in localStorage.
+- Application, Resume, and Prep data can be cleared from Settings.
 - Settings clear actions remove the selected local records.
 - Reset all local data clears OfferOS local keys and restarts onboarding.
 
 In API mode, reset behavior is cloud-scoped:
 
 - Application, Resume, Prep, and Settings reset actions call `POST /api/v1/workspace/reset`.
-- Requests use `{ "scope": "all" | "applications" | "resumes" | "prep", "mode": "demo" | "empty" }`.
+- Settings clear actions use `{ "scope": "all" | "applications" | "resumes" | "prep", "mode": "empty" }`.
+- Optional sample workspace loading uses `{ "scope": "all", "mode": "sample" }`.
 - The backend deletes only the authenticated user's rows for the selected scope.
-- `mode=demo` recreates server-owned demo records. `mode=empty` leaves the selected scope empty, which is what Start Fresh uses.
+- `mode=sample` recreates server-owned sample records. `mode=empty` leaves the selected scope empty, which is what Start Fresh and Settings clears use.
 - Resume resets also delete that user's resume analysis rows.
-- Repeating a reset should leave one copy of the demo records, not duplicates.
+- Repeating sample loading should leave one copy of the sample records, not duplicates.
 - Dashboard and Analytics should update after the reset because repository hooks listen for the shared data-change event and refetch from the API.
 
 Manual local import:
@@ -194,15 +195,15 @@ Manual reset validation checklist:
 
 1. Sign in to the production Vercel frontend.
 2. Create a custom application.
-3. Reset Applications demo data.
-4. Verify the custom application is gone and demo applications are present.
+3. Clear applications from Settings.
+4. Verify the custom application is gone and the Applications page is empty.
 5. Reset all workspace data to empty from Settings or Start Fresh.
 6. Verify Dashboard and Analytics show empty states.
-7. Reset all workspace data to demo.
+7. Load the optional sample workspace from onboarding or a development helper if needed.
 8. Refresh the browser.
 9. Log out and log back in.
-10. Verify demo data persists.
-11. Repeat demo reset twice and confirm there are no duplicate applications, resumes, or prep items.
+10. Verify cleared data stays empty unless you intentionally loaded sample data.
+11. Repeat sample loading twice and confirm there are no duplicate applications, resumes, or prep items.
 
 ## AI Resume Intelligence QA
 
@@ -226,7 +227,7 @@ Manual reset validation checklist:
 10. Create an application and confirm it appears in the list.
 11. Refresh and confirm the application persists.
 12. Test the explicit Log out action and sign-in redirect.
-13. Reset Applications and confirm no duplicate demo records appear after a second reset.
+13. Clear Applications and confirm the list remains empty after refresh.
 14. Reset all cloud data from Settings and confirm Dashboard and Analytics update after refresh/refetch.
 15. Paste resume text, run AI Resume Analysis, refresh, and confirm analysis history persists.
 

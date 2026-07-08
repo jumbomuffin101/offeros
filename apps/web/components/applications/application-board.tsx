@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RotateCcw } from "lucide-react";
+import { KanbanSquare, List, Plus } from "lucide-react";
 import { ApplicationColumn } from "@/components/applications/application-column";
 import { ApplicationDetailDrawer } from "@/components/applications/application-detail-drawer";
 import { ApplicationFilters } from "@/components/applications/application-filters";
+import { ApplicationList } from "@/components/applications/application-list";
 import {
   ApplicationFormModal,
   type ApplicationFormPayload,
@@ -27,10 +28,20 @@ import {
   type ApplicationFiltersState,
   type ApplicationSortKey,
 } from "@/lib/application-utils";
-import type { Application, ApplicationStatus } from "@/lib/types";
+import type { Application, ApplicationPriority, ApplicationStatus } from "@/lib/types";
 
 const OPEN_ADD_EVENT = "offeros:add-application";
 const OPEN_ADD_STORAGE_KEY = "offeros:open-add-application";
+type ApplicationView = "list" | "kanban";
+type VolumeFilter = "all" | "active" | "followup" | "deadline" | "interviews";
+
+const volumeFilters: Array<{ label: string; value: VolumeFilter }> = [
+  { label: "All tracked", value: "all" },
+  { label: "Active only", value: "active" },
+  { label: "Needs follow-up", value: "followup" },
+  { label: "Has deadline", value: "deadline" },
+  { label: "OA/interviews", value: "interviews" },
+];
 
 export function ApplicationBoard() {
   const applicationData = useApplications();
@@ -41,12 +52,14 @@ export function ApplicationBoard() {
   const [sortKey, setSortKey] = useState<ApplicationSortKey>("deadlineSoonest");
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [view, setView] = useState<ApplicationView>("list");
+  const [volumeFilter, setVolumeFilter] = useState<VolumeFilter>("all");
+  const [hideRejected, setHideRejected] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
-  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -86,8 +99,8 @@ export function ApplicationBoard() {
   }, [toast]);
 
   const visibleApplications = useMemo(
-    () => sortApplications(filterApplications(applications, search, filters), sortKey),
-    [applications, filters, search, sortKey],
+    () => sortApplications(applyVolumeFilters(filterApplications(applications, search, filters), volumeFilter, hideRejected), sortKey),
+    [applications, filters, hideRejected, search, sortKey, volumeFilter],
   );
 
   const selectedApplication =
@@ -132,6 +145,13 @@ export function ApplicationBoard() {
     } catch { /* Hook exposes the typed error state. */ }
   }
 
+  async function changePriority(id: string, priority: ApplicationPriority) {
+    try {
+      await applicationData.update(id, { priority });
+      setToast(`Priority set to ${priority}.`);
+    } catch { /* Hook exposes the typed error state. */ }
+  }
+
   async function deleteApplication(id: string) {
     try {
       await applicationData.delete(id);
@@ -139,24 +159,6 @@ export function ApplicationBoard() {
       setSelectedApplicationId(null);
       setToast("Deleted successfully");
     } catch { /* Hook exposes the typed error state. */ }
-  }
-
-  async function resetDemoData() {
-    if (resetting) return;
-    setResetting(true);
-    try {
-      await applicationData.reset();
-      setSelectedApplicationId(null);
-      setPendingDeleteId(null);
-      setSearch("");
-      setFilters(defaultApplicationFilters);
-      setSortKey("deadlineSoonest");
-      setToast("Demo data restored.");
-    } catch (cause) {
-      setToast(cause instanceof Error ? cause.message : "Unable to reset applications.");
-    } finally {
-      setResetting(false);
-    }
   }
 
   function openApplication(application: Application) {
@@ -181,6 +183,7 @@ export function ApplicationBoard() {
             filters={filters}
             onFilterOpenChange={setFilterOpen}
             onFiltersChange={setFilters}
+            onResetView={() => { setVolumeFilter("all"); setHideRejected(true); }}
             onSearchChange={setSearch}
             onSortChange={setSortKey}
             onSortOpenChange={setSortOpen}
@@ -190,8 +193,31 @@ export function ApplicationBoard() {
             sortOpen={sortOpen}
             sources={sources}
           />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {volumeFilters.map((item) => (
+              <button
+                className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${volumeFilter === item.value ? "border-indigo-400/35 bg-indigo-400/10 text-indigo-100" : "border-slate-700/35 bg-slate-900/20 text-slate-400 hover:border-slate-600/45 hover:text-slate-100"}`}
+                key={item.value}
+                onClick={() => setVolumeFilter(item.value)}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+            <button
+              className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${hideRejected ? "border-indigo-400/35 bg-indigo-400/10 text-indigo-100" : "border-slate-700/35 bg-slate-900/20 text-slate-400 hover:border-slate-600/45 hover:text-slate-100"}`}
+              onClick={() => setHideRejected((value) => !value)}
+              type="button"
+            >
+              {hideRejected ? "Rejected hidden" : "Show rejected"}
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <div className="inline-flex rounded-lg border border-slate-700/40 bg-slate-900/25 p-1">
+            <button className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium transition ${view === "list" ? "bg-indigo-400/15 text-indigo-100" : "text-slate-400 hover:text-slate-100"}`} onClick={() => setView("list")} type="button"><List className="size-4" />List</button>
+            <button className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium transition ${view === "kanban" ? "bg-indigo-400/15 text-indigo-100" : "text-slate-400 hover:text-slate-100"}`} onClick={() => setView("kanban")} type="button"><KanbanSquare className="size-4" />Kanban</button>
+          </div>
           <Button
             onClick={() => {
               setEditingApplication(null);
@@ -203,14 +229,13 @@ export function ApplicationBoard() {
             <Plus className="size-4" />
             Add Application
           </Button>
-          <Button disabled={resetting} onClick={resetDemoData} type="button" variant="ghost">
-            <RotateCcw className="size-4" />
-            {resetting ? "Resetting..." : "Reset demo data"}
-          </Button>
         </div>
       </div>
 
-      {applications.length || hasActiveQuery ? <div className="grid gap-4 xl:grid-cols-4">
+      {applications.length || hasActiveQuery || volumeFilter !== "all" || !hideRejected ? (
+        view === "list" ? (
+          visibleApplications.length ? <ApplicationList applications={visibleApplications} onOpenApplication={openApplication} onPriorityChange={changePriority} onStatusChange={moveApplication} /> : <NoApplicationMatches />
+        ) : <div className="grid gap-4 xl:grid-cols-4">
         {APPLICATION_STATUSES.map((status) => (
           <ApplicationColumn
             applications={visibleApplications.filter(
@@ -223,7 +248,7 @@ export function ApplicationBoard() {
             status={status}
           />
         ))}
-      </div> : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><Plus className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">No applications yet</h2><p className="mt-2 text-sm text-slate-500">Add your first opportunity and keep every deadline and follow-up in one place.</p><Button className="mt-5" onClick={() => setFormOpen(true)} variant="primary"><Plus className="size-4" />Add your first application</Button></div>}
+      </div>) : <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><Plus className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">No applications yet</h2><p className="mt-2 text-sm text-slate-500">Add your first opportunity and keep every deadline and follow-up in one place.</p><Button className="mt-5" onClick={() => setFormOpen(true)} variant="primary"><Plus className="size-4" />Add your first application</Button></div>}
 
       <ApplicationFormModal
         application={editingApplication}
@@ -252,8 +277,7 @@ export function ApplicationBoard() {
           <div className="glass-card page-enter w-full max-w-md rounded-3xl p-6">
             <h2 className="text-xl font-semibold text-white">Delete application?</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              This removes {pendingDelete.company} from your local tracker. You can restore demo
-              data later, but this specific local edit will be lost.
+              This removes {pendingDelete.company} from your tracker. This action cannot be undone.
             </p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button onClick={() => setPendingDeleteId(null)} type="button" variant="ghost">
@@ -268,6 +292,32 @@ export function ApplicationBoard() {
       ) : null}
 
       <Toast message={toast} />
+    </div>
+  );
+}
+
+function applyVolumeFilters(applications: Application[], filter: VolumeFilter, hideRejected: boolean) {
+  const today = Date.now();
+  return applications.filter((application) => {
+    if (hideRejected && application.status === "Rejected") return false;
+    if (filter === "active") return !["Offer", "Rejected"].includes(application.status);
+    if (filter === "deadline") return Boolean(application.deadline);
+    if (filter === "interviews") return ["OA", "Interview", "Final Round"].includes(application.status);
+    if (filter === "followup") {
+      if (["Wishlist", "Offer", "Rejected"].includes(application.status)) return false;
+      const updated = new Date(application.updatedAt).getTime();
+      return Number.isFinite(updated) && today - updated >= 7 * 86_400_000;
+    }
+    return true;
+  });
+}
+
+function NoApplicationMatches() {
+  return (
+    <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center">
+      <List className="mx-auto size-7 text-indigo-300" />
+      <h2 className="mt-4 text-lg font-semibold text-white">No applications match this view</h2>
+      <p className="mt-2 text-sm text-slate-500">Adjust search, filters, or the high-volume view controls.</p>
     </div>
   );
 }

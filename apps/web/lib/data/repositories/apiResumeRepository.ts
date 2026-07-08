@@ -29,7 +29,7 @@ export const apiResumeRepository: ResumeRepository = {
     return fromApiResume(response.data);
   },
   async reset() {
-    await resetApiWorkspace("resumes", "demo");
+    await resetApiWorkspace("resumes", "sample");
     return this.list();
   },
   async analyzeResume(resumeId, payload) {

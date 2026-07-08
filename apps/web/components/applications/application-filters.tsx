@@ -35,6 +35,7 @@ export function ApplicationFilters({
   sortOpen,
   onFilterOpenChange,
   onSortOpenChange,
+  onResetView,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -48,6 +49,7 @@ export function ApplicationFilters({
   sortOpen: boolean;
   onFilterOpenChange: (open: boolean) => void;
   onSortOpenChange: (open: boolean) => void;
+  onResetView?: () => void;
 }) {
   return (
     <Card className="p-4">
@@ -157,6 +159,7 @@ export function ApplicationFilters({
             onSearchChange("");
             onFiltersChange(defaultApplicationFilters);
             onSortChange("deadlineSoonest");
+            onResetView?.();
           }}
           type="button"
           variant="ghost"
