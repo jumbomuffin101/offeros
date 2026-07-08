@@ -53,11 +53,11 @@ export function SettingsPanel() {
   }
   async function reset(scope: ResetScope) {
     if (workspace.running) return;
-    const cleared = await workspace.clear(scope);
-    if (!cleared) { notify(workspace.error?.message ?? "Unable to reset workspace data", "info"); return; }
+    const result = await workspace.clear(scope);
+    if (!result) { notify(workspace.error?.message ?? "Unable to reset workspace data", "info"); return; }
     if (scope === "all" && workspace.dataMode === "local") { window.location.reload(); return; }
     setPendingReset(null);
-    notify(workspace.dataMode === "api" ? "Demo workspace restored in your cloud account" : `${scope[0].toUpperCase()}${scope.slice(1)} data cleared`);
+    notify(workspace.dataMode === "api" ? resetSummary(result) : `${scope[0].toUpperCase()}${scope.slice(1)} data cleared`);
   }
   async function importLocalWorkspace() {
     const imported = await workspace.importLocalWorkspace();
@@ -150,4 +150,11 @@ function importStatusLabel(status: LocalImportStatus) {
     [status.behavioralQuestions, "behavioral"],
     [status.systemDesignPrompts, "system design"],
   ].filter(([count]) => Number(count) > 0).map(([count, label]) => `${count} ${label}`).join(", ");
+}
+
+function resetSummary(result: unknown) {
+  if (!result || typeof result !== "object" || !("created" in result)) return "Demo workspace restored in your cloud account";
+  const created = (result as { created?: Record<string, number> }).created ?? {};
+  const total = Object.values(created).reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  return total > 0 ? `Demo workspace restored with ${total} records` : "Workspace reset complete";
 }

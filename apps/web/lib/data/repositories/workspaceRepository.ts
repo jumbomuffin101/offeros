@@ -11,6 +11,17 @@ import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/l
 const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
 export const workspaceRepository: WorkspaceRepository = {
+  async reset(scope, mode) {
+    if (mode === "demo") {
+      try {
+        if (scope === "all" || scope === "applications") writeApplications(applications);
+        if (scope === "all" || scope === "resumes") { writeResumes(resumes); writeResumeAnalyses([]); }
+        if (scope === "all" || scope === "prep") writePrep(prepWorkspaceData);
+        return;
+      } catch (error) { throw toDataError(error, `Unable to reset ${scope} data.`); }
+    }
+    return this.clear(scope);
+  },
   async populateDemo() {
     try { writeApplications(applications); writeResumes(resumes); writePrep(prepWorkspaceData); }
     catch (error) { throw toDataError(error, "Unable to prepare the demo workspace."); }

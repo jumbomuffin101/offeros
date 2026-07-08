@@ -2,6 +2,7 @@ import type { ApplicationRepository } from "@/lib/data/types/repositories";
 import type { ApiApplication, ApiDataResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiApplication, toApiApplication } from "@/lib/data/api/mappers";
+import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiApplicationRepository: ApplicationRepository = {
   async list() {
@@ -30,10 +31,7 @@ export const apiApplicationRepository: ApplicationRepository = {
     return this.create({ ...input, company: `${source.company} Copy` });
   },
   async reset() {
-    await apiClient.post("/workspace/reset", {
-      scope: "applications",
-      mode: "demo",
-    });
+    await resetApiWorkspace("applications", "demo");
     return this.list();
   },
 };

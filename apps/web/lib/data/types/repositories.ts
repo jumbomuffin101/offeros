@@ -54,6 +54,25 @@ export interface AnalyticsRepository {
 
 export type WorkspaceScope = "all" | "applications" | "resumes" | "prep";
 export type WorkspaceResetMode = "empty" | "demo";
+export type WorkspaceResetResult = {
+  scope: WorkspaceScope;
+  mode: WorkspaceResetMode;
+  deleted: {
+    applications: number;
+    resumes: number;
+    coding: number;
+    behavioral: number;
+    systemDesign: number;
+    analyses: number;
+  };
+  created: {
+    applications: number;
+    resumes: number;
+    coding: number;
+    behavioral: number;
+    systemDesign: number;
+  };
+};
 
 export type LocalImportStatus = {
   available: boolean;
@@ -65,6 +84,7 @@ export type LocalImportStatus = {
 };
 
 export interface WorkspaceRepository {
+  reset(scope: WorkspaceScope, mode: WorkspaceResetMode): Promise<WorkspaceResetResult | void>;
   populateDemo(): Promise<void>;
   clear(scope: WorkspaceScope, mode?: WorkspaceResetMode): Promise<void>;
   clearWorkspace(): Promise<void>;

@@ -1,7 +1,5 @@
 import type { Application, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
 import type { LocalImportStatus, WorkspaceRepository, WorkspaceResetMode, WorkspaceScope } from "@/lib/data/types/repositories";
-import { apiClient } from "@/lib/data/api/apiClient";
-import type { ApiDataResponse } from "@/lib/data/api/contracts";
 import { prepWorkspaceData } from "@/lib/mock-data";
 import { readApplications } from "@/lib/data/storage/local/applicationStorage";
 import { readPrep } from "@/lib/data/storage/local/prepStorage";
@@ -11,15 +9,14 @@ import { apiApplicationRepository } from "@/lib/data/repositories/apiApplication
 import { apiPrepRepository } from "@/lib/data/repositories/apiPrepRepository";
 import { apiResumeRepository } from "@/lib/data/repositories/apiResumeRepository";
 import { writeApiPrepGoals } from "@/lib/data/storage/local/apiPrepStorage";
+import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
-type WorkspaceResetPayload = {
-  scope: WorkspaceScope;
-  mode: WorkspaceResetMode;
-};
-
 export const apiWorkspaceRepository: WorkspaceRepository = {
+  async reset(scope, mode) {
+    return resetCloudWorkspace(scope, mode);
+  },
   async populateDemo() {
     await resetCloudWorkspace("all", "demo");
   },
@@ -99,8 +96,9 @@ export const apiWorkspaceRepository: WorkspaceRepository = {
 };
 
 async function resetCloudWorkspace(scope: WorkspaceScope, mode: WorkspaceResetMode) {
-  await apiClient.post<ApiDataResponse<unknown>, WorkspaceResetPayload>("/workspace/reset", { scope, mode });
+  const response = await resetApiWorkspace(scope, mode);
   if (scope === "all" || scope === "prep") writeApiPrepGoals(mode === "demo" ? prepWorkspaceData.goals : []);
+  return response;
 }
 
 type WorkspaceSnapshot = {

@@ -409,19 +409,17 @@ Example response:
   "deleted": {
     "applications": 4,
     "resumes": 2,
-    "coding_problems": 5,
-    "behavioral_questions": 4,
-    "system_design_prompts": 3,
-    "settings": 1,
-    "resume_analyses": 1
+    "coding": 5,
+    "behavioral": 4,
+    "systemDesign": 3,
+    "analyses": 1
   },
   "created": {
     "applications": 4,
     "resumes": 2,
-    "coding_problems": 5,
-    "behavioral_questions": 4,
-    "system_design_prompts": 3,
-    "settings": 1
+    "coding": 5,
+    "behavioral": 4,
+    "systemDesign": 3
   }
 }
 ```

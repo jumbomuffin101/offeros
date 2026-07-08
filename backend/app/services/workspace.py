@@ -1,5 +1,5 @@
-from uuid import UUID
 from collections.abc import Callable
+from uuid import UUID
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
@@ -23,7 +23,7 @@ class WorkspaceService:
             scope=payload.scope,
             mode=payload.mode,
             deleted=_empty_counts(),
-            created=_empty_counts(),
+            created=_empty_created_counts(),
         )
         try:
             if payload.scope in {"all", "applications"}:
@@ -34,7 +34,7 @@ class WorkspaceService:
                 summary.created["applications"] = len(applications)
 
             if payload.scope in {"all", "resumes"}:
-                summary.deleted["resume_analyses"] = self._delete(ResumeAnalysis, user_id)
+                summary.deleted["analyses"] = self._delete(ResumeAnalysis, user_id)
                 summary.deleted["resumes"] = self._delete(ResumeVersion, user_id)
                 resumes = _reset_records(payload.mode, payload.resumes, _demo_resumes)
                 for resume in resumes:
@@ -42,9 +42,9 @@ class WorkspaceService:
                 summary.created["resumes"] = len(resumes)
 
             if payload.scope in {"all", "prep"}:
-                summary.deleted["coding_problems"] = self._delete(CodingProblem, user_id)
-                summary.deleted["behavioral_questions"] = self._delete(BehavioralQuestion, user_id)
-                summary.deleted["system_design_prompts"] = self._delete(SystemDesignPrompt, user_id)
+                summary.deleted["coding"] = self._delete(CodingProblem, user_id)
+                summary.deleted["behavioral"] = self._delete(BehavioralQuestion, user_id)
+                summary.deleted["systemDesign"] = self._delete(SystemDesignPrompt, user_id)
                 coding_problems = _reset_records(payload.mode, payload.coding_problems, _demo_coding_problems)
                 behavioral_questions = _reset_records(payload.mode, payload.behavioral_questions, _demo_behavioral_questions)
                 system_design_prompts = _reset_records(payload.mode, payload.system_design_prompts, _demo_system_design_prompts)
@@ -56,12 +56,12 @@ class WorkspaceService:
                     self.db.add(BehavioralQuestion(user_id=user_id, **persistence_values(question)))
                 for prompt in system_design_prompts:
                     self.db.add(SystemDesignPrompt(user_id=user_id, **persistence_values(prompt)))
-                summary.created["coding_problems"] = len(coding_problems)
-                summary.created["behavioral_questions"] = len(behavioral_questions)
-                summary.created["system_design_prompts"] = len(system_design_prompts)
+                summary.created["coding"] = len(coding_problems)
+                summary.created["behavioral"] = len(behavioral_questions)
+                summary.created["systemDesign"] = len(system_design_prompts)
 
             if payload.scope == "all" and payload.mode == "empty":
-                summary.deleted["settings"] = self._delete(UserSettings, user_id)
+                self._delete(UserSettings, user_id)
 
             self.db.commit()
         except Exception:
@@ -78,11 +78,20 @@ def _empty_counts() -> dict[str, int]:
     return {
         "applications": 0,
         "resumes": 0,
-        "resume_analyses": 0,
-        "coding_problems": 0,
-        "behavioral_questions": 0,
-        "system_design_prompts": 0,
-        "settings": 0,
+        "coding": 0,
+        "behavioral": 0,
+        "systemDesign": 0,
+        "analyses": 0,
+    }
+
+
+def _empty_created_counts() -> dict[str, int]:
+    return {
+        "applications": 0,
+        "resumes": 0,
+        "coding": 0,
+        "behavioral": 0,
+        "systemDesign": 0,
     }
 
 

@@ -19,6 +19,7 @@ import {
 import { readApiPrepGoals, writeApiPrepGoals } from "@/lib/data/storage/local/apiPrepStorage";
 import { prepWorkspaceData } from "@/lib/mock-data";
 import { buildWeeklyDays } from "@/lib/prep-utils";
+import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiPrepRepository: PrepRepository = {
   async list() {
@@ -83,11 +84,8 @@ export const apiPrepRepository: PrepRepository = {
     return this.list();
   },
   async reset() {
+    await resetApiWorkspace("prep", "demo");
     writeApiPrepGoals(prepWorkspaceData.goals);
-    await apiClient.post("/workspace/reset", {
-      scope: "prep",
-      mode: "demo",
-    });
     return this.list();
   },
 };

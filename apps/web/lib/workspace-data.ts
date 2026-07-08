@@ -17,8 +17,8 @@ export function emptyPrepWorkspace(): PrepWorkspaceData {
   };
 }
 
-export function populateDemoWorkspace() { return workspaceRepository.populateDemo(); }
+export function populateDemoWorkspace() { return workspaceRepository.reset("all", "demo"); }
 
 export function clearWorkspaceData() { return workspaceRepository.clearWorkspace(); }
 
-export function clearAllOfferOSData() { return workspaceRepository.clear("all"); }
+export function clearAllOfferOSData() { return workspaceRepository.reset("all", "empty"); }

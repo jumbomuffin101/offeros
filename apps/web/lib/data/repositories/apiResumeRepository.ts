@@ -2,6 +2,7 @@ import type { ResumeRepository } from "@/lib/data/types/repositories";
 import type { ApiDataResponse, ApiResume, ApiResumeAnalysis } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
+import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiResumeRepository: ResumeRepository = {
   async list() {
@@ -28,10 +29,7 @@ export const apiResumeRepository: ResumeRepository = {
     return fromApiResume(response.data);
   },
   async reset() {
-    await apiClient.post("/workspace/reset", {
-      scope: "resumes",
-      mode: "demo",
-    });
+    await resetApiWorkspace("resumes", "demo");
     return this.list();
   },
   async analyzeResume(resumeId, payload) {

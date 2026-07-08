@@ -190,6 +190,20 @@ Troubleshooting:
 - Network timeout: verify `NEXT_PUBLIC_API_BASE_URL`, backend health, and CORS origins.
 - Reset does not update UI: confirm the frontend was redeployed with `NEXT_PUBLIC_DATA_MODE=api`, then verify the reset response contains the expected `scope`, `mode`, `deleted`, and `created` fields.
 
+Manual reset validation checklist:
+
+1. Sign in to the production Vercel frontend.
+2. Create a custom application.
+3. Reset Applications demo data.
+4. Verify the custom application is gone and demo applications are present.
+5. Reset all workspace data to empty from Settings or Start Fresh.
+6. Verify Dashboard and Analytics show empty states.
+7. Reset all workspace data to demo.
+8. Refresh the browser.
+9. Log out and log back in.
+10. Verify demo data persists.
+11. Repeat demo reset twice and confirm there are no duplicate applications, resumes, or prep items.
+
 ## AI Resume Intelligence QA
 
 - OpenAI keys are backend-only. Do not add them to Vercel frontend env vars.
