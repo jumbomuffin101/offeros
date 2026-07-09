@@ -19,7 +19,7 @@ def test_workspace_reset_all_sample_matches_contract(client: TestClient) -> None
     data = response.json()["data"]
     assert data["scope"] == "all"
     assert data["mode"] == "sample"
-    assert set(data["deleted"]) == {"applications", "resumes", "coding", "behavioral", "systemDesign", "analyses"}
+    assert set(data["deleted"]) == {"applications", "resumes", "resumeAnalyses", "coding", "behavioral", "systemDesign"}
     assert set(data["created"]) == {"applications", "resumes", "coding", "behavioral", "systemDesign"}
     assert data["created"]["applications"] > 0
     assert data["created"]["resumes"] > 0
@@ -75,7 +75,7 @@ def test_workspace_reset_resumes_sample_creates_valid_resumes_and_clears_analyse
     resumes = client.get("/api/v1/resumes").json()["data"]
 
     assert response.status_code == 200
-    assert response.json()["data"]["deleted"]["analyses"] == 1
+    assert response.json()["data"]["deleted"]["resumeAnalyses"] == 1
     assert response.json()["data"]["created"]["resumes"] == len(resumes)
     assert all(resume["original_file_name"] is not None for resume in resumes)
     assert all(resume["extracted_text"] is not None for resume in resumes)
@@ -98,6 +98,52 @@ def test_workspace_reset_prep_sample_replaces_prep_only(client: TestClient) -> N
     assert response.json()["data"]["created"]["systemDesign"] > 0
     applications = client.get("/api/v1/applications").json()["data"]
     assert [item["id"] for item in applications] == [application["id"]]
+
+
+def test_workspace_reset_applications_empty_leaves_applications_empty(client: TestClient) -> None:
+    client.post("/api/v1/workspace/reset", json={"scope": "applications", "mode": "sample"})
+
+    response = client.post("/api/v1/workspace/reset", json={"scope": "applications", "mode": "empty"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["created"]["applications"] == 0
+    assert client.get("/api/v1/applications").json()["data"] == []
+
+
+def test_workspace_reset_resumes_empty_deletes_resumes_and_analyses(client: TestClient) -> None:
+    resume = client.post(
+        "/api/v1/resumes",
+        json={
+            "name": "Analysis Resume",
+            "target_role": "Backend Engineer",
+            "extracted_text": "- Built FastAPI services with PostgreSQL and Docker",
+        },
+    ).json()["data"]
+    client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Backend Engineer", "job_description": "FastAPI PostgreSQL Docker"},
+    )
+
+    response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "empty"})
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["created"]["resumes"] == 0
+    assert data["deleted"]["resumes"] == 1
+    assert data["deleted"]["resumeAnalyses"] == 1
+    assert client.get("/api/v1/resumes").json()["data"] == []
+
+
+def test_workspace_reset_prep_empty_leaves_prep_empty(client: TestClient) -> None:
+    client.post("/api/v1/workspace/reset", json={"scope": "prep", "mode": "sample"})
+
+    response = client.post("/api/v1/workspace/reset", json={"scope": "prep", "mode": "empty"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["created"]["coding"] == 0
+    assert client.get("/api/v1/prep/coding").json()["data"] == []
+    assert client.get("/api/v1/prep/behavioral").json()["data"] == []
+    assert client.get("/api/v1/prep/system-design").json()["data"] == []
 
 
 def test_workspace_reset_sample_is_idempotent(client: TestClient) -> None:

@@ -62,15 +62,16 @@ NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api
 
 Start PostgreSQL and FastAPI as documented in `backend/README.md`. API mode sends a fresh Clerk token with every request. Applications, resumes, and prep tasks use FastAPI; Dashboard and Analytics derive their current UI models from those API-backed lists.
 
-AI Resume Intelligence runs only on the backend. To enable production OpenAI analysis, set these backend variables:
+AI Resume Intelligence runs only on the backend. To enable production OpenRouter analysis, set these backend variables:
 
 ```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=
-AI_MODEL=gpt-4.1-mini
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=
+AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_MOCK_ENABLED=false
 ```
 
-If the backend is local/test or AI is not configured, OfferOS uses a deterministic mock analysis. In production, missing AI config returns a clear setup error.
+Local mode uses deterministic mock analysis without a backend AI key. Backend mock analysis is available only when `AI_MOCK_ENABLED=true` in local/test environments. In production, missing OpenRouter config returns a clear setup error.
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
 

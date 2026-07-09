@@ -41,18 +41,23 @@ export const resumeRepository: ResumeRepository = {
     writeResumeAnalyses([]);
     return reset;
   },
+  async updateResumeText(resumeId, text) {
+    const resume = await this.get(resumeId);
+    if (!resume) throw new DataError("NOT_FOUND", "Resume not found.");
+    return this.update(resumeId, {
+      extractedText: text,
+      originalFileName: resume.originalFileName || resume.fileName,
+      textExtractionStatus: text.trim() ? "manual" : "not_started",
+      textExtractionError: "",
+    });
+  },
   async analyzeResume(resumeId, payload) {
     const resume = await this.get(resumeId);
     if (!resume) throw new DataError("NOT_FOUND", "Resume not found.");
     const resumeText = (payload.resumeText || resume.extractedText || "").trim();
     if (!resumeText) throw new DataError("VALIDATION_ERROR", "Paste resume text before running AI analysis.");
     if (payload.resumeText && payload.resumeText.trim() !== resume.extractedText.trim()) {
-      await this.update(resumeId, {
-        extractedText: payload.resumeText.trim(),
-        originalFileName: resume.originalFileName || resume.fileName,
-        textExtractionStatus: "manual",
-        textExtractionError: "",
-      });
+      await this.updateResumeText(resumeId, payload.resumeText.trim());
     }
     const analysis = localMockAnalysis(resumeId, resumeText, payload);
     writeResumeAnalyses([analysis, ...readResumeAnalyses()]);
@@ -83,7 +88,15 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
   const strongKeywords = keywords.filter((keyword) => lowerResume.includes(keyword)).slice(0, 8);
   const missingKeywords = (desired.length ? desired : ["testing", "api", "system design"]).filter((keyword) => !lowerResume.includes(keyword)).slice(0, 8);
   const hasMetrics = /\d/.test(resumeText);
-  const weakBullets = resumeText.split("\n").map((line) => line.trim()).filter((line) => /^[-•]/.test(line) && !/\d/.test(line)).slice(0, 3);
+  const weakBullets = resumeText.split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("-") && !/\d/.test(line))
+    .slice(0, 3)
+    .map((bullet) => ({
+      original: bullet,
+      issue: "This bullet lacks measurable technical scope or impact.",
+      suggestion: "Add the technology, ownership, and quantified result.",
+    }));
   const overallScore = clamp(76 + strongKeywords.length * 2 - missingKeywords.length * 3 + (hasMetrics ? 6 : 0));
   return {
     id: `local-analysis-${timestampId(now)}`,
@@ -99,14 +112,14 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
     strongKeywords: strongKeywords.length ? strongKeywords : ["software engineering"],
     weakBullets,
     suggestedBulletRewrites: weakBullets.map((bullet) => ({
-      original: bullet,
-      rewrite: `Rewrite with ownership, technical scope, and a quantified result: ${bullet}`,
-      rationale: "Recruiters scan for scope, technologies, and measurable engineering impact.",
+      original: bullet.original,
+      rewrite: `Rewrite with ownership, technical scope, and a quantified result: ${bullet.original}`,
+      whyBetter: "Recruiters scan for scope, technologies, and measurable engineering impact.",
     })),
     strengths: ["Relevant SWE positioning is present.", "The resume can support role-specific tailoring."],
     risks: [hasMetrics ? "Keep metrics tied to engineering outcomes." : "Several bullets may need quantified impact.", missingKeywords.length ? "Some target-role keywords are missing." : "Avoid adding unsupported keywords."],
     recommendations: ["Add 2-3 quantified impact bullets.", "Mirror target-role technologies where accurate.", "Lead project bullets with action verbs and technical ownership."],
-    summary: "Local mock analysis. Configure backend OpenAI settings in API mode for production AI feedback.",
+    summary: "Local mock analysis. Configure backend OpenRouter settings in API mode for production AI feedback.",
     provider: "local",
     model: "local-mock",
     status: "completed",

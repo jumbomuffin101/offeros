@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     clerk_audience: str | None = None
     auth_required: bool = False
     ai_provider: str = "disabled"
-    openai_api_key: str | None = None
-    ai_model: str = "gpt-4.1-mini"
+    openrouter_api_key: str | None = None
+    ai_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    ai_mock_enabled: bool = False
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(

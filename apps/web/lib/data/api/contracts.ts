@@ -67,8 +67,8 @@ export type ApiResumeAnalysis = {
   technical_depth_score: number;
   missing_keywords: string[];
   strong_keywords: string[];
-  weak_bullets: string[];
-  suggested_bullet_rewrites: Array<{ original: string; rewrite: string; rationale: string }>;
+  weak_bullets: Array<{ original: string; issue: string; suggestion: string }>;
+  suggested_bullet_rewrites: Array<{ original: string; rewrite: string; why_better: string; rationale?: string }>;
   strengths: string[];
   risks: string[];
   recommendations: string[];

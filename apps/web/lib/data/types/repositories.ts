@@ -28,6 +28,7 @@ export interface ResumeRepository {
   delete(id: string): Promise<void>;
   duplicate(id: string): Promise<ResumeVersion>;
   reset(): Promise<ResumeVersion[]>;
+  updateResumeText(resumeId: string, text: string): Promise<ResumeVersion>;
   analyzeResume(resumeId: string, payload: ResumeAnalysisInput): Promise<ResumeAnalysis>;
   listResumeAnalyses(resumeId: string): Promise<ResumeAnalysis[]>;
   getResumeAnalysis(id: string): Promise<ResumeAnalysis | null>;
@@ -60,10 +61,10 @@ export type WorkspaceResetResult = {
   deleted: {
     applications: number;
     resumes: number;
+    resumeAnalyses: number;
     coding: number;
     behavioral: number;
     systemDesign: number;
-    analyses: number;
   };
   created: {
     applications: number;

@@ -16,13 +16,14 @@ export function useResumes() {
   const duplicate = useCallback((id: string) => resource.mutate(() => resumeRepository.duplicate(id)), [resource]);
   const toggleStatus = useCallback((resume: ResumeVersion) => update(resume.id, { status: resume.status === "Active" ? "Draft" : "Active" }), [update]);
   const reset = useCallback(() => resource.mutate(() => resumeRepository.reset()), [resource]);
+  const updateResumeText = useCallback((resumeId: string, text: string) => resource.mutate(() => resumeRepository.updateResumeText(resumeId, text)), [resource]);
   const analyzeResume = useCallback((resumeId: string, payload: ResumeAnalysisInput) => resource.mutate(() => resumeRepository.analyzeResume(resumeId, payload)), [resource]);
   const listResumeAnalyses = useCallback((resumeId: string) => resumeRepository.listResumeAnalyses(resumeId), []);
   const getResumeAnalysis = useCallback((id: string) => resumeRepository.getResumeAnalysis(id), []);
   const deleteResumeAnalysis = useCallback((id: string) => resource.mutate(() => resumeRepository.deleteResumeAnalysis(id)), [resource]);
   return {
     resumes: resource.data ?? [], loading: resource.loading, error: resource.error, refresh: resource.refresh,
-    create, update, delete: remove, duplicate, toggleStatus, reset,
+    create, update, delete: remove, duplicate, toggleStatus, reset, updateResumeText,
     analyzeResume, listResumeAnalyses, getResumeAnalysis, deleteResumeAnalysis,
   };
 }

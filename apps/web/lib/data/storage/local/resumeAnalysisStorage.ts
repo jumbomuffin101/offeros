@@ -36,8 +36,8 @@ function normalizeAnalysis(value: unknown): ResumeAnalysis | null {
     technicalDepthScore: score(item.technicalDepthScore),
     missingKeywords: stringArray(item.missingKeywords),
     strongKeywords: stringArray(item.strongKeywords),
-    weakBullets: stringArray(item.weakBullets),
-    suggestedBulletRewrites: Array.isArray(item.suggestedBulletRewrites) ? item.suggestedBulletRewrites.map(rewrite).filter((entry): entry is { original: string; rewrite: string; rationale: string } => entry !== null) : [],
+    weakBullets: weakBullets(item.weakBullets),
+    suggestedBulletRewrites: Array.isArray(item.suggestedBulletRewrites) ? item.suggestedBulletRewrites.map(rewrite).filter((entry): entry is ResumeAnalysis["suggestedBulletRewrites"][number] => entry !== null) : [],
     strengths: stringArray(item.strengths),
     risks: stringArray(item.risks),
     recommendations: stringArray(item.recommendations),
@@ -54,7 +54,31 @@ function normalizeAnalysis(value: unknown): ResumeAnalysis | null {
 function rewrite(value: unknown) {
   if (!value || typeof value !== "object") return null;
   const item = value as Record<string, unknown>;
-  return { original: stringValue(item.original), rewrite: stringValue(item.rewrite), rationale: stringValue(item.rationale) };
+  return {
+    original: stringValue(item.original),
+    rewrite: stringValue(item.rewrite),
+    whyBetter: stringValue(item.whyBetter) || stringValue(item.rationale),
+  };
+}
+
+function weakBullets(value: unknown): ResumeAnalysis["weakBullets"] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    if (typeof entry === "string") {
+      return {
+        original: entry,
+        issue: "This bullet needs clearer technical scope or impact.",
+        suggestion: "Add technologies, ownership, and measurable outcome.",
+      };
+    }
+    if (!entry || typeof entry !== "object") return null;
+    const item = entry as Record<string, unknown>;
+    return {
+      original: stringValue(item.original),
+      issue: stringValue(item.issue),
+      suggestion: stringValue(item.suggestion),
+    };
+  }).filter((entry): entry is ResumeAnalysis["weakBullets"][number] => entry !== null);
 }
 
 function browserStorage() {

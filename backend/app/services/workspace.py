@@ -34,7 +34,7 @@ class WorkspaceService:
                 summary.created["applications"] = len(applications)
 
             if payload.scope in {"all", "resumes"}:
-                summary.deleted["analyses"] = self._delete(ResumeAnalysis, user_id)
+                summary.deleted["resumeAnalyses"] = self._delete(ResumeAnalysis, user_id)
                 summary.deleted["resumes"] = self._delete(ResumeVersion, user_id)
                 resumes = _reset_records(payload.mode, payload.resumes, _demo_resumes)
                 for resume in resumes:
@@ -78,10 +78,10 @@ def _empty_counts() -> dict[str, int]:
     return {
         "applications": 0,
         "resumes": 0,
+        "resumeAnalyses": 0,
         "coding": 0,
         "behavioral": 0,
         "systemDesign": 0,
-        "analyses": 0,
     }
 
 

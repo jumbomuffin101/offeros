@@ -248,6 +248,7 @@ Finalize request:
 | GET | `/resumes/{resume_id}/analyses` | List analyses for an owned resume |
 | GET | `/resume-analyses/{analysis_id}` | Read status/result |
 | DELETE | `/resume-analyses/{analysis_id}` | Remove user-visible result |
+| GET | `/ai/status` | Read backend AI provider availability without exposing secrets |
 
 Request:
 
@@ -273,8 +274,20 @@ Response:
     "technical_depth_score": 80,
     "missing_keywords": ["contract testing"],
     "strong_keywords": ["FastAPI", "PostgreSQL"],
-    "weak_bullets": [],
-    "suggested_bullet_rewrites": [],
+    "weak_bullets": [
+      {
+        "original": "Built backend APIs",
+        "issue": "The bullet lacks scope and measurable impact.",
+        "suggestion": "Add technologies, ownership, and quantified result."
+      }
+    ],
+    "suggested_bullet_rewrites": [
+      {
+        "original": "Built backend APIs",
+        "rewrite": "Built FastAPI services backed by PostgreSQL, reducing API latency by 35%.",
+        "why_better": "It shows technical depth and measurable impact."
+      }
+    ],
     "strengths": [],
     "risks": [],
     "recommendations": [],
@@ -283,7 +296,7 @@ Response:
 }
 ```
 
-The endpoint returns `200` with a stored analysis. If neither `resume_text` nor stored `extracted_text` exists, the API returns `422`. OpenAI calls happen only on the backend; clients never send provider API keys.
+The endpoint returns `200` with a stored analysis. If neither `resume_text` nor stored `extracted_text` exists, the API returns `422`. OpenRouter calls happen only on the backend; clients never send provider API keys.
 
 ### Coding Prep
 
@@ -412,7 +425,7 @@ Example response:
     "coding": 5,
     "behavioral": 4,
     "systemDesign": 3,
-    "analyses": 1
+    "resumeAnalyses": 1
   },
   "created": {
     "applications": 4,

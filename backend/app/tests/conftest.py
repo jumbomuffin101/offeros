@@ -28,7 +28,7 @@ def client() -> Generator[TestClient, None, None]:
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_settings] = lambda: Settings(app_env="test", auth_required=False)
+    app.dependency_overrides[get_settings] = lambda: Settings(app_env="test", auth_required=False, ai_mock_enabled=True)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

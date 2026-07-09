@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, BookOpen, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Monitor, Moon, RotateCcw, Smartphone, Sun, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { BarChart3, BookOpen, BrainCircuit, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Monitor, Moon, RotateCcw, Smartphone, Sun, Upload, Wifi, WifiOff, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { useWorkspaceActions } from "@/hooks/use-workspace-actions";
 import { useTheme } from "@/components/theme/theme-provider";
 import type { ThemePreference } from "@/lib/theme";
 import { ESCAPE_EVENT } from "@/lib/action-events";
+import { apiClient } from "@/lib/data/api/apiClient";
 import type { LocalImportStatus } from "@/lib/data/types/repositories";
 
 const shortcuts = [["Command palette", "Ctrl/Cmd + K"], ["Add application", "Ctrl/Cmd + N"], ["Upload resume", "Shift + R"], ["Shortcut help", "?"], ["Close overlay", "Esc"]];
@@ -24,6 +25,7 @@ const helpItems: Array<{ title: string; detail: string; icon: LucideIcon }> = [
 ];
 
 type ResetScope = "all" | "applications" | "resumes" | "prep";
+type AiStatus = { available: boolean; configured: boolean; mock_enabled: boolean; provider: string; model: string };
 
 export function SettingsPanel() {
   const workspace = useWorkspaceActions();
@@ -34,6 +36,7 @@ export function SettingsPanel() {
   const [toast, setToast] = useState("");
   const [toastTone, setToastTone] = useState<"success" | "info">("success");
   const [pendingReset, setPendingReset] = useState<ResetScope | null>(null);
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -48,6 +51,14 @@ export function SettingsPanel() {
   useEffect(() => {
     if (dataMode === "api") void checkLocalImport();
   }, [dataMode, checkLocalImport]);
+  useEffect(() => {
+    if (dataMode !== "api") return;
+    let cancelled = false;
+    apiClient.get<{ data: AiStatus }>("/ai/status")
+      .then((response) => { if (!cancelled) setAiStatus(response.data); })
+      .catch(() => { if (!cancelled) setAiStatus(null); });
+    return () => { cancelled = true; };
+  }, [dataMode]);
 
   function notify(message: string, tone: "success" | "info" = "success") { setToastTone(tone); setToast(message); }
   async function handleInstall() {
@@ -72,6 +83,8 @@ export function SettingsPanel() {
       <Card><CardHeader><div className="flex items-center gap-3"><Moon className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Appearance</h2><p className="mt-1 text-sm text-slate-500">Choose how OfferOS should look on this device.</p></div></div></CardHeader><CardContent><div className="grid grid-cols-3 gap-2">{themeOptions.map((option) => { const Icon = option.icon; const active = theme.theme === option.value; return <button className={`rounded-lg border px-3 py-3 text-sm font-medium transition ${active ? "border-indigo-400/35 bg-indigo-400/10 text-indigo-100" : "border-slate-700/35 bg-slate-900/20 text-slate-400 hover:border-slate-600/50 hover:bg-slate-800/35 hover:text-slate-100"}`} key={option.value} onClick={() => { void theme.setTheme(option.value); notify(`${option.label} theme applied`); }} type="button"><Icon className="mx-auto mb-2 size-4" />{option.label}</button>; })}</div><p className="mt-3 text-xs text-slate-500">Current mode: {theme.resolvedTheme === "light" ? "Light" : "Dark"}.</p></CardContent></Card>
       <Card><CardHeader><div className="flex items-center gap-3"><Upload className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Import & Export</h2><p className="mt-1 text-sm text-slate-500">{workspace.dataMode === "api" ? "Move browser-local records into your authenticated cloud workspace when needed." : "Portable workspace data is on the roadmap."}</p></div></div></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2"><Button onClick={() => notify("Export is coming soon", "info")} variant="secondary">Export data</Button>{workspace.dataMode === "api" && workspace.localImportStatus?.available ? <Button onClick={() => void importLocalWorkspace()} variant="primary">Import local workspace</Button> : <Button onClick={() => notify(workspace.dataMode === "api" ? "No local workspace records found to import" : "Import is coming soon", "info")} variant="secondary">Import data</Button>}</div>{workspace.dataMode === "api" && workspace.localImportStatus?.available ? <p className="text-xs leading-5 text-slate-500">Found local records on this device: {importStatusLabel(workspace.localImportStatus)}. Import safely skips records already in your cloud account.</p> : null}</CardContent></Card>
     </div>
+
+    <Card><CardHeader><div className="flex items-center gap-3"><BrainCircuit className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">AI Resume Analysis</h2><p className="mt-1 text-sm text-slate-500">OpenRouter-powered resume feedback runs backend-side only. PDF/DOCX parsing is coming soon.</p></div></div></CardHeader><CardContent><div className="flex flex-wrap items-center gap-2"><span className={`rounded-lg border px-3 py-2 text-sm font-medium ${aiStatusLabel(workspace.dataMode, aiStatus).className}`}>{aiStatusLabel(workspace.dataMode, aiStatus).label}</span><span className="text-sm text-slate-500">{aiStatusLabel(workspace.dataMode, aiStatus).detail}</span></div>{aiStatus?.model ? <p className="mt-3 text-xs text-slate-500">Model: {aiStatus.model}</p> : null}</CardContent></Card>
 
     <Card>
       <CardHeader>
@@ -164,4 +177,33 @@ function resetSummary(scope: ResetScope) {
   if (scope === "all") return "Workspace reset. Your account is empty.";
   if (scope === "prep") return "Prep data cleared.";
   return `${scope[0].toUpperCase()}${scope.slice(1)} cleared.`;
+}
+
+function aiStatusLabel(dataMode: string, status: AiStatus | null) {
+  if (dataMode !== "api") {
+    return {
+      label: "Local mock",
+      detail: "Local mode uses deterministic mock analysis and does not call OpenRouter.",
+      className: "border-indigo-400/25 bg-indigo-400/10 text-indigo-100",
+    };
+  }
+  if (!status) {
+    return {
+      label: "Unknown",
+      detail: "Unable to read backend AI configuration status.",
+      className: "border-amber-400/25 bg-amber-400/10 text-amber-100",
+    };
+  }
+  if (status.configured) {
+    return {
+      label: "Available",
+      detail: `${status.provider} is configured for backend analysis.`,
+      className: "border-emerald-400/25 bg-emerald-400/10 text-emerald-100",
+    };
+  }
+  return {
+    label: "Not configured",
+    detail: "Set AI_PROVIDER=openrouter and OPENROUTER_API_KEY on the backend.",
+    className: "border-rose-400/25 bg-rose-400/10 text-rose-100",
+  };
 }

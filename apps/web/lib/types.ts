@@ -68,8 +68,8 @@ export type ResumeAnalysis = {
   technicalDepthScore: number;
   missingKeywords: string[];
   strongKeywords: string[];
-  weakBullets: string[];
-  suggestedBulletRewrites: Array<{ original: string; rewrite: string; rationale: string }>;
+  weakBullets: Array<{ original: string; issue: string; suggestion: string }>;
+  suggestedBulletRewrites: Array<{ original: string; rewrite: string; whyBetter: string }>;
   strengths: string[];
   risks: string[];
   recommendations: string[];

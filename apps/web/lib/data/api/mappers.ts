@@ -122,8 +122,12 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
     technicalDepthScore: value.technical_depth_score,
     missingKeywords: value.missing_keywords,
     strongKeywords: value.strong_keywords,
-    weakBullets: value.weak_bullets,
-    suggestedBulletRewrites: value.suggested_bullet_rewrites,
+    weakBullets: weakBullets(value.weak_bullets),
+    suggestedBulletRewrites: value.suggested_bullet_rewrites.map((rewrite) => ({
+      original: rewrite.original,
+      rewrite: rewrite.rewrite,
+      whyBetter: rewrite.why_better ?? rewrite.rationale ?? "",
+    })),
     strengths: value.strengths,
     risks: value.risks,
     recommendations: value.recommendations,
@@ -216,6 +220,13 @@ function safeScore(value: unknown) {
 }
 function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"] {
   return value === "manual" || value === "parsed" || value === "failed" ? value : "not_started";
+}
+function weakBullets(value: ApiResumeAnalysis["weak_bullets"]): ResumeAnalysis["weakBullets"] {
+  return value.map((item) => ({
+    original: item.original ?? "",
+    issue: item.issue ?? "",
+    suggestion: item.suggestion ?? "",
+  }));
 }
 function inferCategory(input: ApplicationInput | Application): Application["category"] {
   const content = [input.company, input.role, input.source, input.resumeUsed, input.notes, ...input.tags].join(" ").toLowerCase();

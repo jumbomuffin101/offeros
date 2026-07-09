@@ -98,6 +98,10 @@ export const apiWorkspaceRepository: WorkspaceRepository = {
 async function resetCloudWorkspace(scope: WorkspaceScope, mode: WorkspaceResetMode) {
   const response = await resetApiWorkspace(scope, mode);
   if (scope === "all" || scope === "prep") writeApiPrepGoals(mode === "sample" ? prepWorkspaceData.goals : []);
+  if (scope === "all" && mode === "empty") {
+    removePreference(RECENTLY_VIEWED_KEY);
+    removePreference("offeros:recent-commands");
+  }
   return response;
 }
 

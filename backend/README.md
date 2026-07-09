@@ -93,9 +93,10 @@ CLERK_ISSUER=
 CLERK_JWKS_URL=
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=https://your-vercel-url.vercel.app
-AI_PROVIDER=openai
-OPENAI_API_KEY=
-AI_MODEL=gpt-4.1-mini
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=
+AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_MOCK_ENABLED=false
 LOG_LEVEL=INFO
 ```
 
@@ -133,9 +134,10 @@ Set `OFFEROS_SMOKE_TOKEN` to a short-lived `offeros-api` Clerk token to also ver
 | `CLERK_JWKS_URL` | Clerk JWKS endpoint used by the cached signing-key client |
 | `CLERK_AUDIENCE` | Expected API token audience; optional only while auth is disabled |
 | `AUTH_REQUIRED` | Require valid Clerk JWTs when `true`; defaults to `false` |
-| `AI_PROVIDER` | `openai` for production resume analysis, `disabled` or blank for no configured provider |
-| `OPENAI_API_KEY` | Server-side OpenAI API key; never exposed to the frontend |
-| `AI_MODEL` | OpenAI model used by Resume Intelligence |
+| `AI_PROVIDER` | `openrouter` for production resume analysis, `disabled` or blank for no configured provider |
+| `OPENROUTER_API_KEY` | Server-side OpenRouter API key; never exposed to the frontend |
+| `AI_MODEL` | OpenRouter model used by Resume Intelligence |
+| `AI_MOCK_ENABLED` | Enables deterministic backend mock analysis only in local/test environments |
 | `LOG_LEVEL` | Python logging level |
 
 The public `GET /api/v1/health` route returns `status`, `environment`, `service`, and `version`. It never requires authentication and is suitable for platform health checks.
@@ -174,8 +176,9 @@ Analysis endpoints:
 - `GET /api/v1/resumes/{resume_id}/analyses`
 - `GET /api/v1/resume-analyses/{analysis_id}`
 - `DELETE /api/v1/resume-analyses/{analysis_id}`
+- `GET /api/v1/ai/status`
 
-All analysis reads and writes are scoped to the current authenticated user. The backend uses `app/services/ai_resume_analysis.py` as the provider boundary. `AI_PROVIDER=openai` with `OPENAI_API_KEY` calls OpenAI from the backend using strict JSON output. Local and test environments fall back to deterministic mock analysis so UI flows and tests do not require external AI access. Production without AI configuration returns a clear `ai_not_configured` error.
+All analysis reads and writes are scoped to the current authenticated user. The backend uses `app/services/ai_resume_analysis.py` as the provider boundary. `AI_PROVIDER=openrouter` with `OPENROUTER_API_KEY` calls OpenRouter from the backend and validates strict JSON output before storing results. Local/test backend mock analysis is available only when `AI_MOCK_ENABLED=true`; production without OpenRouter configuration returns a clear `ai_not_configured` error.
 
 ## Local Import
 

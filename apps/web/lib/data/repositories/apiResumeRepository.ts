@@ -32,6 +32,14 @@ export const apiResumeRepository: ResumeRepository = {
     await resetApiWorkspace("resumes", "sample");
     return this.list();
   },
+  async updateResumeText(resumeId, text) {
+    const response = await apiClient.patch<ApiDataResponse<ApiResume>>(`/resumes/${resumeId}`, toApiResume({
+      extractedText: text,
+      textExtractionStatus: text.trim() ? "manual" : "not_started",
+      textExtractionError: "",
+    }));
+    return fromApiResume(response.data);
+  },
   async analyzeResume(resumeId, payload) {
     const response = await apiClient.post<ApiDataResponse<ApiResumeAnalysis>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));
     return fromApiResumeAnalysis(response.data);

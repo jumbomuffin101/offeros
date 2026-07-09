@@ -27,7 +27,7 @@ class ResumeAnalysisService:
         result = provider.analyze(
             resume_text=resume_text,
             target_role=payload.target_role.strip(),
-            job_description=payload.job_description.strip(),
+            job_description=(payload.job_description or "").strip(),
         )
         if payload.resume_text and payload.resume_text.strip() != (resume.extracted_text or "").strip():
             resume.extracted_text = payload.resume_text.strip()
@@ -39,7 +39,7 @@ class ResumeAnalysisService:
             user_id=user_id,
             resume_version_id=resume.id,
             target_role=payload.target_role.strip(),
-            job_description=payload.job_description.strip(),
+            job_description=(payload.job_description or "").strip(),
             provider=provider.provider,
             model=provider.model,
             status="completed",

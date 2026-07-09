@@ -14,11 +14,13 @@ export function ResumeAnalysisPanel({
   onAnalyze,
   onDeleteAnalysis,
   onListAnalyses,
+  onUpdateResumeText,
 }: {
   resume: ResumeVersion;
   onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalysis>;
   onDeleteAnalysis: (analysisId: string) => Promise<void>;
   onListAnalyses: (resumeId: string) => Promise<ResumeAnalysis[]>;
+  onUpdateResumeText: (resumeId: string, text: string) => Promise<ResumeVersion>;
 }) {
   const [targetRole, setTargetRole] = useState(resume.targetRole);
   const [jobDescription, setJobDescription] = useState("");
@@ -26,8 +28,10 @@ export function ResumeAnalysisPanel({
   const [analyses, setAnalyses] = useState<ResumeAnalysis[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savingText, setSavingText] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     onListAnalyses(resume.id)
@@ -44,6 +48,20 @@ export function ResumeAnalysisPanel({
     [analyses, selectedId],
   );
 
+  async function saveResumeText() {
+    setSavingText(true);
+    setError("");
+    setMessage("");
+    try {
+      await onUpdateResumeText(resume.id, resumeText);
+      setMessage(resumeText.trim() ? "Resume text saved." : "Resume text cleared.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to save resume text.");
+    } finally {
+      setSavingText(false);
+    }
+  }
+
   async function runAnalysis() {
     if (!targetRole.trim()) {
       setError("Target role is required.");
@@ -55,6 +73,7 @@ export function ResumeAnalysisPanel({
     }
     setLoading(true);
     setError("");
+    setMessage("");
     try {
       const analysis = await onAnalyze(resume.id, {
         targetRole: targetRole.trim(),
@@ -63,6 +82,7 @@ export function ResumeAnalysisPanel({
       });
       setAnalyses((current) => [analysis, ...current.filter((item) => item.id !== analysis.id)]);
       setSelectedId(analysis.id);
+      setMessage("Analysis saved to history.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
     } finally {
@@ -72,6 +92,7 @@ export function ResumeAnalysisPanel({
 
   async function deleteAnalysis(analysisId: string) {
     setError("");
+    setMessage("");
     try {
       await onDeleteAnalysis(analysisId);
       setAnalyses((current) => current.filter((analysis) => analysis.id !== analysisId));
@@ -107,15 +128,23 @@ export function ResumeAnalysisPanel({
         <label>
           <span className="mb-1.5 block text-xs font-medium text-slate-500">Resume text</span>
           <textarea className="min-h-36 w-full rounded-xl border border-slate-700/70 bg-slate-950/45 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-indigo-300/60 focus:ring-2 focus:ring-indigo-300/15" value={resumeText} onChange={(event) => setResumeText(event.target.value)} placeholder="Paste the plain text from your resume." />
+          {!resume.extractedText ? <span className="mt-1.5 block text-xs leading-5 text-slate-500">Paste your resume text to run AI analysis. PDF/DOCX parsing is coming soon.</span> : null}
         </label>
       </div>
 
       {error ? <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{error}</div> : null}
+      {message ? <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
 
-      <Button disabled={loading} onClick={() => void runAnalysis()} variant="primary">
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-        {loading ? "Analyzing resume fit..." : "Run AI Analysis"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={savingText || loading} onClick={() => void saveResumeText()} variant="secondary">
+          {savingText ? <Loader2 className="size-4 animate-spin" /> : null}
+          {savingText ? "Saving text..." : "Save resume text"}
+        </Button>
+        <Button disabled={loading || savingText} onClick={() => void runAnalysis()} variant="primary">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          {loading ? "Analyzing resume fit..." : "Run AI Analysis"}
+        </Button>
+      </div>
 
       {selected ? <AnalysisResult analysis={selected} /> : (
         <div className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4 text-sm leading-6 text-slate-500">
@@ -131,7 +160,7 @@ export function ResumeAnalysisPanel({
               <div className="flex items-center gap-2 rounded-lg border border-slate-700/35 bg-slate-900/20 p-2" key={analysis.id}>
                 <button className="min-w-0 flex-1 text-left" onClick={() => setSelectedId(analysis.id)} type="button">
                   <div className="truncate text-sm font-medium text-slate-100">{analysis.targetRole}</div>
-                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit · {new Date(analysis.createdAt).toLocaleDateString()}</div>
+                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit - {new Date(analysis.createdAt).toLocaleDateString()}</div>
                 </button>
                 <Button className="px-2" onClick={() => void deleteAnalysis(analysis.id)} variant="ghost" aria-label="Delete analysis">
                   <Trash2 className="size-4" />
@@ -157,7 +186,7 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
       </div>
       <ChipGroup label="Strong keywords" items={analysis.strongKeywords} tone="green" />
       <ChipGroup label="Missing keywords" items={analysis.missingKeywords} tone="amber" />
-      <ListGroup label="Weak bullets" items={analysis.weakBullets} />
+      <WeakBulletGroup items={analysis.weakBullets} />
       {analysis.suggestedBulletRewrites.length ? (
         <div>
           <h4 className="mb-2 text-xs font-medium uppercase text-slate-500">Suggested rewrites</h4>
@@ -166,7 +195,7 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
               <div className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-3" key={`${rewrite.original}-${rewrite.rewrite}`}>
                 <p className="text-xs leading-5 text-slate-500">{rewrite.original}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-200">{rewrite.rewrite}</p>
-                <p className="mt-2 text-xs leading-5 text-indigo-200/75">{rewrite.rationale}</p>
+                <p className="mt-2 text-xs leading-5 text-indigo-200/75">{rewrite.whyBetter}</p>
               </div>
             ))}
           </div>
@@ -176,7 +205,7 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
       <ListGroup label="Risks" items={analysis.risks} />
       <ListGroup label="Recommendations" items={analysis.recommendations} />
       <div className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.05] p-3 text-sm leading-6 text-slate-300">{analysis.summary}</div>
-      <div className="text-xs text-slate-600">Provider: {analysis.provider} · Model: {analysis.model}</div>
+      <div className="text-xs text-slate-600">Provider: {analysis.provider} - Model: {analysis.model}</div>
     </div>
   );
 }
@@ -191,4 +220,23 @@ function ChipGroup({ label, items, tone }: { label: string; items: string[]; ton
 
 function ListGroup({ label, items }: { label: string; items: string[] }) {
   return <div><h4 className="mb-2 text-xs font-medium uppercase text-slate-500">{label}</h4>{items.length ? <ul className="space-y-2">{items.map((item) => <li className="rounded-lg border border-slate-700/35 bg-slate-900/20 px-3 py-2 text-sm leading-6 text-slate-300" key={item}>{item}</li>)}</ul> : <span className="text-sm text-slate-600">None recorded</span>}</div>;
+}
+
+function WeakBulletGroup({ items }: { items: ResumeAnalysis["weakBullets"] }) {
+  return (
+    <div>
+      <h4 className="mb-2 text-xs font-medium uppercase text-slate-500">Weak bullets</h4>
+      {items.length ? (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-3" key={`${item.original}-${item.issue}`}>
+              <p className="text-sm leading-6 text-slate-300">{item.original}</p>
+              <p className="mt-2 text-xs leading-5 text-amber-100/80">{item.issue}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{item.suggestion}</p>
+            </div>
+          ))}
+        </div>
+      ) : <span className="text-sm text-slate-600">None recorded</span>}
+    </div>
+  );
 }
