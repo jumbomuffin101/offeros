@@ -112,7 +112,7 @@ class ApiClient {
 
     const payload = await parseResponse(response);
     logTiming(`api.${method}.${new URL(url).pathname}.${response.status}`, startedAt);
-    if (!response.ok) throw apiResponseError(response.status, payload);
+    if (!response.ok) throw apiResponseError(response.status, payload, { method, url });
     return payload as T;
   }
 }
@@ -131,11 +131,15 @@ async function parseResponse(response: Response): Promise<unknown> {
   }
 }
 
-function apiResponseError(status: number, payload: unknown) {
+function apiResponseError(status: number, payload: unknown, request: { method: string; url: string }) {
   const serverMessage = extractMessage(payload);
   if (status === 401) return new DataError("UNAUTHORIZED", "Your session expired. Sign in again to continue.");
   if (status === 403) return new DataError("FORBIDDEN", serverMessage || "Your account does not have access to this workspace data.");
-  if (status === 404) return new DataError("NOT_FOUND", serverMessage || "The requested record was not found.");
+  if (status === 404) {
+    const notFoundMessage = "OfferOS could not find the workspace summary endpoint. Retry after the latest backend deployment is live.";
+    const diagnostic = DEV_API_DIAGNOSTICS ? ` (${request.method} ${request.url})` : "";
+    return new DataError("NOT_FOUND", `${serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage}${diagnostic}`);
+  }
   if (status === 422) return new DataError("VALIDATION_ERROR", serverMessage || "Some submitted fields are invalid.");
   return new DataError("API_ERROR", serverMessage || "The OfferOS API could not complete this request.");
 }
