@@ -9,11 +9,11 @@ from app.schemas.workspace_summary import WorkspaceSummaryResponse
 from app.services.workspace_summary import WorkspaceSummaryService
 
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter()
 
 
 @router.get("/summary", response_model=DataResponse[WorkspaceSummaryResponse])
-def dashboard_summary(
+def get_dashboard_summary(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> DataResponse[WorkspaceSummaryResponse]:
     return DataResponse(data=WorkspaceSummaryService(db).summary(user.id))

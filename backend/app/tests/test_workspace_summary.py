@@ -3,19 +3,22 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.main import app
 from app.models.user import User
 
 
-def test_dashboard_summary_route_is_registered_in_openapi(client: TestClient) -> None:
+def test_summary_routes_are_registered_in_openapi(client: TestClient) -> None:
     response = client.get("/openapi.json")
 
     assert response.status_code == 200
     paths = response.json()["paths"]
     assert "/api/v1/dashboard/summary" in paths
     assert "get" in paths["/api/v1/dashboard/summary"]
+    assert "/api/v1/analytics/summary" in paths
+    assert "get" in paths["/api/v1/analytics/summary"]
 
 
 def test_dashboard_summary_empty_workspace_returns_valid_summary(client: TestClient) -> None:
@@ -112,6 +115,22 @@ def test_analytics_summary_route_returns_workspace_summary(client: TestClient) -
     assert "applications" in summary
     assert "analytics" in summary
     assert summary["analytics"]["total_applications"] == 0
+
+
+def test_summary_routes_require_authentication_when_auth_required(client: TestClient) -> None:
+    previous_settings_override = app.dependency_overrides.get(get_settings)
+    app.dependency_overrides[get_settings] = lambda: Settings(app_env="test", auth_required=True)
+    try:
+        dashboard_response = client.get("/api/v1/dashboard/summary")
+        analytics_response = client.get("/api/v1/analytics/summary")
+    finally:
+        if previous_settings_override is None:
+            app.dependency_overrides.pop(get_settings, None)
+        else:
+            app.dependency_overrides[get_settings] = previous_settings_override
+
+    assert dashboard_response.status_code == 401
+    assert analytics_response.status_code == 401
 
 
 def _second_user(db: Session = Depends(get_db)) -> User:
