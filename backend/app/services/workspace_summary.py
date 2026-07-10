@@ -1,4 +1,6 @@
+import logging
 from datetime import UTC, datetime
+from time import perf_counter
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,18 +12,22 @@ from app.models.resume import ResumeVersion
 from app.schemas.workspace_summary import WorkspaceSummaryResponse
 
 
+logger = logging.getLogger(__name__)
+
+
 class WorkspaceSummaryService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def summary(self, user_id: UUID) -> WorkspaceSummaryResponse:
+        started_at = perf_counter()
         applications = self._list(Application, user_id)
         resumes = self._list(ResumeVersion, user_id)
         coding_problems = self._list(CodingProblem, user_id)
         behavioral_questions = self._list(BehavioralQuestion, user_id)
         system_design_prompts = self._list(SystemDesignPrompt, user_id)
         as_of = datetime.now(UTC)
-        return WorkspaceSummaryResponse(
+        summary = WorkspaceSummaryResponse(
             applications=applications,
             resumes=resumes,
             coding_problems=coding_problems,
@@ -35,6 +41,16 @@ class WorkspaceSummaryService:
             ),
             as_of=as_of,
         )
+        logger.info(
+            "workspace_summary.duration_ms=%s applications=%s resumes=%s coding=%s behavioral=%s system_design=%s",
+            round((perf_counter() - started_at) * 1000),
+            len(applications),
+            len(resumes),
+            len(coding_problems),
+            len(behavioral_questions),
+            len(system_design_prompts),
+        )
+        return summary
 
     def _list(self, model: type, user_id: UUID) -> list:
         statement = (
