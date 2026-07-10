@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { BriefcaseBusiness, CalendarClock, Code2, FileText, Flame, Handshake, MessageSquareMore, Target } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -10,14 +11,13 @@ import { PipelineSummary } from "@/components/dashboard/pipeline-summary";
 import { RecruitingPlan } from "@/components/dashboard/recruiting-plan";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentlyViewedCard } from "@/components/dashboard/recently-viewed-card";
-import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 import { DataErrorState } from "@/components/ui/data-error-state";
 
 export function DashboardContent() {
   const { summary, loading, error, refresh } = useDashboard();
 
   if (error) return <DataErrorState error={error} onRetry={() => void refresh()} />;
-  if (loading || !summary) return <WorkspaceSkeleton cards={8} />;
+  if (loading || !summary) return <DashboardLoadingState />;
 
   const { applications, resumes, prep, counts, plan, momentum, prepValues, applicationValues, deadlines, activities } = summary;
 
@@ -39,5 +39,36 @@ export function DashboardContent() {
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><RecruitingPlan items={plan} /><PipelineSummary counts={counts} nextMove={plan[0]?.label ?? "Add an application to build your pipeline."} /></div>
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"><MomentumCard momentum={momentum} days={prep.weeklyDays} /><DeadlineList deadlines={deadlines} /></div>
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><ActivityFeed activities={activities} /><RecentlyViewedCard /></div>
+  </div>;
+}
+
+function DashboardLoadingState() {
+  const [showWakeMessage, setShowWakeMessage] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowWakeMessage(true), 1_200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return <div className="space-y-6" aria-label="Loading dashboard summary">
+    <div className="flex justify-end">
+      <span className="rounded-full border border-slate-700/50 bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
+        {showWakeMessage ? "Starting cloud workspace..." : "Loading workspace..."}
+      </span>
+    </div>
+    <div className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: 3 }, (_, index) => (
+        <div key={index} className="h-24 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+      ))}
+    </div>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 8 }, (_, index) => (
+        <div key={index} className="h-36 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+      ))}
+    </div>
+    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className="h-72 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+      <div className="h-72 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+    </div>
   </div>;
 }

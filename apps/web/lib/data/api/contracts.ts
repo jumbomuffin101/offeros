@@ -9,6 +9,15 @@ export type ApiAnalyticsOverview = {
   completed_system_design_prompts: number;
 };
 
+export type ApiWorkspaceSummary = {
+  applications: ApiApplication[];
+  resumes: ApiResume[];
+  coding_problems: ApiCodingProblem[];
+  behavioral_questions: ApiBehavioralQuestion[];
+  system_design_prompts: ApiSystemDesignPrompt[];
+  as_of: string;
+};
+
 export type ApiApplication = {
   id: string;
   user_id: string;

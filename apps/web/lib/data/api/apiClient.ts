@@ -3,14 +3,17 @@ import { DataError } from "@/lib/data/errors";
 export type RequestOptions = { headers?: Record<string, string>; signal?: AbortSignal };
 export type AuthTokenProvider = () => Promise<string | null>;
 const REQUEST_TIMEOUT_MS = 20_000;
-const GET_CACHE_MS = 1_500;
+const GET_CACHE_MS = 45_000;
+const DEV_API_DIAGNOSTICS = process.env.NODE_ENV === "development";
 
 let authTokenProvider: AuthTokenProvider | null = null;
 let providerWaiters: Array<(provider: AuthTokenProvider) => void> = [];
 const getCache = new Map<string, { expiresAt: number; value: Promise<unknown> }>();
+const requestCounts = new Map<string, { count: number; firstSeenAt: number }>();
 
 export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
   authTokenProvider = provider;
+  getCache.clear();
   if (provider) {
     for (const resolve of providerWaiters) resolve(provider);
     providerWaiters = [];
@@ -18,10 +21,14 @@ export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
 }
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const waitStartedAt = now();
   const provider = authTokenProvider ?? await new Promise<AuthTokenProvider>((resolve) => {
     providerWaiters.push(resolve);
   });
+  logTiming("auth.provider", waitStartedAt);
+  const tokenStartedAt = now();
   const token = await provider();
+  logTiming("auth.clerkToken", tokenStartedAt);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -48,28 +55,37 @@ class ApiClient {
       throw new DataError("CONFIGURATION_ERROR", "API mode requires NEXT_PUBLIC_API_BASE_URL.");
     }
 
-    const headers = new Headers(init.headers);
-    for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
-    if (init.body) headers.set("Content-Type", "application/json");
-
     const method = init.method ?? "GET";
     const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
     if (method === "GET" && !init.signal) {
       const cached = getCache.get(url);
-      if (cached && cached.expiresAt > Date.now()) return cached.value as Promise<T>;
-      const value = this.fetchJson<T>(url, init, headers);
+      if (cached && cached.expiresAt > Date.now()) {
+        debugApi("cache hit", { method, path });
+        return cached.value as Promise<T>;
+      }
+      const value = this.requestWithAuth<T>(url, init);
       getCache.set(url, { value, expiresAt: Date.now() + GET_CACHE_MS });
       value.catch(() => getCache.delete(url));
       return value;
     }
 
-    const result = await this.fetchJson<T>(url, init, headers);
+    const result = await this.requestWithAuth<T>(url, init);
     if (method !== "GET") getCache.clear();
     return result;
   }
 
+  private async requestWithAuth<T>(url: string, init: RequestInit): Promise<T> {
+    const headers = new Headers(init.headers);
+    for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
+    if (init.body) headers.set("Content-Type", "application/json");
+    return this.fetchJson<T>(url, init, headers);
+  }
+
   private async fetchJson<T>(url: string, init: RequestInit, headers: Headers): Promise<T> {
     let response: Response;
+    const method = init.method ?? "GET";
+    const startedAt = now();
+    noteRequest(method, url);
     const timeoutController = init.signal ? null : new AbortController();
     const timeoutId = timeoutController
       ? globalThis.setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS)
@@ -95,6 +111,7 @@ class ApiClient {
     }
 
     const payload = await parseResponse(response);
+    logTiming(`api.${method}.${new URL(url).pathname}.${response.status}`, startedAt);
     if (!response.ok) throw apiResponseError(response.status, payload);
     return payload as T;
   }
@@ -137,4 +154,32 @@ function extractMessage(payload: unknown): string | null {
     if (typeof message === "string") return message;
   }
   return null;
+}
+
+function now() {
+  return typeof performance === "undefined" ? Date.now() : performance.now();
+}
+
+function logTiming(label: string, startedAt: number) {
+  if (!DEV_API_DIAGNOSTICS) return;
+  debugApi(label, { durationMs: Math.round(now() - startedAt) });
+}
+
+function noteRequest(method: string, url: string) {
+  if (!DEV_API_DIAGNOSTICS) return;
+  const pathname = new URL(url).pathname;
+  const key = `${method} ${pathname}`;
+  const current = requestCounts.get(key);
+  const timestamp = Date.now();
+  if (!current || timestamp - current.firstSeenAt > 10_000) {
+    requestCounts.set(key, { count: 1, firstSeenAt: timestamp });
+    return;
+  }
+  current.count += 1;
+  if (current.count > 1) debugApi("duplicate request", { key, count: current.count });
+}
+
+function debugApi(message: string, details: Record<string, unknown>) {
+  if (!DEV_API_DIAGNOSTICS) return;
+  console.debug("[OfferOS API]", message, details);
 }
