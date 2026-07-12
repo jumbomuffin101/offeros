@@ -42,6 +42,8 @@ function normalizeResume(value: unknown): ResumeVersion | null {
     extractedText: stringValue(item.extractedText),
     textExtractionStatus: resumeTextStatus(item.textExtractionStatus),
     textExtractionError: stringValue(item.textExtractionError),
+    extractedAt: stringValue(item.extractedAt),
+    extractionCharacterCount: numberValue(item.extractionCharacterCount, stringValue(item.extractedText).length),
     createdAt: stringValue(item.createdAt) || updatedAt, updatedAt,
   };
 }

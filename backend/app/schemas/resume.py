@@ -25,6 +25,8 @@ class ResumeCreate(ORMModel):
     extracted_text: str = Field(default="", max_length=120_000)
     text_extraction_status: str = Field(default="not_started", max_length=40)
     text_extraction_error: str = Field(default="", max_length=2_000)
+    extracted_at: datetime | None = None
+    extraction_character_count: int = Field(default=0, ge=0)
 
 
 class ResumeUpdate(ORMModel):
@@ -44,6 +46,8 @@ class ResumeUpdate(ORMModel):
     extracted_text: str | None = Field(default=None, max_length=120_000)
     text_extraction_status: str | None = Field(default=None, max_length=40)
     text_extraction_error: str | None = Field(default=None, max_length=2_000)
+    extracted_at: datetime | None = None
+    extraction_character_count: int | None = Field(default=None, ge=0)
 
 
 class ResumeResponse(ORMModel):
@@ -65,6 +69,8 @@ class ResumeResponse(ORMModel):
     extracted_text: str
     text_extraction_status: str
     text_extraction_error: str
+    extracted_at: datetime | None = None
+    extraction_character_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -98,7 +104,7 @@ class ResumeResponse(ORMModel):
             return [str(item) for item in value if item is not None]
         return []
 
-    @field_validator("keyword_match_score", mode="before")
+    @field_validator("keyword_match_score", "extraction_character_count", mode="before")
     @classmethod
     def _score_default(cls, value: Any) -> int:
         if value is None:
@@ -117,3 +123,16 @@ class ResumeResponse(ORMModel):
             return ResumeStatus(str(value).lower())
         except ValueError:
             return ResumeStatus.DRAFT
+
+
+class ResumeExtractionSummary(ORMModel):
+    text: str = ""
+    page_count: int | None = None
+    character_count: int = 0
+    status: str = "completed"
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ResumeUploadResponse(ORMModel):
+    resume: ResumeResponse
+    extraction: ResumeExtractionSummary

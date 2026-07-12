@@ -52,6 +52,8 @@ export type ResumeVersion = {
   extractedText: string;
   textExtractionStatus: "not_started" | "manual" | "parsed" | "failed";
   textExtractionError: string;
+  extractedAt?: string;
+  extractionCharacterCount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -59,20 +61,26 @@ export type ResumeVersion = {
 export type ResumeAnalysis = {
   id: string;
   resumeVersionId: string;
+  companyName: string;
   targetRole: string;
   jobDescription: string;
+  inputResumeHash: string;
   overallScore: number;
   keywordScore: number;
   impactScore: number;
   clarityScore: number;
   technicalDepthScore: number;
+  experienceMatchScore: number;
+  requiredSkillsMatch: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
+  preferredSkillsMatch: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
   missingKeywords: string[];
   strongKeywords: string[];
   weakBullets: Array<{ original: string; issue: string; suggestion: string }>;
-  suggestedBulletRewrites: Array<{ original: string; rewrite: string; whyBetter: string }>;
+  suggestedBulletRewrites: Array<{ original: string; rewrite: string; whyBetter: string; groundedInResume?: boolean }>;
   strengths: string[];
   risks: string[];
   recommendations: string[];
+  recruiterSummary: string;
   summary: string;
   provider: string;
   model: string;

@@ -10,7 +10,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.core.config import Settings
 from app.core.errors import AppError
-from app.schemas.resume_analysis import BulletRewrite, ResumeAnalysisResult, WeakBullet
+from app.schemas.resume_analysis import BulletRewrite, ResumeAnalysisResult, SkillMatch, WeakBullet
 
 
 ANALYSIS_SCHEMA = {
@@ -22,6 +22,33 @@ ANALYSIS_SCHEMA = {
         "impact_score": {"type": "number", "minimum": 0, "maximum": 100},
         "clarity_score": {"type": "number", "minimum": 0, "maximum": 100},
         "technical_depth_score": {"type": "number", "minimum": 0, "maximum": 100},
+        "experience_match_score": {"type": "number", "minimum": 0, "maximum": 100},
+        "required_skills_match": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "skill": {"type": "string"},
+                    "status": {"type": "string", "enum": ["strong", "partial", "missing"]},
+                    "evidence": {"type": ["string", "null"]},
+                },
+                "required": ["skill", "status", "evidence"],
+            },
+        },
+        "preferred_skills_match": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "skill": {"type": "string"},
+                    "status": {"type": "string", "enum": ["strong", "partial", "missing"]},
+                    "evidence": {"type": ["string", "null"]},
+                },
+                "required": ["skill", "status", "evidence"],
+            },
+        },
         "missing_keywords": {"type": "array", "items": {"type": "string"}},
         "strong_keywords": {"type": "array", "items": {"type": "string"}},
         "weak_bullets": {
@@ -46,13 +73,15 @@ ANALYSIS_SCHEMA = {
                     "original": {"type": "string"},
                     "rewrite": {"type": "string"},
                     "why_better": {"type": "string"},
+                    "grounded_in_resume": {"type": "boolean"},
                 },
-                "required": ["original", "rewrite", "why_better"],
+                "required": ["original", "rewrite", "why_better", "grounded_in_resume"],
             },
         },
         "strengths": {"type": "array", "items": {"type": "string"}},
         "risks": {"type": "array", "items": {"type": "string"}},
         "recommendations": {"type": "array", "items": {"type": "string"}},
+        "recruiter_summary": {"type": "string"},
         "summary": {"type": "string"},
     },
     "required": [
@@ -61,6 +90,9 @@ ANALYSIS_SCHEMA = {
         "impact_score",
         "clarity_score",
         "technical_depth_score",
+        "experience_match_score",
+        "required_skills_match",
+        "preferred_skills_match",
         "missing_keywords",
         "strong_keywords",
         "weak_bullets",
@@ -68,6 +100,7 @@ ANALYSIS_SCHEMA = {
         "strengths",
         "risks",
         "recommendations",
+        "recruiter_summary",
         "summary",
     ],
 }
@@ -128,14 +161,25 @@ class MockResumeAnalysisProvider:
             clarity_score=78 if len(resume_text) < 8000 else 68,
             technical_depth_score=70
             + len([item for item in strong if item in {"fastapi", "postgresql", "docker", "distributed systems", "aws"}]) * 5,
+            experience_match_score=70 + min(len(strong) * 3, 18) - len(missing) * 2,
+            required_skills_match=[
+                SkillMatch(skill=keyword, status="strong" if keyword in strong else "missing", evidence=keyword if keyword in strong else None)
+                for keyword in desired[:10]
+            ],
+            preferred_skills_match=[
+                SkillMatch(skill=keyword, status="partial" if keyword in strong else "missing", evidence=keyword if keyword in strong else None)
+                for keyword in keywords
+                if keyword not in desired
+            ][:8],
             missing_keywords=missing,
             strong_keywords=strong or ["software engineering", "projects"],
             weak_bullets=weak_bullets,
             suggested_bullet_rewrites=[
                 BulletRewrite(
                     original=bullet.original,
-                    rewrite=f"Built and improved {bullet.original.lower()} using concrete technologies, resulting in a measurable reliability, latency, or user-impact gain.",
-                    why_better="It frames ownership, technical depth, and measurable impact for a SWE recruiter.",
+                    rewrite=f"Improved {bullet.original.lower()} by clarifying the technology, scope, and measurable result already supported by the resume.",
+                    why_better="It keeps the rewrite grounded while prompting the candidate to add a real metric if available.",
+                    grounded_in_resume=True,
                 )
                 for bullet in weak_bullets
             ],
@@ -152,6 +196,7 @@ class MockResumeAnalysisProvider:
                 "Mirror the target role's core technologies where accurate.",
                 "Prioritize project bullets that show production-quality engineering judgment.",
             ],
+            recruiter_summary="Simulated local analysis. Use production AI mode for real recruiter-style review.",
             summary="Local mock analysis generated because AI_MOCK_ENABLED is true. Use it for UX testing, not final resume decisions.",
         )
 
@@ -159,9 +204,10 @@ class MockResumeAnalysisProvider:
 class OpenRouterProvider:
     provider = "openrouter"
 
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str, model: str, timeout_seconds: int = 60) -> None:
         self.api_key = api_key
         self.model = model
+        self.timeout_seconds = timeout_seconds
 
     def analyze(self, *, resume_text: str, target_role: str, job_description: str) -> ResumeAnalysisResult:
         messages = [
@@ -179,15 +225,23 @@ class OpenRouterProvider:
                 ),
             },
         ]
-        first = self._complete(messages)
+        first = self._complete_with_retry(messages)
         try:
             return parse_analysis_result(first)
         except AppError:
-            repair = self._complete([
+            repair = self._complete_with_retry([
                 {"role": "system", "content": JSON_REPAIR_SYSTEM_PROMPT},
                 {"role": "user", "content": first},
             ])
             return parse_analysis_result(repair)
+
+    def _complete_with_retry(self, messages: list[dict[str, str]]) -> str:
+        try:
+            return self._complete(messages)
+        except AppError as exc:
+            if exc.status_code not in {502, 503, 504}:
+                raise
+            return self._complete(messages)
 
     def _complete(self, messages: list[dict[str, str]]) -> str:
         payload = {
@@ -208,22 +262,27 @@ class OpenRouterProvider:
             method="POST",
         )
         try:
-            with urlopen(request, timeout=60) as response:
+            with urlopen(request, timeout=self.timeout_seconds) as response:
                 response_payload = json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
+            if exc.code == 429:
+                raise AppError("ai_rate_limited", "OpenRouter is rate limited. Try again later.", 429) from exc
+            if exc.code in {404, 410}:
+                raise AppError("ai_model_unavailable", "The configured OpenRouter model is unavailable. Update AI_MODEL on the backend.", 503) from exc
             raise AppError("ai_provider_error", "OpenRouter could not complete the resume analysis.", 502, detail) from exc
         except (TimeoutError, URLError, OSError) as exc:
-            raise AppError("ai_provider_unavailable", "OpenRouter is unavailable. Try again in a moment.", 503) from exc
+            raise AppError("ai_provider_unavailable", "OpenRouter timed out or is unavailable. Try again in a moment.", 503) from exc
         return extract_openrouter_content(response_payload)
 
 
 RESUME_ANALYSIS_SYSTEM_PROMPT = """You are OfferOS Resume Intelligence, a precise technical recruiting assistant for software engineering students.
-Evaluate the resume against the target SWE role and optional job description.
-Return strict JSON only, with exactly these keys: overall_score, keyword_score, impact_score, clarity_score, technical_depth_score, missing_keywords, strong_keywords, weak_bullets, suggested_bullet_rewrites, strengths, risks, recommendations, summary.
-weak_bullets must be objects with original, issue, suggestion. suggested_bullet_rewrites must be objects with original, rewrite, why_better.
-Focus on ATS-style keyword coverage, SWE internship/new-grad relevance, technical depth, quantified impact, clarity, recruiter readability, and role fit.
-Do not invent experience. Recommend adding keywords only when the candidate can truthfully support them."""
+Evaluate the resume directly against the target SWE role and job description.
+Return strict JSON only with exactly these keys: overall_score, keyword_score, impact_score, clarity_score, technical_depth_score, experience_match_score, required_skills_match, preferred_skills_match, missing_keywords, strong_keywords, weak_bullets, suggested_bullet_rewrites, strengths, risks, recommendations, recruiter_summary, summary.
+required_skills_match and preferred_skills_match items must include skill, status strong|partial|missing, and evidence string or null.
+weak_bullets must be objects with original, issue, suggestion. suggested_bullet_rewrites must be objects with original, rewrite, why_better, grounded_in_resume.
+Focus on ATS-style keyword coverage, required and preferred skill coverage, technical-depth alignment, experience alignment, project relevance, education alignment, bullet impact, clarity, recruiter readability, and screening risks.
+Never invent technologies, metrics, responsibilities, or achievements. Rewrites must use only facts present in the resume. If a metric is missing, recommend adding one rather than fabricating one. Distinguish missing keywords from genuinely missing experience. Scores are heuristic guidance, not ATS guarantees."""
 
 
 JSON_REPAIR_SYSTEM_PROMPT = """Repair the user's resume analysis into strict JSON only.
@@ -233,7 +292,7 @@ Use the exact OfferOS schema. Convert weak bullet strings into objects with orig
 def provider_from_settings(settings: Settings) -> AIProvider:
     provider = settings.ai_provider.lower().strip()
     if provider == "openrouter" and settings.openrouter_api_key:
-        return OpenRouterProvider(settings.openrouter_api_key, settings.ai_model)
+        return OpenRouterProvider(settings.openrouter_api_key, settings.ai_model, settings.ai_timeout_seconds)
     if settings.ai_mock_enabled and settings.app_env in {"local", "test"}:
         return MockResumeAnalysisProvider()
     if provider in {"", "disabled"}:
@@ -273,8 +332,11 @@ def normalize_analysis_payload(value: object) -> dict[str, object]:
     payload = dict(value)
     payload["weak_bullets"] = normalize_weak_bullets(payload.get("weak_bullets"))
     payload["suggested_bullet_rewrites"] = normalize_rewrites(payload.get("suggested_bullet_rewrites"))
+    payload["required_skills_match"] = normalize_skill_matches(payload.get("required_skills_match"))
+    payload["preferred_skills_match"] = normalize_skill_matches(payload.get("preferred_skills_match"))
     for key in ["missing_keywords", "strong_keywords", "strengths", "risks", "recommendations"]:
         payload[key] = normalize_string_list(payload.get(key))
+    payload["recruiter_summary"] = str(payload.get("recruiter_summary") or payload.get("summary") or "")
     payload["summary"] = str(payload.get("summary") or "")
     return payload
 
@@ -310,7 +372,25 @@ def normalize_rewrites(value: object) -> list[dict[str, str]]:
             "original": str(item.get("original") or ""),
             "rewrite": str(item.get("rewrite") or ""),
             "why_better": str(item.get("why_better") or item.get("rationale") or ""),
+            "grounded_in_resume": bool(item.get("grounded_in_resume", True)),
         })
+    return normalized
+
+
+def normalize_skill_matches(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list):
+        return []
+    normalized: list[dict[str, object]] = []
+    for item in value:
+        if isinstance(item, str):
+            normalized.append({"skill": item, "status": "missing", "evidence": None})
+        elif isinstance(item, dict):
+            status = str(item.get("status") or "missing").lower()
+            normalized.append({
+                "skill": str(item.get("skill") or ""),
+                "status": status if status in {"strong", "partial", "missing"} else "missing",
+                "evidence": item.get("evidence") if isinstance(item.get("evidence"), str) else None,
+            })
     return normalized
 
 

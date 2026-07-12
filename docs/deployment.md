@@ -24,6 +24,7 @@ CORS_ORIGINS=https://your-vercel-url.vercel.app
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=
 AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_TIMEOUT_SECONDS=60
 AI_MOCK_ENABLED=false
 LOG_LEVEL=INFO
 ```
@@ -91,6 +92,8 @@ It also creates the analytics snapshot table used by the backend model set. To m
 ```bash
 alembic upgrade head
 ```
+
+Resume Intelligence migrations add extracted text metadata and job-matching analysis fields. Always run `alembic upgrade head` after deploying backend code that includes resume upload or analysis schema changes.
 
 For Neon, use a direct connection for migration jobs when available. The pooled connection is appropriate for API runtime traffic.
 
@@ -212,7 +215,11 @@ Manual reset validation checklist:
 - Local mode uses deterministic mock analysis in browser localStorage.
 - Backend local/test mode uses deterministic mock analysis only when `AI_MOCK_ENABLED=true`.
 - Production API mode requires `AI_PROVIDER=openrouter` and `OPENROUTER_API_KEY`; otherwise the UI shows a setup error.
-- Users must paste resume text before analysis. PDF/DOCX parsing is still a future extraction task.
+- Users can upload PDF, DOCX, or TXT resumes up to 5 MB. The backend extracts text in memory and stores extracted text plus the original filename in PostgreSQL. It does not permanently store file bytes.
+- Scanned or image-only PDFs return an OCR-coming-soon validation message. OCR is not implemented yet.
+- Users can still paste or edit resume text manually before analysis.
+- Job-specific analysis requires a target role and meaningful job description. Scores are heuristic guidance, not ATS guarantees.
+- If OpenRouter's configured free model is unavailable, change `AI_MODEL` on the backend and redeploy; no frontend change is required.
 
 ## Deployment Checklist
 
@@ -231,6 +238,7 @@ Manual reset validation checklist:
 13. Clear Applications and confirm the list remains empty after refresh.
 14. Reset all cloud data from Settings and confirm Dashboard and Analytics update after refresh/refetch.
 15. Paste resume text, run AI Resume Analysis, refresh, and confirm analysis history persists.
+16. Upload a PDF or DOCX resume, verify extraction reaches **Ready for analysis**, paste a target job description, run analysis, and reopen the previous result from history.
 
 ## Rollback
 

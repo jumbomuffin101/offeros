@@ -1,5 +1,5 @@
 import type { ResumeRepository } from "@/lib/data/types/repositories";
-import type { ApiDataResponse, ApiResume, ApiResumeAnalysis } from "@/lib/data/api/contracts";
+import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
@@ -39,6 +39,21 @@ export const apiResumeRepository: ResumeRepository = {
       textExtractionError: "",
     }));
     return fromApiResume(response.data);
+  },
+  async uploadResumeFile(resumeId, file) {
+    const body = new FormData();
+    body.append("file", file);
+    const response = await apiClient.post<ApiDataResponse<ApiResumeUploadResponse>, FormData>(`/resumes/${resumeId}/upload`, body);
+    return {
+      resume: fromApiResume(response.data.resume),
+      extraction: {
+        text: response.data.extraction.text,
+        pageCount: response.data.extraction.page_count,
+        characterCount: response.data.extraction.character_count,
+        status: response.data.extraction.status,
+        warnings: response.data.extraction.warnings,
+      },
+    };
   },
   async analyzeResume(resumeId, payload) {
     const response = await apiClient.post<ApiDataResponse<ApiResumeAnalysis>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));

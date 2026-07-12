@@ -68,7 +68,7 @@ def test_workspace_reset_resumes_sample_creates_valid_resumes_and_clears_analyse
     ).json()["data"]
     client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
-        json={"target_role": "Backend Engineer", "job_description": "FastAPI PostgreSQL Docker"},
+        json={"target_role": "Backend Engineer", "job_description": "Backend engineer role requiring FastAPI, PostgreSQL, Docker, testing, API ownership, and reliable production service experience."},
     )
 
     response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "sample"})
@@ -121,7 +121,7 @@ def test_workspace_reset_resumes_empty_deletes_resumes_and_analyses(client: Test
     ).json()["data"]
     client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
-        json={"target_role": "Backend Engineer", "job_description": "FastAPI PostgreSQL Docker"},
+        json={"target_role": "Backend Engineer", "job_description": "Backend engineer role requiring FastAPI, PostgreSQL, Docker, testing, API ownership, and reliable production service experience."},
     )
 
     response = client.post("/api/v1/workspace/reset", json={"scope": "resumes", "mode": "empty"})

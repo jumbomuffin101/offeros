@@ -8,6 +8,7 @@ import type {
   PrepUpdateInput,
   ResumeInput,
   ResumeAnalysisInput,
+  ResumeUploadResult,
 } from "@/lib/data/types";
 
 export interface ApplicationRepository {
@@ -29,6 +30,7 @@ export interface ResumeRepository {
   duplicate(id: string): Promise<ResumeVersion>;
   reset(): Promise<ResumeVersion[]>;
   updateResumeText(resumeId: string, text: string): Promise<ResumeVersion>;
+  uploadResumeFile?(resumeId: string, file: File): Promise<ResumeUploadResult>;
   analyzeResume(resumeId: string, payload: ResumeAnalysisInput): Promise<ResumeAnalysis>;
   listResumeAnalyses(resumeId: string): Promise<ResumeAnalysis[]>;
   getResumeAnalysis(id: string): Promise<ResumeAnalysis | null>;

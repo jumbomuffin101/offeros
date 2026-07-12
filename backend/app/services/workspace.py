@@ -117,8 +117,42 @@ def _demo_resumes() -> list[object]:
     from app.schemas.resume import ResumeCreate
 
     return [
-        ResumeCreate(name="General SWE Resume", target_role="Software Engineer", description="Broad full-stack and backend version for general software engineering roles.", status=ResumeStatus.ACTIVE, keyword_match_score=86, tags=["Full-stack", "Backend", "TypeScript"], strengths=["Product delivery", "API design"], weaknesses=["Few scale metrics"], missing_keywords=["Kafka", "Kubernetes"], suggested_improvement="Add production scale and latency metrics.", notes="Default version.", file_name="general-swe.pdf", original_file_name="general-swe.pdf"),
-        ResumeCreate(name="Backend Resume", target_role="Backend Engineer", description="APIs, databases, reliability, and measurable performance.", status=ResumeStatus.ACTIVE, keyword_match_score=91, tags=["Distributed systems", "Postgres"], strengths=["API design", "Database systems"], weaknesses=["Testing details"], missing_keywords=["Contract testing"], suggested_improvement="Add test coverage and incident response details.", notes="Strong backend version.", file_name="backend.pdf", original_file_name="backend.pdf"),
+        ResumeCreate(
+            name="General SWE Resume",
+            target_role="Software Engineer",
+            description="Broad full-stack and backend version for general software engineering roles.",
+            status=ResumeStatus.ACTIVE,
+            keyword_match_score=86,
+            tags=["Full-stack", "Backend", "TypeScript"],
+            strengths=["Product delivery", "API design"],
+            weaknesses=["Few scale metrics"],
+            missing_keywords=["Kafka", "Kubernetes"],
+            suggested_improvement="Add production scale and latency metrics.",
+            notes="Default version.",
+            file_name="general-swe.pdf",
+            original_file_name="general-swe.pdf",
+            extracted_text="Software engineer resume with TypeScript, React, Python, APIs, PostgreSQL, product delivery, and backend project experience.",
+            text_extraction_status="parsed",
+            extraction_character_count=120,
+        ),
+        ResumeCreate(
+            name="Backend Resume",
+            target_role="Backend Engineer",
+            description="APIs, databases, reliability, and measurable performance.",
+            status=ResumeStatus.ACTIVE,
+            keyword_match_score=91,
+            tags=["Distributed systems", "Postgres"],
+            strengths=["API design", "Database systems"],
+            weaknesses=["Testing details"],
+            missing_keywords=["Contract testing"],
+            suggested_improvement="Add test coverage and incident response details.",
+            notes="Strong backend version.",
+            file_name="backend.pdf",
+            original_file_name="backend.pdf",
+            extracted_text="Backend engineer resume with Python, FastAPI, PostgreSQL, Docker, API design, database indexing, testing, and reliability work.",
+            text_extraction_status="parsed",
+            extraction_character_count=122,
+        ),
     ]
 
 

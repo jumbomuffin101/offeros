@@ -31,7 +31,12 @@ export function ResumeCard({
           <h2 className="truncate text-lg font-semibold text-white">{resume.name}</h2>
           <p className="mt-1 text-sm font-medium text-cyan-100/80">{resume.targetRole}</p>
         </div>
-        <Badge tone={resume.status === "Active" ? "green" : "amber"}>{resume.status}</Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone={resume.status === "Active" ? "green" : "amber"}>{resume.status}</Badge>
+          <Badge tone={resume.textExtractionStatus === "failed" ? "red" : resume.extractedText ? "green" : "amber"}>
+            {resume.textExtractionStatus === "failed" ? "Extraction failed" : resume.extractedText ? "Ready for analysis" : "Needs resume text"}
+          </Badge>
+        </div>
       </div>
 
       <p className="pointer-events-none relative z-10 mt-4 line-clamp-2 min-h-12 text-sm leading-6 text-slate-500">{resume.description}</p>

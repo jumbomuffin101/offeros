@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BrainCircuit, History, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { BrainCircuit, FileUp, History, Loader2, Sparkles, Trash2 } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput } from "@/lib/data/types";
 import { Badge } from "@/components/ui/badge";
@@ -9,26 +9,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 
+const RESUME_ANALYSIS_PREFILL_KEY = "offeros:resume-analysis-prefill";
+
 export function ResumeAnalysisPanel({
   resume,
   onAnalyze,
   onDeleteAnalysis,
   onListAnalyses,
   onUpdateResumeText,
+  onUploadResumeFile,
 }: {
   resume: ResumeVersion;
   onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalysis>;
   onDeleteAnalysis: (analysisId: string) => Promise<void>;
   onListAnalyses: (resumeId: string) => Promise<ResumeAnalysis[]>;
   onUpdateResumeText: (resumeId: string, text: string) => Promise<ResumeVersion>;
+  onUploadResumeFile?: (resumeId: string, file: File) => Promise<{ resume: ResumeVersion; extraction: { text: string; characterCount: number; warnings: string[] } }>;
 }) {
-  const [targetRole, setTargetRole] = useState(resume.targetRole);
-  const [jobDescription, setJobDescription] = useState("");
+  const [prefill] = useState(() => consumeAnalysisPrefill(resume.name));
+  const [targetRole, setTargetRole] = useState(prefill.targetRole || resume.targetRole);
+  const [companyName, setCompanyName] = useState(prefill.companyName);
+  const [jobDescription, setJobDescription] = useState(prefill.jobDescription);
   const [resumeText, setResumeText] = useState(resume.extractedText);
   const [analyses, setAnalyses] = useState<ResumeAnalysis[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingText, setSavingText] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -68,7 +75,11 @@ export function ResumeAnalysisPanel({
       return;
     }
     if (!resumeText.trim()) {
-      setError("Paste resume text before running AI analysis.");
+      setError("Upload a resume file or paste resume text before running AI analysis.");
+      return;
+    }
+    if (jobDescription.trim().length < 80) {
+      setError("Paste a target job description before running analysis.");
       return;
     }
     setLoading(true);
@@ -77,6 +88,7 @@ export function ResumeAnalysisPanel({
     try {
       const analysis = await onAnalyze(resume.id, {
         targetRole: targetRole.trim(),
+        companyName: companyName.trim(),
         jobDescription: jobDescription.trim(),
         resumeText: resumeText.trim(),
       });
@@ -87,6 +99,23 @@ export function ResumeAnalysisPanel({
       setError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function uploadFile(file: File | undefined) {
+    if (!file || !onUploadResumeFile) return;
+    setUploading(true);
+    setError("");
+    setMessage("Uploading resume...");
+    try {
+      const result = await onUploadResumeFile(resume.id, file);
+      setResumeText(result.extraction.text);
+      setMessage(`Ready for analysis. Extracted ${result.extraction.characterCount.toLocaleString()} characters${result.extraction.warnings.length ? ` (${result.extraction.warnings[0]})` : "."}`);
+    } catch (cause) {
+      setMessage("");
+      setError(cause instanceof Error ? cause.message : "Unable to upload and extract this resume.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -111,15 +140,33 @@ export function ResumeAnalysisPanel({
         <div>
           <h3 className="text-sm font-semibold text-white">AI Resume Intelligence</h3>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            SWE-focused role fit, keyword coverage, bullet strength, and recruiter readability. PDF/DOCX parsing is coming soon. For now, paste resume text for AI analysis.
+            SWE-focused job matching, required skill coverage, bullet strength, and recruiter readability. Upload PDF/DOCX/TXT or paste text manually.
           </p>
         </div>
       </div>
 
       <div className="grid gap-3">
+        <label className="rounded-xl border border-slate-700/45 bg-slate-950/25 p-3">
+          <span className="mb-2 block text-xs font-medium text-slate-500">Resume file</span>
+          <input
+            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-400/15 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-100 hover:file:bg-indigo-400/20"
+            disabled={uploading || !onUploadResumeFile}
+            onChange={(event) => void uploadFile(event.target.files?.[0])}
+            type="file"
+          />
+          <span className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <FileUp className="size-3.5" />}
+            {uploading ? "Uploading and extracting text..." : "PDF, DOCX, or TXT up to 5 MB. OCR for scanned PDFs is coming soon."}
+          </span>
+        </label>
         <label>
           <span className="mb-1.5 block text-xs font-medium text-slate-500">Target role</span>
           <Input value={targetRole} onChange={(event) => setTargetRole(event.target.value)} placeholder="Backend Software Engineer Intern" />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-xs font-medium text-slate-500">Company name</span>
+          <Input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="Acme" />
         </label>
         <label>
           <span className="mb-1.5 block text-xs font-medium text-slate-500">Job description</span>
@@ -128,7 +175,7 @@ export function ResumeAnalysisPanel({
         <label>
           <span className="mb-1.5 block text-xs font-medium text-slate-500">Resume text</span>
           <textarea className="min-h-36 w-full rounded-xl border border-slate-700/70 bg-slate-950/45 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-indigo-300/60 focus:ring-2 focus:ring-indigo-300/15" value={resumeText} onChange={(event) => setResumeText(event.target.value)} placeholder="Paste the plain text from your resume." />
-          {!resume.extractedText ? <span className="mt-1.5 block text-xs leading-5 text-slate-500">Paste your resume text to run AI analysis. PDF/DOCX parsing is coming soon.</span> : null}
+          {!resume.extractedText ? <span className="mt-1.5 block text-xs leading-5 text-slate-500">Upload a resume or paste text to run AI analysis.</span> : null}
         </label>
       </div>
 
@@ -136,11 +183,11 @@ export function ResumeAnalysisPanel({
       {message ? <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
 
       <div className="flex flex-wrap gap-2">
-        <Button disabled={savingText || loading} onClick={() => void saveResumeText()} variant="secondary">
+        <Button disabled={savingText || loading || uploading} onClick={() => void saveResumeText()} variant="secondary">
           {savingText ? <Loader2 className="size-4 animate-spin" /> : null}
           {savingText ? "Saving text..." : "Save resume text"}
         </Button>
-        <Button disabled={loading || savingText} onClick={() => void runAnalysis()} variant="primary">
+        <Button disabled={loading || savingText || uploading} onClick={() => void runAnalysis()} variant="primary">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           {loading ? "Analyzing resume fit..." : "Run AI Analysis"}
         </Button>
@@ -183,7 +230,10 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
         <Score label="Impact" value={analysis.impactScore} />
         <Score label="Clarity" value={analysis.clarityScore} />
         <Score label="Technical depth" value={analysis.technicalDepthScore} className="col-span-2" />
+        <Score label="Experience match" value={analysis.experienceMatchScore} className="col-span-2" />
       </div>
+      <SkillMatchGroup label="Required skills" items={analysis.requiredSkillsMatch} />
+      <SkillMatchGroup label="Preferred skills" items={analysis.preferredSkillsMatch} />
       <ChipGroup label="Strong keywords" items={analysis.strongKeywords} tone="green" />
       <ChipGroup label="Missing keywords" items={analysis.missingKeywords} tone="amber" />
       <WeakBulletGroup items={analysis.weakBullets} />
@@ -196,6 +246,7 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
                 <p className="text-xs leading-5 text-slate-500">{rewrite.original}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-200">{rewrite.rewrite}</p>
                 <p className="mt-2 text-xs leading-5 text-indigo-200/75">{rewrite.whyBetter}</p>
+                <p className="mt-1 text-xs text-emerald-200/70">{rewrite.groundedInResume === false ? "Needs fact check before use" : "Grounded in resume content"}</p>
               </div>
             ))}
           </div>
@@ -204,10 +255,15 @@ function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
       <ListGroup label="Strengths" items={analysis.strengths} />
       <ListGroup label="Risks" items={analysis.risks} />
       <ListGroup label="Recommendations" items={analysis.recommendations} />
+      {analysis.recruiterSummary ? <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.05] p-3 text-sm leading-6 text-slate-300">{analysis.recruiterSummary}</div> : null}
       <div className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.05] p-3 text-sm leading-6 text-slate-300">{analysis.summary}</div>
       <div className="text-xs text-slate-600">Provider: {analysis.provider} - Model: {analysis.model}</div>
     </div>
   );
+}
+
+function SkillMatchGroup({ label, items }: { label: string; items: ResumeAnalysis["requiredSkillsMatch"] }) {
+  return <div><h4 className="mb-2 text-xs font-medium uppercase text-slate-500">{label}</h4><div className="space-y-2">{items.length ? items.slice(0, 12).map((item) => <div className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-3" key={`${label}-${item.skill}`}><div className="flex items-center justify-between gap-3"><span className="text-sm font-medium text-slate-200">{item.skill}</span><Badge tone={item.status === "strong" ? "green" : item.status === "partial" ? "amber" : "red"}>{item.status}</Badge></div>{item.evidence ? <p className="mt-2 text-xs leading-5 text-slate-500">{item.evidence}</p> : null}</div>) : <span className="text-sm text-slate-600">No skill coverage returned.</span>}</div></div>;
 }
 
 function Score({ label, value, className = "" }: { label: string; value: number; className?: string }) {
@@ -239,4 +295,23 @@ function WeakBulletGroup({ items }: { items: ResumeAnalysis["weakBullets"] }) {
       ) : <span className="text-sm text-slate-600">None recorded</span>}
     </div>
   );
+}
+
+function consumeAnalysisPrefill(resumeName: string) {
+  if (typeof window === "undefined") return { targetRole: "", companyName: "", jobDescription: "" };
+  const raw = window.sessionStorage.getItem(RESUME_ANALYSIS_PREFILL_KEY);
+  if (!raw) return { targetRole: "", companyName: "", jobDescription: "" };
+  try {
+    const parsed = JSON.parse(raw) as { targetRole?: string; companyName?: string; jobDescription?: string; resumeUsed?: string };
+    if (parsed.resumeUsed && parsed.resumeUsed !== resumeName) return { targetRole: "", companyName: "", jobDescription: "" };
+    window.sessionStorage.removeItem(RESUME_ANALYSIS_PREFILL_KEY);
+    return {
+      targetRole: parsed.targetRole ?? "",
+      companyName: parsed.companyName ?? "",
+      jobDescription: parsed.jobDescription ?? "",
+    };
+  } catch {
+    window.sessionStorage.removeItem(RESUME_ANALYSIS_PREFILL_KEY);
+    return { targetRole: "", companyName: "", jobDescription: "" };
+  }
 }

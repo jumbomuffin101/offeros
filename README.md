@@ -9,7 +9,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Dashboard with recruiting KPIs, today's plan, deadlines, activity, and pipeline summary
 - Kanban-style application tracker for internship and job opportunities
 - Resume manager with targeted versions, keyword scores, and mock insights
-- AI Resume Intelligence for SWE role fit, keyword gaps, bullet rewrites, and technical-depth feedback
+- AI Resume Intelligence with PDF/DOCX/TXT ingestion, job-specific role matching, keyword gaps, bullet rewrites, and technical-depth feedback
 - Interview prep workspace for coding, behavioral, and system design practice
 - Analytics page with simple visual indicators for response and conversion trends
 - Responsive dark-mode-first shell with desktop sidebar and mobile navigation
@@ -68,10 +68,13 @@ AI Resume Intelligence runs only on the backend. To enable production OpenRouter
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=
 AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_TIMEOUT_SECONDS=60
 AI_MOCK_ENABLED=false
 ```
 
 Local mode uses deterministic mock analysis without a backend AI key. Backend mock analysis is available only when `AI_MOCK_ENABLED=true` in local/test environments. In production, missing OpenRouter config returns a clear setup error.
+
+In API mode, users can upload PDF, DOCX, or TXT resumes up to 5 MB. FastAPI extracts text server-side, stores only the extracted text and original filename in PostgreSQL, and deletes temporary processing state. Files are not sent directly to OpenRouter and permanent private file storage is intentionally deferred. Manual resume-text paste remains available as a fallback.
 
 The web app lives in `apps/web`. The root workspace scripts forward to that app.
 
@@ -126,7 +129,8 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 - Local mode data is stored only in the current browser profile and is not partitioned by Clerk user.
 - API mode does not automatically migrate existing localStorage records; use the manual Settings import when needed.
 - Resume `applicationsUsed` is not persisted by the current backend schema and displays as zero in API mode.
-- Resume PDF/DOCX text extraction is not implemented yet. Paste resume text manually before running AI analysis.
+- PDF/DOCX/TXT resume extraction is text-only. Image-only/scanned PDFs return a clear OCR-coming-soon error.
+- Resume fit scores are heuristic guidance for technical recruiting; they are not ATS guarantees.
 - Prep goals remain local in API mode; completion sessions are derived from completed API tasks.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.
 
@@ -134,5 +138,5 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 
 - Portable export
 - Optional account and cloud synchronization
-- PDF/DOCX resume text extraction
+- Optional OCR and private resume file storage
 - Calendar and reminder integrations

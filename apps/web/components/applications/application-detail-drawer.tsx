@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Mail, Pencil, Trash2, X } from "lucide-react";
+import { BrainCircuit, ExternalLink, Mail, Pencil, Trash2, X } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { formatDate, formatDateTime } from "@/lib/application-utils";
 import type { Application, ApplicationStatus } from "@/lib/types";
@@ -12,6 +12,7 @@ const priorityTone = {
   Medium: "amber",
   High: "red",
 } as const;
+const RESUME_ANALYSIS_PREFILL_KEY = "offeros:resume-analysis-prefill";
 
 export function ApplicationDetailDrawer({
   application,
@@ -100,6 +101,23 @@ export function ApplicationDetailDrawer({
               <Mail className="size-4" />
             </a>
           ) : null}
+
+          <button
+            className="mt-3 flex w-full items-center justify-between rounded-2xl border border-indigo-300/20 bg-indigo-300/[0.06] px-4 py-3 text-left text-sm text-indigo-100 transition hover:border-indigo-300/35 hover:bg-indigo-300/10"
+            onClick={() => {
+              window.sessionStorage.setItem(RESUME_ANALYSIS_PREFILL_KEY, JSON.stringify({
+                companyName: application.company,
+                targetRole: application.role,
+                jobDescription: application.notes || "",
+                resumeUsed: application.resumeUsed || "",
+              }));
+              window.location.href = "/resumes";
+            }}
+            type="button"
+          >
+            Analyze resume for this role
+            <BrainCircuit className="size-4" />
+          </button>
 
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <div className="text-xs font-medium text-slate-500">Tags</div>

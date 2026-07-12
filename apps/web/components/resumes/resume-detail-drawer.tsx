@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ResumeAnalysisPanel } from "@/components/resumes/resume-analysis-panel";
 
-export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDelete, onToggleStatus, onAnalyze, onDeleteAnalysis, onListAnalyses, onUpdateResumeText }: {
+export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDelete, onToggleStatus, onAnalyze, onDeleteAnalysis, onListAnalyses, onUpdateResumeText, onUploadResumeFile }: {
   resume: ResumeVersion | null;
   onClose: () => void;
   onEdit: (resume: ResumeVersion) => void;
@@ -19,6 +19,7 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
   onDeleteAnalysis: (analysisId: string) => Promise<void>;
   onListAnalyses: (resumeId: string) => Promise<ResumeAnalysis[]>;
   onUpdateResumeText: (resumeId: string, text: string) => Promise<ResumeVersion>;
+  onUploadResumeFile?: (resumeId: string, file: File) => Promise<{ resume: ResumeVersion; extraction: { text: string; characterCount: number; warnings: string[] } }>;
 }) {
   if (!resume) return null;
   return (
@@ -33,7 +34,7 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
           <div><div className="mb-2 flex justify-between text-sm"><span className="text-slate-400">Keyword match</span><strong className="text-white">{resume.keywordMatchScore}%</strong></div><Progress className="h-2.5" value={resume.keywordMatchScore} tone={resume.keywordMatchScore >= 85 ? "green" : "cyan"} /></div>
           <div className="grid grid-cols-2 gap-3"><Metric label="Last updated" value={formatResumeDate(resume.updatedAt)} /><Metric label="Applications used" value={String(resume.applicationsUsed)} /><Metric label="File name" value={resume.fileName || "Not attached"} /><Metric label="Created" value={formatResumeDate(resume.createdAt)} /></div>
           <List label="Tags" items={resume.tags} /><List label="Strengths" items={resume.strengths} tone="green" /><List label="Weaknesses" items={resume.weaknesses} tone="amber" /><List label="Missing keywords" items={resume.missingKeywords} tone="red" />
-          <ResumeAnalysisPanel key={resume.id} resume={resume} onAnalyze={onAnalyze} onDeleteAnalysis={onDeleteAnalysis} onListAnalyses={onListAnalyses} onUpdateResumeText={onUpdateResumeText} />
+          <ResumeAnalysisPanel key={resume.id} resume={resume} onAnalyze={onAnalyze} onDeleteAnalysis={onDeleteAnalysis} onListAnalyses={onListAnalyses} onUpdateResumeText={onUpdateResumeText} onUploadResumeFile={onUploadResumeFile} />
           <TextBlock label="Suggested next improvement" value={resume.suggestedImprovement} /><TextBlock label="Notes" value={resume.notes} />
           <div className="border-t border-white/10 pt-4 text-xs text-slate-600">Created {resume.createdAt} · Updated {resume.updatedAt}</div>
         </div>

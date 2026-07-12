@@ -1,6 +1,8 @@
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import (
@@ -43,6 +45,8 @@ class ResumeVersion(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     extracted_text: Mapped[str] = mapped_column(Text, default="")
     text_extraction_status: Mapped[str] = mapped_column(String(40), default="not_started")
     text_extraction_error: Mapped[str] = mapped_column(Text, default="")
+    extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    extraction_character_count: Mapped[int] = mapped_column(Integer, default=0)
 
     user = relationship("User", back_populates="resumes")
     analyses = relationship("ResumeAnalysis", back_populates="resume")
@@ -56,13 +60,18 @@ class ResumeAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base)
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     resume_version_id: Mapped[UUID] = mapped_column(ForeignKey("resume_versions.id", ondelete="CASCADE"), index=True)
+    company_name: Mapped[str] = mapped_column(String(200), default="")
     target_role: Mapped[str] = mapped_column(String(200))
     job_description: Mapped[str] = mapped_column(Text, default="")
+    input_resume_hash: Mapped[str] = mapped_column(String(64), default="")
     overall_score: Mapped[int] = mapped_column(Integer, default=0)
     keyword_score: Mapped[int] = mapped_column(Integer, default=0)
     impact_score: Mapped[int] = mapped_column(Integer, default=0)
     clarity_score: Mapped[int] = mapped_column(Integer, default=0)
     technical_depth_score: Mapped[int] = mapped_column(Integer, default=0)
+    experience_match_score: Mapped[int] = mapped_column(Integer, default=0)
+    required_skills_match: Mapped[list[dict[str, str | None]]] = mapped_column(string_list_type, default=list)
+    preferred_skills_match: Mapped[list[dict[str, str | None]]] = mapped_column(string_list_type, default=list)
     missing_keywords: Mapped[list[str]] = mapped_column(string_list_type, default=list)
     strong_keywords: Mapped[list[str]] = mapped_column(string_list_type, default=list)
     weak_bullets: Mapped[list[dict[str, str]]] = mapped_column(string_list_type, default=list)
@@ -70,6 +79,7 @@ class ResumeAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base)
     strengths: Mapped[list[str]] = mapped_column(string_list_type, default=list)
     risks: Mapped[list[str]] = mapped_column(string_list_type, default=list)
     recommendations: Mapped[list[str]] = mapped_column(string_list_type, default=list)
+    recruiter_summary: Mapped[str] = mapped_column(Text, default="")
     summary: Mapped[str] = mapped_column(Text, default="")
     provider: Mapped[str] = mapped_column(String(80), default="mock")
     model: Mapped[str] = mapped_column(String(120), default="local-mock")

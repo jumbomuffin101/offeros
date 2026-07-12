@@ -27,13 +27,18 @@ function normalizeAnalysis(value: unknown): ResumeAnalysis | null {
   return {
     id: item.id,
     resumeVersionId: item.resumeVersionId,
+    companyName: stringValue(item.companyName),
     targetRole: stringValue(item.targetRole),
     jobDescription: stringValue(item.jobDescription),
+    inputResumeHash: stringValue(item.inputResumeHash),
     overallScore: score(item.overallScore),
     keywordScore: score(item.keywordScore),
     impactScore: score(item.impactScore),
     clarityScore: score(item.clarityScore),
     technicalDepthScore: score(item.technicalDepthScore),
+    experienceMatchScore: score(item.experienceMatchScore),
+    requiredSkillsMatch: skillMatches(item.requiredSkillsMatch),
+    preferredSkillsMatch: skillMatches(item.preferredSkillsMatch),
     missingKeywords: stringArray(item.missingKeywords),
     strongKeywords: stringArray(item.strongKeywords),
     weakBullets: weakBullets(item.weakBullets),
@@ -41,6 +46,7 @@ function normalizeAnalysis(value: unknown): ResumeAnalysis | null {
     strengths: stringArray(item.strengths),
     risks: stringArray(item.risks),
     recommendations: stringArray(item.recommendations),
+    recruiterSummary: stringValue(item.recruiterSummary) || stringValue(item.summary),
     summary: stringValue(item.summary),
     provider: stringValue(item.provider) || "local",
     model: stringValue(item.model) || "local-mock",
@@ -51,14 +57,30 @@ function normalizeAnalysis(value: unknown): ResumeAnalysis | null {
   };
 }
 
-function rewrite(value: unknown) {
+function rewrite(value: unknown): ResumeAnalysis["suggestedBulletRewrites"][number] | null {
   if (!value || typeof value !== "object") return null;
   const item = value as Record<string, unknown>;
   return {
     original: stringValue(item.original),
     rewrite: stringValue(item.rewrite),
     whyBetter: stringValue(item.whyBetter) || stringValue(item.rationale),
+    groundedInResume: typeof item.groundedInResume === "boolean" ? item.groundedInResume : true,
   };
+}
+
+function skillMatches(value: unknown): ResumeAnalysis["requiredSkillsMatch"] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => {
+    if (typeof entry === "string") return { skill: entry, status: "missing" as const, evidence: null };
+    if (!entry || typeof entry !== "object") return null;
+    const item = entry as Record<string, unknown>;
+    const status = item.status === "strong" || item.status === "partial" ? item.status : "missing";
+    return {
+      skill: stringValue(item.skill),
+      status,
+      evidence: typeof item.evidence === "string" ? item.evidence : null,
+    };
+  }).filter((entry): entry is ResumeAnalysis["requiredSkillsMatch"][number] => entry !== null);
 }
 
 function weakBullets(value: unknown): ResumeAnalysis["weakBullets"] {

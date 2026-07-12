@@ -59,28 +59,47 @@ export type ApiResume = {
   extracted_text: string;
   text_extraction_status: "not_started" | "manual" | "parsed" | "failed";
   text_extraction_error: string;
+  extracted_at: string | null;
+  extraction_character_count: number;
   created_at: string;
   updated_at: string;
+};
+
+export type ApiResumeUploadResponse = {
+  resume: ApiResume;
+  extraction: {
+    text: string;
+    page_count: number | null;
+    character_count: number;
+    status: "completed" | "failed";
+    warnings: string[];
+  };
 };
 
 export type ApiResumeAnalysis = {
   id: string;
   user_id: string;
   resume_version_id: string;
+  company_name: string;
   target_role: string;
   job_description: string;
+  input_resume_hash: string;
   overall_score: number;
   keyword_score: number;
   impact_score: number;
   clarity_score: number;
   technical_depth_score: number;
+  experience_match_score: number;
+  required_skills_match: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
+  preferred_skills_match: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
   missing_keywords: string[];
   strong_keywords: string[];
   weak_bullets: Array<{ original: string; issue: string; suggestion: string }>;
-  suggested_bullet_rewrites: Array<{ original: string; rewrite: string; why_better: string; rationale?: string }>;
+  suggested_bullet_rewrites: Array<{ original: string; rewrite: string; why_better: string; grounded_in_resume?: boolean; rationale?: string }>;
   strengths: string[];
   risks: string[];
   recommendations: string[];
+  recruiter_summary: string;
   summary: string;
   provider: string;
   model: string;

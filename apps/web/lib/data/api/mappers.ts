@@ -93,6 +93,8 @@ export function fromApiResume(value: ApiResume): ResumeVersion {
     suggestedImprovement: value.suggested_improvement ?? "", notes: value.notes ?? "", fileName: value.file_name ?? "",
     originalFileName: value.original_file_name ?? "", extractedText: value.extracted_text ?? "",
     textExtractionStatus: resumeTextStatus(value.text_extraction_status), textExtractionError: value.text_extraction_error ?? "",
+    extractedAt: value.extracted_at ?? "",
+    extractionCharacterCount: Number.isFinite(Number(value.extraction_character_count)) ? Number(value.extraction_character_count) : 0,
     createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
@@ -106,6 +108,7 @@ export function toApiResume(value: Partial<ResumeInput>) {
     notes: value.notes, file_name: value.fileName, original_file_name: value.originalFileName,
     extracted_text: value.extractedText, text_extraction_status: value.textExtractionStatus,
     text_extraction_error: value.textExtractionError,
+    extracted_at: value.extractedAt, extraction_character_count: value.extractionCharacterCount,
   });
 }
 
@@ -113,13 +116,18 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
   return {
     id: value.id,
     resumeVersionId: value.resume_version_id,
+    companyName: value.company_name ?? "",
     targetRole: value.target_role,
     jobDescription: value.job_description,
+    inputResumeHash: value.input_resume_hash ?? "",
     overallScore: value.overall_score,
     keywordScore: value.keyword_score,
     impactScore: value.impact_score,
     clarityScore: value.clarity_score,
     technicalDepthScore: value.technical_depth_score,
+    experienceMatchScore: value.experience_match_score ?? 0,
+    requiredSkillsMatch: skillMatches(value.required_skills_match),
+    preferredSkillsMatch: skillMatches(value.preferred_skills_match),
     missingKeywords: value.missing_keywords,
     strongKeywords: value.strong_keywords,
     weakBullets: weakBullets(value.weak_bullets),
@@ -127,10 +135,12 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
       original: rewrite.original,
       rewrite: rewrite.rewrite,
       whyBetter: rewrite.why_better ?? rewrite.rationale ?? "",
+      groundedInResume: rewrite.grounded_in_resume ?? true,
     })),
     strengths: value.strengths,
     risks: value.risks,
     recommendations: value.recommendations,
+    recruiterSummary: value.recruiter_summary ?? value.summary,
     summary: value.summary,
     provider: value.provider,
     model: value.model,
@@ -144,6 +154,7 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
 export function toApiResumeAnalysis(value: ResumeAnalysisInput) {
   return defined({
     target_role: value.targetRole,
+    company_name: value.companyName,
     job_description: value.jobDescription,
     resume_text: value.resumeText,
   });
@@ -227,6 +238,13 @@ function weakBullets(value: ApiResumeAnalysis["weak_bullets"]): ResumeAnalysis["
     issue: item.issue ?? "",
     suggestion: item.suggestion ?? "",
   }));
+}
+function skillMatches(value: ApiResumeAnalysis["required_skills_match"]): ResumeAnalysis["requiredSkillsMatch"] {
+  return Array.isArray(value) ? value.map((item) => ({
+    skill: item.skill ?? "",
+    status: item.status === "strong" || item.status === "partial" ? item.status : "missing",
+    evidence: typeof item.evidence === "string" ? item.evidence : null,
+  })) : [];
 }
 function inferCategory(input: ApplicationInput | Application): Application["category"] {
   const content = [input.company, input.role, input.source, input.resumeUsed, input.notes, ...input.tags].join(" ").toLowerCase();

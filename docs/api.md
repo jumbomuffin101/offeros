@@ -215,28 +215,41 @@ Validation: ownership of referenced resume version, allowed state/date combinati
 | GET | `/resumes/{resume_id}` | Resume with version summary |
 | PATCH | `/resumes/{resume_id}` | Rename/archive/update targeting |
 | DELETE | `/resumes/{resume_id}` | Soft delete when references permit |
+| POST | `/resumes/{resume_id}/upload` | Upload PDF/DOCX/TXT resume, extract text, and update the owned resume |
 | POST | `/resumes/{resume_id}/analyze` | Analyze a stored or pasted resume against a SWE target role |
 | GET | `/resumes/{resume_id}/analyses` | List analysis history for one owned resume |
-| POST | `/resumes/{resume_id}/versions/upload-url` | Create signed upload intent |
-| POST | `/resumes/{resume_id}/versions` | Finalize uploaded version metadata |
-| GET | `/resumes/{resume_id}/versions` | List immutable versions |
-| GET | `/resume-versions/{version_id}` | Version metadata/extraction status |
-| POST | `/resume-versions/{version_id}/download-url` | Short-lived signed download URL |
-| DELETE | `/resume-versions/{version_id}` | Schedule version deletion |
+| GET | `/resume-analyses/{analysis_id}` | Read one owned analysis |
+| DELETE | `/resume-analyses/{analysis_id}` | Delete one owned analysis |
 
-Upload is two-step so file bytes go directly to private object storage rather than through FastAPI. Finalization validates storage key ownership, MIME type, size, checksum, and upload intent expiry, then queues scanning/extraction.
+Current upload handling processes files through FastAPI in memory. Supported formats are PDF, DOCX, and TXT up to 5 MB. The backend validates extension, MIME hints, non-empty content, and file signatures for PDF/DOCX, then stores extracted text and the original filename in PostgreSQL. Permanent file bytes are not stored in this phase. Scanned/image-only PDFs return a clear OCR-coming-soon validation error.
 
-Current MVP stores manual resume text on the resume version. PDF/DOCX parsing is not implemented yet; users paste plain text into `extracted_text` or provide `resume_text` in the analysis request.
+Upload request:
 
-Finalize request:
+```http
+POST /api/v1/resumes/{resume_id}/upload
+Content-Type: multipart/form-data
+```
+
+Field: `file`.
+
+Upload response:
 
 ```json
 {
-  "upload_intent_id": "0195f...",
-  "original_filename": "backend-resume.pdf",
-  "mime_type": "application/pdf",
-  "byte_size": 184220,
-  "checksum_sha256": "8de..."
+  "data": {
+    "resume": {
+      "id": "0195f...",
+      "original_file_name": "backend-resume.pdf",
+      "text_extraction_status": "parsed",
+      "extraction_character_count": 8421
+    },
+    "extraction": {
+      "page_count": 1,
+      "character_count": 8421,
+      "status": "completed",
+      "warnings": []
+    }
+  }
 }
 ```
 
@@ -255,6 +268,7 @@ Request:
 ```json
 {
   "target_role": "Backend Software Engineer Intern",
+  "company_name": "Acme",
   "job_description": "Python, FastAPI, PostgreSQL, distributed systems...",
   "resume_text": "Optional override. If omitted, stored extracted_text is used."
 }
@@ -272,6 +286,21 @@ Response:
     "impact_score": 88,
     "clarity_score": 82,
     "technical_depth_score": 80,
+    "experience_match_score": 76,
+    "required_skills_match": [
+      {
+        "skill": "FastAPI",
+        "status": "strong",
+        "evidence": "FastAPI services"
+      }
+    ],
+    "preferred_skills_match": [
+      {
+        "skill": "Kubernetes",
+        "status": "missing",
+        "evidence": null
+      }
+    ],
     "missing_keywords": ["contract testing"],
     "strong_keywords": ["FastAPI", "PostgreSQL"],
     "weak_bullets": [
@@ -285,18 +314,20 @@ Response:
       {
         "original": "Built backend APIs",
         "rewrite": "Built FastAPI services backed by PostgreSQL, reducing API latency by 35%.",
-        "why_better": "It shows technical depth and measurable impact."
+        "why_better": "It shows technical depth and measurable impact.",
+        "grounded_in_resume": true
       }
     ],
     "strengths": [],
     "risks": [],
     "recommendations": [],
+    "recruiter_summary": "Concise recruiter-facing role-fit summary.",
     "summary": "Concise role-fit summary."
   }
 }
 ```
 
-The endpoint returns `200` with a stored analysis. If neither `resume_text` nor stored `extracted_text` exists, the API returns `422`. OpenRouter calls happen only on the backend; clients never send provider API keys.
+The endpoint returns `200` with a stored analysis. If neither `resume_text` nor stored `extracted_text` exists, or if the job description is too short for job-specific matching, the API returns `422`. OpenRouter calls happen only on the backend; clients never send provider API keys.
 
 ### Coding Prep
 
@@ -497,7 +528,7 @@ OpenAPI documentation should be disabled or protected in production unless an in
 - Return `404`, not `403`, for resources the user does not own to reduce enumeration.
 - Pydantic rejects unknown fields on write schemas.
 - Strings have explicit length limits; URLs and emails are normalized.
-- Uploaded files use MIME sniffing, extension checks, size limits, malware scanning, and private storage.
+- Uploaded resume files use extension checks, MIME hints, size limits, non-empty checks, and file signature validation where practical. This phase does not include malware scanning or permanent private file storage.
 - User-provided Markdown/HTML is stored as text and escaped on render.
 - Rate limits apply by user, IP risk signal, route class, and AI budget.
 - Clerk webhook signatures and replay windows are verified before processing.

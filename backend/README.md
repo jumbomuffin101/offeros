@@ -9,6 +9,7 @@ FastAPI foundation for the OfferOS technical recruiting workspace. The Next.js f
 - SQLAlchemy 2.x
 - Alembic
 - PostgreSQL via psycopg 3
+- PyMuPDF and python-docx for resume text extraction
 - pytest
 - Docker
 
@@ -96,6 +97,7 @@ CORS_ORIGINS=https://your-vercel-url.vercel.app
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=
 AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_TIMEOUT_SECONDS=60
 AI_MOCK_ENABLED=false
 LOG_LEVEL=INFO
 ```
@@ -137,6 +139,7 @@ Set `OFFEROS_SMOKE_TOKEN` to a short-lived `offeros-api` Clerk token to also ver
 | `AI_PROVIDER` | `openrouter` for production resume analysis, `disabled` or blank for no configured provider |
 | `OPENROUTER_API_KEY` | Server-side OpenRouter API key; never exposed to the frontend |
 | `AI_MODEL` | OpenRouter model used by Resume Intelligence |
+| `AI_TIMEOUT_SECONDS` | Bounded OpenRouter request timeout; defaults to 60 seconds |
 | `AI_MOCK_ENABLED` | Enables deterministic backend mock analysis only in local/test environments |
 | `LOG_LEVEL` | Python logging level |
 
@@ -161,24 +164,29 @@ The frontend uses this endpoint for Settings clear actions and optional sample w
 
 ## AI Resume Intelligence
 
-Resume versions now store manual resume text fields:
+Resume versions now store resume text and extraction metadata:
 
 - `extracted_text`
 - `original_file_name`
 - `text_extraction_status`
 - `text_extraction_error`
+- `extracted_at`
+- `extraction_character_count`
 
-PDF/DOCX parsing is intentionally a TODO. Users paste plain resume text in the web app today.
+Users can upload PDF, DOCX, or TXT resumes up to 5 MB through `POST /api/v1/resumes/{resume_id}/upload`. The backend validates extension, MIME hints, file signature for PDF/DOCX, size, and non-empty content, then extracts text in memory. OfferOS stores extracted text and original filename in PostgreSQL, not permanent file bytes. Scanned/image-only PDFs return: `This PDF appears to be scanned or image-based. OCR support is coming soon.`
 
 Analysis endpoints:
 
+- `POST /api/v1/resumes/{resume_id}/upload`
 - `POST /api/v1/resumes/{resume_id}/analyze`
 - `GET /api/v1/resumes/{resume_id}/analyses`
 - `GET /api/v1/resume-analyses/{analysis_id}`
 - `DELETE /api/v1/resume-analyses/{analysis_id}`
 - `GET /api/v1/ai/status`
 
-All analysis reads and writes are scoped to the current authenticated user. The backend uses `app/services/ai_resume_analysis.py` as the provider boundary. `AI_PROVIDER=openrouter` with `OPENROUTER_API_KEY` calls OpenRouter from the backend and validates strict JSON output before storing results. Local/test backend mock analysis is available only when `AI_MOCK_ENABLED=true`; production without OpenRouter configuration returns a clear `ai_not_configured` error.
+`POST /api/v1/resumes/{resume_id}/analyze` requires `target_role` and a meaningful `job_description`. It uses the request `resume_text` override when supplied, otherwise the stored extracted text. All analysis reads and writes are scoped to the current authenticated user. The backend uses `app/services/ai_resume_analysis.py` as the provider boundary. `AI_PROVIDER=openrouter` with `OPENROUTER_API_KEY` calls OpenRouter from the backend and validates strict JSON output before storing results. Local/test backend mock analysis is available only when `AI_MOCK_ENABLED=true`; production without OpenRouter configuration returns a clear `ai_not_configured` error.
+
+The AI prompt and response validation enforce grounding: rewrites must use facts already present in the resume, missing metrics are recommended rather than fabricated, and scores are stored as heuristic guidance rather than ATS guarantees.
 
 ## Local Import
 
@@ -217,7 +225,7 @@ The initial PostgreSQL migration creates `users`, `applications`, `resume_versio
 2. Add an explicit local-to-cloud import flow rather than silently copying localStorage records.
 3. Add PostgreSQL integration tests for repositories and Alembic upgrades.
 4. Add request IDs, structured JSON logging, pagination, idempotency, and optimistic concurrency.
-5. Add private resume object storage only after authenticated ownership exists.
+5. Add private resume object storage and OCR only after authenticated ownership exists.
 
 AI, Chrome extension imports, queues, and background workers remain intentionally out of scope.
 

@@ -22,8 +22,19 @@ export type ApplicationInput = Omit<Application, "id" | "createdAt" | "updatedAt
 export type ResumeInput = Omit<ResumeVersion, "id" | "createdAt" | "updatedAt" | "lastUpdated">;
 export type ResumeAnalysisInput = {
   targetRole: string;
+  companyName?: string;
   jobDescription: string;
   resumeText?: string;
+};
+export type ResumeUploadResult = {
+  resume: ResumeVersion;
+  extraction: {
+    text: string;
+    pageCount: number | null;
+    characterCount: number;
+    status: "completed" | "failed";
+    warnings: string[];
+  };
 };
 export type { ResumeAnalysis };
 export type CodingProblemInput = Omit<CodingProblem, "id" | "completedAt" | "createdAt" | "updatedAt">;

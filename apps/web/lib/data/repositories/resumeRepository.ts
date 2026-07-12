@@ -51,11 +51,15 @@ export const resumeRepository: ResumeRepository = {
       textExtractionError: "",
     });
   },
+  async uploadResumeFile() {
+    throw new DataError("NOT_IMPLEMENTED", "File extraction is available in API mode. In local mode, paste resume text manually.");
+  },
   async analyzeResume(resumeId, payload) {
     const resume = await this.get(resumeId);
     if (!resume) throw new DataError("NOT_FOUND", "Resume not found.");
     const resumeText = (payload.resumeText || resume.extractedText || "").trim();
     if (!resumeText) throw new DataError("VALIDATION_ERROR", "Paste resume text before running AI analysis.");
+    if (!payload.jobDescription.trim()) throw new DataError("VALIDATION_ERROR", "Paste a target job description before running analysis.");
     if (payload.resumeText && payload.resumeText.trim() !== resume.extractedText.trim()) {
       await this.updateResumeText(resumeId, payload.resumeText.trim());
     }
@@ -101,13 +105,26 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
   return {
     id: `local-analysis-${timestampId(now)}`,
     resumeVersionId: resumeId,
+    companyName: payload.companyName ?? "",
     targetRole: payload.targetRole,
     jobDescription: payload.jobDescription,
+    inputResumeHash: String(resumeText.length),
     overallScore,
     keywordScore: clamp(72 + strongKeywords.length * 3 - missingKeywords.length * 4),
     impactScore: hasMetrics ? 86 : 62,
     clarityScore: resumeText.length < 8000 ? 80 : 68,
     technicalDepthScore: clamp(70 + strongKeywords.filter((keyword) => ["fastapi", "postgresql", "docker", "aws"].includes(keyword)).length * 5),
+    experienceMatchScore: clamp(70 + strongKeywords.length * 2 - missingKeywords.length * 2),
+    requiredSkillsMatch: (desired.length ? desired : ["api", "testing"]).slice(0, 8).map((keyword) => ({
+      skill: keyword,
+      status: lowerResume.includes(keyword) ? "strong" as const : "missing" as const,
+      evidence: lowerResume.includes(keyword) ? keyword : null,
+    })),
+    preferredSkillsMatch: keywords.filter((keyword) => !desired.includes(keyword)).slice(0, 6).map((keyword) => ({
+      skill: keyword,
+      status: lowerResume.includes(keyword) ? "partial" as const : "missing" as const,
+      evidence: lowerResume.includes(keyword) ? keyword : null,
+    })),
     missingKeywords,
     strongKeywords: strongKeywords.length ? strongKeywords : ["software engineering"],
     weakBullets,
@@ -115,10 +132,12 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
       original: bullet.original,
       rewrite: `Rewrite with ownership, technical scope, and a quantified result: ${bullet.original}`,
       whyBetter: "Recruiters scan for scope, technologies, and measurable engineering impact.",
+      groundedInResume: true,
     })),
     strengths: ["Relevant SWE positioning is present.", "The resume can support role-specific tailoring."],
     risks: [hasMetrics ? "Keep metrics tied to engineering outcomes." : "Several bullets may need quantified impact.", missingKeywords.length ? "Some target-role keywords are missing." : "Avoid adding unsupported keywords."],
     recommendations: ["Add 2-3 quantified impact bullets.", "Mirror target-role technologies where accurate.", "Lead project bullets with action verbs and technical ownership."],
+    recruiterSummary: "Simulated local analysis. Use API mode with OpenRouter for production AI feedback.",
     summary: "Local mock analysis. Configure backend OpenRouter settings in API mode for production AI feedback.",
     provider: "local",
     model: "local-mock",

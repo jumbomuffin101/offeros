@@ -51,11 +51,11 @@ class ApiClient {
   }
 
   post<T, TBody = unknown>(path: string, body: TBody, options?: RequestOptions): Promise<T> {
-    return this.request<T>(path, { ...options, method: "POST", body: JSON.stringify(body) });
+    return this.request<T>(path, { ...options, method: "POST", body: requestBody(body) });
   }
 
   patch<T, TBody = unknown>(path: string, body: TBody, options?: RequestOptions): Promise<T> {
-    return this.request<T>(path, { ...options, method: "PATCH", body: JSON.stringify(body) });
+    return this.request<T>(path, { ...options, method: "PATCH", body: requestBody(body) });
   }
 
   delete<T = void>(path: string, options?: RequestOptions): Promise<T> {
@@ -98,7 +98,7 @@ class ApiClient {
     if (!init.skipAuth) {
       for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
     }
-    if (init.body) headers.set("Content-Type", "application/json");
+    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
     const timeoutMs = init.timeoutMs ?? (!init.skipAuth && !firstWorkspaceRequestComplete ? FIRST_WORKSPACE_TIMEOUT_MS : WARM_REQUEST_TIMEOUT_MS);
     try {
       const result = await this.fetchJsonWithRetry<T>(url, init, headers, timeoutMs);
@@ -279,4 +279,8 @@ function delay(ms: number) {
 
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function requestBody(body: unknown): BodyInit | undefined {
+  return body instanceof FormData ? body : JSON.stringify(body);
 }
