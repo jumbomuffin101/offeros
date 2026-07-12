@@ -216,7 +216,7 @@ Manual reset validation checklist:
 - Backend local/test mode uses deterministic mock analysis only when `AI_MOCK_ENABLED=true`.
 - Production API mode requires `AI_PROVIDER=openrouter` and `OPENROUTER_API_KEY`; otherwise the UI shows a setup error.
 - Users can upload PDF, DOCX, or TXT resumes up to 5 MB. The backend extracts text in memory and stores extracted text plus the original filename in PostgreSQL. It does not permanently store file bytes.
-- Scanned or image-only PDFs return an OCR-coming-soon validation message. OCR is not implemented yet.
+- Scanned or image-only PDFs return an OCR-not-available-yet validation message. OCR is not implemented yet.
 - Users can still paste or edit resume text manually before analysis.
 - Job-specific analysis requires a target role and meaningful job description. Scores are heuristic guidance, not ATS guarantees.
 - If OpenRouter's configured free model is unavailable, change `AI_MODEL` on the backend and redeploy; no frontend change is required.

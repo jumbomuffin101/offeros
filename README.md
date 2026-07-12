@@ -129,7 +129,7 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 - Local mode data is stored only in the current browser profile and is not partitioned by Clerk user.
 - API mode does not automatically migrate existing localStorage records; use the manual Settings import when needed.
 - Resume `applicationsUsed` is not persisted by the current backend schema and displays as zero in API mode.
-- PDF/DOCX/TXT resume extraction is text-only. Image-only/scanned PDFs return a clear OCR-coming-soon error.
+- PDF/DOCX/TXT resume extraction is text-only. Image-only/scanned PDFs return a clear OCR-not-available-yet error.
 - Resume fit scores are heuristic guidance for technical recruiting; they are not ATS guarantees.
 - Prep goals remain local in API mode; completion sessions are derived from completed API tasks.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.

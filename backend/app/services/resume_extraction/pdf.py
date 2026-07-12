@@ -26,7 +26,7 @@ class PdfResumeExtractor:
             document.close()
         normalized = normalize_resume_text("\n\n".join(page_text))
         if len(normalized) < 80:
-            raise ValidationError("This PDF appears to be scanned or image-based. OCR support is coming soon.")
+            raise ValidationError("This PDF appears to be scanned or image-based. OCR support is not available yet.")
         warnings: list[str] = []
         if len(normalized) > MAX_EXTRACTED_TEXT_CHARS:
             warnings.append("Extracted text was truncated to the maximum supported length.")

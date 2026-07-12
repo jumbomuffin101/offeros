@@ -173,7 +173,7 @@ Resume versions now store resume text and extraction metadata:
 - `extracted_at`
 - `extraction_character_count`
 
-Users can upload PDF, DOCX, or TXT resumes up to 5 MB through `POST /api/v1/resumes/{resume_id}/upload`. The backend validates extension, MIME hints, file signature for PDF/DOCX, size, and non-empty content, then extracts text in memory. OfferOS stores extracted text and original filename in PostgreSQL, not permanent file bytes. Scanned/image-only PDFs return: `This PDF appears to be scanned or image-based. OCR support is coming soon.`
+Users can upload PDF, DOCX, or TXT resumes up to 5 MB through `POST /api/v1/resumes/{resume_id}/upload`. The backend validates extension, MIME hints, file signature for PDF/DOCX, size, and non-empty content, then extracts text in memory. OfferOS stores extracted text and original filename in PostgreSQL, not permanent file bytes. Scanned/image-only PDFs return: `This PDF appears to be scanned or image-based. OCR support is not available yet.`
 
 Analysis endpoints:
 

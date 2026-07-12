@@ -8,7 +8,7 @@ import { useResumes } from "@/hooks/use-resumes";
 import { ResumeCard } from "@/components/resumes/resume-card";
 import { ResumeDetailDrawer } from "@/components/resumes/resume-detail-drawer";
 import { ResumeFilters } from "@/components/resumes/resume-filters";
-import { ResumeFormModal, type ResumeFormPayload } from "@/components/resumes/resume-form-modal";
+import { ResumeFormModal, type ResumeFormPayload, type ResumeSubmitStatus } from "@/components/resumes/resume-form-modal";
 import { ResumeInsights } from "@/components/resumes/resume-insights";
 import { ResumeAnalysisPlaceholder } from "@/components/resumes/resume-analysis-placeholder";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Toast } from "@/components/ui/toast";
 import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
+import { dataMode } from "@/lib/data/repositories/repositoryFactory";
 
 const OPEN_UPLOAD_EVENT = "offeros:upload-resume";
 const OPEN_UPLOAD_STORAGE_KEY = "offeros:open-upload-resume";
@@ -62,15 +63,58 @@ export function ResumeManager() {
   const selected = resumes.find((resume) => resume.id === selectedId) ?? null;
   const counts: Record<ResumeStatusFilter, number> = { All: resumes.length, Active: resumes.filter((resume) => resume.status === "Active").length, Draft: resumes.filter((resume) => resume.status === "Draft").length };
 
-  async function createResume(payload: ResumeFormPayload) {
-    try { await resumeData.create(payload); setFormOpen(false); setToast("Resume saved"); }
-    catch { /* Hook exposes the typed error state. */ }
+  async function createResume(payload: ResumeFormPayload, setStatus: (status: ResumeSubmitStatus) => void) {
+    const { uploadFile, ...input } = payload;
+    try {
+      setStatus("creating");
+      const created = await resumeData.create(input);
+      setSelectedId(created.id);
+      if (uploadFile && dataMode === "api") {
+        try {
+          setStatus("uploading");
+          setStatus("extracting");
+          const uploaded = await resumeData.uploadResumeFile(created.id, uploadFile);
+          setSelectedId(uploaded.resume.id);
+          setStatus("ready");
+          setToast(`Resume ready for analysis - extracted ${uploaded.extraction.characterCount.toLocaleString()} characters.`);
+        } catch (cause) {
+          setSelectedId(created.id);
+          setToast(cause instanceof Error ? cause.message : "Resume saved, but extraction failed. Paste resume text manually.");
+        }
+      } else {
+        setToast(uploadFile ? "Resume saved locally. Paste resume text manually for analysis." : "Resume saved");
+      }
+      setFormOpen(false);
+    } catch (cause) {
+      throw cause;
+    }
   }
 
-  async function updateResume(payload: ResumeFormPayload) {
+  async function updateResume(payload: ResumeFormPayload, setStatus: (status: ResumeSubmitStatus) => void) {
     if (!editingResume) return;
-    try { await resumeData.update(editingResume.id, payload); setEditingResume(null); setFormOpen(false); setToast("Resume updated"); }
-    catch { /* Hook exposes the typed error state. */ }
+    const { uploadFile, ...input } = payload;
+    try {
+      setStatus("saving");
+      const updated = await resumeData.update(editingResume.id, input);
+      setSelectedId(updated.id);
+      if (uploadFile && dataMode === "api") {
+        try {
+          setStatus("uploading");
+          setStatus("extracting");
+          const uploaded = await resumeData.uploadResumeFile(editingResume.id, uploadFile);
+          setSelectedId(uploaded.resume.id);
+          setToast(`Resume ready for analysis - extracted ${uploaded.extraction.characterCount.toLocaleString()} characters.`);
+        } catch (cause) {
+          setToast(cause instanceof Error ? cause.message : "Resume updated, but extraction failed. Paste resume text manually.");
+        }
+      } else {
+        setToast(uploadFile ? "Resume updated locally. Paste resume text manually for analysis." : "Resume updated");
+      }
+      setEditingResume(null);
+      setFormOpen(false);
+    } catch (cause) {
+      throw cause;
+    }
   }
 
   async function duplicateResume(resume: ResumeVersion) {

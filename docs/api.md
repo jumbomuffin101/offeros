@@ -221,7 +221,7 @@ Validation: ownership of referenced resume version, allowed state/date combinati
 | GET | `/resume-analyses/{analysis_id}` | Read one owned analysis |
 | DELETE | `/resume-analyses/{analysis_id}` | Delete one owned analysis |
 
-Current upload handling processes files through FastAPI in memory. Supported formats are PDF, DOCX, and TXT up to 5 MB. The backend validates extension, MIME hints, non-empty content, and file signatures for PDF/DOCX, then stores extracted text and the original filename in PostgreSQL. Permanent file bytes are not stored in this phase. Scanned/image-only PDFs return a clear OCR-coming-soon validation error.
+Current upload handling processes files through FastAPI in memory. Supported formats are PDF, DOCX, and TXT up to 5 MB. The backend validates extension, MIME hints, non-empty content, and file signatures for PDF/DOCX, then stores extracted text and the original filename in PostgreSQL. Permanent file bytes are not stored in this phase. Scanned/image-only PDFs return a clear OCR-not-available-yet validation error.
 
 Upload request:
 

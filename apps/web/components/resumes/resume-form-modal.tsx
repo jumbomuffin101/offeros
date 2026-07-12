@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { cn } from "@/lib/utils";
+import { dataMode } from "@/lib/data/repositories/repositoryFactory";
 
-export type ResumeFormPayload = ResumeInput;
+export type ResumeFormPayload = ResumeInput & { uploadFile?: File };
+export type ResumeSubmitStatus = "idle" | "creating" | "saving" | "uploading" | "extracting" | "ready";
 
 const emptyForm: ResumeFormPayload = {
   name: "", targetRole: "", description: "", status: "Draft", applicationsUsed: 0,
@@ -19,10 +21,10 @@ const emptyForm: ResumeFormPayload = {
   textExtractionStatus: "not_started", textExtractionError: "",
 };
 
-const allowedFileExtensions = [".pdf", ".doc", ".docx"];
+const allowedFileExtensions = [".pdf", ".docx"];
+const maxResumeFileBytes = 5 * 1024 * 1024;
 const allowedFileTypes = new Set([
   "application/pdf",
-  "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/octet-stream",
 ]);
@@ -31,7 +33,7 @@ export function ResumeFormModal({ open, resume, onClose, onSubmit }: {
   open: boolean;
   resume: ResumeVersion | null;
   onClose: () => void;
-  onSubmit: (payload: ResumeFormPayload) => void;
+  onSubmit: (payload: ResumeFormPayload, setStatus: (status: ResumeSubmitStatus) => void) => Promise<void>;
 }) {
   if (!open) return null;
   return <ResumeFormContent key={resume?.id ?? "new"} resume={resume} onClose={onClose} onSubmit={onSubmit} />;
@@ -40,7 +42,7 @@ export function ResumeFormModal({ open, resume, onClose, onSubmit }: {
 function ResumeFormContent({ resume, onClose, onSubmit }: {
   resume: ResumeVersion | null;
   onClose: () => void;
-  onSubmit: (payload: ResumeFormPayload) => void;
+  onSubmit: (payload: ResumeFormPayload, setStatus: (status: ResumeSubmitStatus) => void) => Promise<void>;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ResumeFormPayload>(() => resume ? payloadFromResume(resume) : emptyForm);
@@ -53,6 +55,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   const [error, setError] = useState("");
   const [fileError, setFileError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<ResumeSubmitStatus>("idle");
 
   function update<K extends keyof ResumeFormPayload>(key: K, value: ResumeFormPayload[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -60,16 +64,26 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
 
   function selectFile(file: File | undefined) {
     if (!file) return;
+    if (file.size <= 0) {
+      setFileError("Choose a non-empty resume file.");
+      return;
+    }
+    if (file.size > maxResumeFileBytes) {
+      setFileError("Resume files must be 5 MB or smaller.");
+      return;
+    }
 
     const lowerName = file.name.toLowerCase();
     const validExtension = allowedFileExtensions.some((extension) => lowerName.endsWith(extension));
     const validType = !file.type || allowedFileTypes.has(file.type);
     if (!validExtension || !validType) {
-      setFileError("Choose a PDF, DOC, or DOCX file. Other file types are not supported.");
+      setFileError("Choose a PDF or DOCX file. Other file types are not supported.");
       return;
     }
 
     update("fileName", file.name);
+    update("originalFileName", file.name);
+    setSelectedFile(file);
     setFileError("");
   }
 
@@ -84,42 +98,54 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
     selectFile(event.dataTransfer.files?.[0]);
   }
 
-  function submit() {
+  async function submit() {
     if (!form.name.trim() || !form.targetRole.trim()) {
       setError("Resume name and target role are required.");
       return;
     }
-    onSubmit({
-      ...form,
-      name: form.name.trim(), targetRole: form.targetRole.trim(), description: form.description.trim(),
-      fileName: form.fileName.trim(), originalFileName: form.originalFileName.trim() || form.fileName.trim(),
-      extractedText: form.extractedText.trim(), textExtractionStatus: form.extractedText.trim() ? "manual" : form.textExtractionStatus,
-      textExtractionError: form.textExtractionError.trim(), suggestedImprovement: form.suggestedImprovement.trim(), notes: form.notes.trim(),
-      keywordMatchScore: Math.min(100, Math.max(0, form.keywordMatchScore)),
-      applicationsUsed: Math.max(0, form.applicationsUsed),
-      tags: parseResumeList(lists.tags), strengths: parseResumeList(lists.strengths),
-      weaknesses: parseResumeList(lists.weaknesses), missingKeywords: parseResumeList(lists.missingKeywords),
-    });
+    setError("");
+    setSubmitStatus(resume ? "saving" : "creating");
+    try {
+      await onSubmit({
+        ...form,
+        name: form.name.trim(), targetRole: form.targetRole.trim(), description: form.description.trim(),
+        fileName: form.fileName.trim(), originalFileName: form.originalFileName.trim() || form.fileName.trim(),
+        extractedText: form.extractedText.trim(), textExtractionStatus: form.extractedText.trim() ? "manual" : form.textExtractionStatus,
+        textExtractionError: form.textExtractionError.trim(), suggestedImprovement: form.suggestedImprovement.trim(), notes: form.notes.trim(),
+        keywordMatchScore: Math.min(100, Math.max(0, form.keywordMatchScore)),
+        applicationsUsed: Math.max(0, form.applicationsUsed),
+        tags: parseResumeList(lists.tags), strengths: parseResumeList(lists.strengths),
+        weaknesses: parseResumeList(lists.weaknesses), missingKeywords: parseResumeList(lists.missingKeywords),
+        uploadFile: selectedFile ?? undefined,
+      }, setSubmitStatus);
+    } catch (cause) {
+      setSubmitStatus("idle");
+      setError(cause instanceof Error ? cause.message : "Unable to save this resume.");
+    }
   }
+
+  const submitting = submitStatus !== "idle";
+  const submitLabel = submitButtonLabel(resume, submitStatus);
 
   return (
     <ModalShell
       className="max-w-4xl"
       footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button onClick={onClose} variant="ghost">Cancel</Button>
-          <Button onClick={submit} variant="primary">{resume ? "Save changes" : "Create resume"}</Button>
+          <Button disabled={submitting} onClick={onClose} variant="ghost">Cancel</Button>
+          <Button disabled={submitting} onClick={() => void submit()} variant="primary">{submitLabel}</Button>
         </div>
       }
       header={
         <div className="flex items-center justify-between gap-4">
-          <div><h2 className="text-xl font-semibold text-white" id="resume-form-title">{resume ? "Edit resume" : "Add resume version"}</h2><p className="mt-1 text-sm text-slate-500">Store targeting notes and the local file reference.</p></div>
-          <button aria-label="Close resume form" className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={onClose} type="button"><X className="size-4" /></button>
+          <div><h2 className="text-xl font-semibold text-white" id="resume-form-title">{resume ? "Edit resume" : "Add resume version"}</h2><p className="mt-1 text-sm text-slate-500">{resume ? "Update targeting notes, extracted text, and analysis context." : dataMode === "api" ? "Upload a PDF or DOCX. OfferOS will extract the text for analysis." : "Attach a resume filename and paste resume text manually for local analysis."}</p></div>
+          <button aria-label="Close resume form" className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" disabled={submitting} onClick={onClose} type="button"><X className="size-4" /></button>
         </div>
       }
       labelledBy="resume-form-title"
     >
       {error ? <div className="mb-4 rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
+      {submitting ? <div className="mb-4 rounded-xl border border-indigo-300/20 bg-indigo-300/[0.08] px-4 py-3 text-sm text-indigo-100">{submitStatusMessage(submitStatus)}</div> : null}
       <div className="mb-5">
             <button
               aria-describedby={fileError ? "resume-file-error" : "resume-file-help"}
@@ -138,11 +164,13 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
               type="button"
             >
               {form.fileName ? <FileCheck2 className="size-6 text-emerald-300" /> : <FileUp className="size-6 text-indigo-200" />}
-              <span className="mt-2 text-sm font-medium text-white">{form.fileName ? form.fileName : "Choose a PDF, DOC, or DOCX"}</span>
-              <span className="mt-1 max-w-2xl text-xs leading-5 text-slate-500" id="resume-file-help">For now, OfferOS stores only the file name. PDF/DOCX parsing is coming soon. Paste resume text below for AI analysis.</span>
+              <span className="mt-2 text-sm font-medium text-white">{form.fileName ? form.fileName : "Choose a PDF or DOCX"}</span>
+              <span className="mt-1 max-w-2xl text-xs leading-5 text-slate-500" id="resume-file-help">
+                {selectedFile ? `${formatFileSize(selectedFile.size)} - ${dataMode === "api" ? "supported file ready to upload and extract" : "filename ready to save locally"}.` : dataMode === "api" ? "Upload a PDF or DOCX. OfferOS will extract the text for analysis." : "Local mode stores the filename only. Paste resume text below for analysis."}
+              </span>
             </button>
             <input
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               aria-label="Resume file"
               className="sr-only"
               onChange={handleFileChange}
@@ -160,7 +188,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             <Field label="Keyword match score"><Input min={0} max={100} type="number" value={form.keywordMatchScore} onChange={(event) => update("keywordMatchScore", Number(event.target.value))} /></Field>
             <Field label="Applications used"><Input min={0} type="number" value={form.applicationsUsed} onChange={(event) => update("applicationsUsed", Number(event.target.value))} /></Field>
             <Field className="md:col-span-2" label="Description"><Textarea value={form.description} onChange={(value) => update("description", value)} /></Field>
-            <Field className="md:col-span-2" label="Resume text"><Textarea minHeight="min-h-40" value={form.extractedText} onChange={(value) => update("extractedText", value)} placeholder="Paste the plain text version of your resume for AI analysis. PDF/DOCX parsing is coming soon." /></Field>
+            <Field className="md:col-span-2" label="Resume text"><Textarea minHeight="min-h-40" value={form.extractedText} onChange={(value) => update("extractedText", value)} placeholder="Paste resume text manually if you do not upload a file or extraction fails." /></Field>
             <ListField label="Tags" value={lists.tags} onChange={(value) => setLists((current) => ({ ...current, tags: value }))} placeholder="backend, TypeScript, APIs" />
             <ListField label="Strengths" value={lists.strengths} onChange={(value) => setLists((current) => ({ ...current, strengths: value }))} placeholder="API design, reliability" />
             <ListField label="Weaknesses" value={lists.weaknesses} onChange={(value) => setLists((current) => ({ ...current, weaknesses: value }))} placeholder="few metrics, long summary" />
@@ -191,4 +219,27 @@ function Textarea({ value, onChange, placeholder, minHeight = "min-h-24" }: { va
 
 function Select({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return <select className="h-10 w-full rounded-xl border border-slate-700/70 bg-slate-950/80 px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/60" value={value} onChange={(event) => onChange(event.target.value)}><option>Active</option><option>Draft</option></select>;
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function submitButtonLabel(resume: ResumeVersion | null, status: ResumeSubmitStatus) {
+  if (status === "creating") return "Creating resume...";
+  if (status === "saving") return "Saving changes...";
+  if (status === "uploading") return "Uploading file...";
+  if (status === "extracting") return "Extracting text...";
+  if (status === "ready") return "Resume ready for analysis";
+  return resume ? "Save changes" : "Create resume";
+}
+
+function submitStatusMessage(status: ResumeSubmitStatus) {
+  if (status === "creating") return "Creating resume...";
+  if (status === "saving") return "Saving resume...";
+  if (status === "uploading") return "Uploading file...";
+  if (status === "extracting") return "Extracting text...";
+  if (status === "ready") return "Resume ready for analysis.";
+  return "";
 }

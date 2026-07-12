@@ -12,6 +12,17 @@ from app.models.base import Base
 from app.models.resume import ResumeVersion
 from app.models.user import User
 from app.services.resumes import ResumeService
+from app.main import app
+
+
+def test_resume_upload_route_is_registered() -> None:
+    routes = {
+        getattr(route, "path", ""): getattr(route, "methods", set())
+        for route in app.routes
+    }
+
+    assert "/api/v1/resumes/{resume_id}/upload" in routes
+    assert "POST" in routes["/api/v1/resumes/{resume_id}/upload"]
 
 
 def test_upload_txt_resume_extracts_text(client: TestClient) -> None:
@@ -132,7 +143,7 @@ def test_upload_scanned_pdf_returns_clear_error(client: TestClient) -> None:
     )
 
     assert response.status_code == 422
-    assert "OCR support is coming soon" in response.json()["error"]["message"]
+    assert "OCR support is not available yet" in response.json()["error"]["message"]
 
 
 def test_user_cannot_upload_to_another_users_resume() -> None:

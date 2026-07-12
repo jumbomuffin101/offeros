@@ -192,6 +192,8 @@ function apiResponseError(status: number, payload: unknown, request: { method: s
     const diagnostic = DEV_API_DIAGNOSTICS ? ` (${request.method} ${request.url})` : "";
     return new DataError("NOT_FOUND", `${serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage}${diagnostic}`);
   }
+  if (status === 413) return new DataError("VALIDATION_ERROR", serverMessage || "The uploaded file is too large.");
+  if (status === 415) return new DataError("VALIDATION_ERROR", serverMessage || "This file type is not supported.");
   if (status === 422) return new DataError("VALIDATION_ERROR", serverMessage || "Some submitted fields are invalid.");
   if (status >= 500) return new DataError("API_ERROR", serverMessage || "The workspace encountered a server error.");
   return new DataError("API_ERROR", serverMessage || "The OfferOS API could not complete this request.");

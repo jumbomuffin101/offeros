@@ -157,7 +157,7 @@ export function ResumeAnalysisPanel({
           />
           <span className="mt-2 flex items-center gap-2 text-xs text-slate-500">
             {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <FileUp className="size-3.5" />}
-            {uploading ? "Uploading and extracting text..." : "PDF, DOCX, or TXT up to 5 MB. OCR for scanned PDFs is coming soon."}
+            {uploading ? "Uploading and extracting text..." : "PDF, DOCX, or TXT up to 5 MB. OCR for scanned PDFs is not available yet."}
           </span>
         </label>
         <label>

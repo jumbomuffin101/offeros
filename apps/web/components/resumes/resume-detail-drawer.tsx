@@ -32,7 +32,8 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
           <p className="text-sm leading-6 text-slate-400">{resume.description || "No description recorded."}</p>
           <div><div className="mb-2 flex justify-between text-sm"><span className="text-slate-400">Keyword match</span><strong className="text-white">{resume.keywordMatchScore}%</strong></div><Progress className="h-2.5" value={resume.keywordMatchScore} tone={resume.keywordMatchScore >= 85 ? "green" : "cyan"} /></div>
-          <div className="grid grid-cols-2 gap-3"><Metric label="Last updated" value={formatResumeDate(resume.updatedAt)} /><Metric label="Applications used" value={String(resume.applicationsUsed)} /><Metric label="File name" value={resume.fileName || "Not attached"} /><Metric label="Created" value={formatResumeDate(resume.createdAt)} /></div>
+          <div className="grid grid-cols-2 gap-3"><Metric label="Last updated" value={formatResumeDate(resume.updatedAt)} /><Metric label="Applications used" value={String(resume.applicationsUsed)} /><Metric label="File name" value={resume.fileName || "Not attached"} /><Metric label="Original file" value={resume.originalFileName || resume.fileName || "Not attached"} /><Metric label="Extraction status" value={formatExtractionStatus(resume)} /><Metric label="Extracted text" value={resume.extractionCharacterCount ? `${resume.extractionCharacterCount.toLocaleString()} characters` : resume.extractedText ? `${resume.extractedText.length.toLocaleString()} characters` : "No text yet"} /><Metric label="Created" value={formatResumeDate(resume.createdAt)} /></div>
+          {resume.textExtractionError ? <div className="rounded-xl border border-rose-300/20 bg-rose-300/[0.08] p-4 text-sm leading-6 text-rose-100">{resume.textExtractionError}</div> : null}
           <List label="Tags" items={resume.tags} /><List label="Strengths" items={resume.strengths} tone="green" /><List label="Weaknesses" items={resume.weaknesses} tone="amber" /><List label="Missing keywords" items={resume.missingKeywords} tone="red" />
           <ResumeAnalysisPanel key={resume.id} resume={resume} onAnalyze={onAnalyze} onDeleteAnalysis={onDeleteAnalysis} onListAnalyses={onListAnalyses} onUpdateResumeText={onUpdateResumeText} onUploadResumeFile={onUploadResumeFile} />
           <TextBlock label="Suggested next improvement" value={resume.suggestedImprovement} /><TextBlock label="Notes" value={resume.notes} />
@@ -52,3 +53,10 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 break-words text-sm font-medium text-slate-100">{value}</div></div>; }
 function List({ label, items, tone = "slate" }: { label: string; items: string[]; tone?: "slate" | "green" | "amber" | "red" }) { return <div><h3 className="mb-2 text-xs font-medium uppercase text-slate-500">{label}</h3><div className="flex flex-wrap gap-2">{items.length ? items.map((item) => <Badge key={item} tone={tone}>{item}</Badge>) : <span className="text-sm text-slate-600">None recorded</span>}</div></div>; }
 function TextBlock({ label, value }: { label: string; value: string }) { return <div><h3 className="mb-2 text-xs font-medium uppercase text-slate-500">{label}</h3><p className="rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm leading-6 text-slate-400">{value || "None recorded"}</p></div>; }
+
+function formatExtractionStatus(resume: ResumeVersion) {
+  if (resume.textExtractionStatus === "parsed") return "Ready for analysis";
+  if (resume.textExtractionStatus === "manual") return "Manual text";
+  if (resume.textExtractionStatus === "failed") return "Extraction failed";
+  return "Needs resume text";
+}
