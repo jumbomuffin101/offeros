@@ -21,6 +21,19 @@ def test_summary_routes_are_registered_in_openapi(client: TestClient) -> None:
     assert "get" in paths["/api/v1/analytics/summary"]
 
 
+def test_summary_routes_are_registered_in_route_table() -> None:
+    routes = {
+        path: getattr(route, "methods", set())
+        for route in app.routes
+        if (path := getattr(route, "path", None)) is not None
+    }
+
+    assert "/api/v1/dashboard/summary" in routes
+    assert "GET" in routes["/api/v1/dashboard/summary"]
+    assert "/api/v1/analytics/summary" in routes
+    assert "GET" in routes["/api/v1/analytics/summary"]
+
+
 def test_dashboard_summary_empty_workspace_returns_valid_summary(client: TestClient) -> None:
     response = client.get("/api/v1/dashboard/summary")
 

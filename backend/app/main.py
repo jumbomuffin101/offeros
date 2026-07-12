@@ -25,22 +25,8 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
 )
 
-
-def _assert_required_summary_routes(api_prefix: str) -> None:
-    prefix = api_prefix.rstrip("/")
-    required_paths = {
-        f"{prefix}/dashboard/summary",
-        f"{prefix}/analytics/summary",
-    }
-    registered_paths = {route.path for route in app.routes}
-    missing_paths = sorted(required_paths - registered_paths)
-    if missing_paths:
-        raise RuntimeError(f"Required summary routes are not registered: {', '.join(missing_paths)}")
-
-
 register_error_handlers(app)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-_assert_required_summary_routes(settings.api_v1_prefix)
 
 
 @app.get("/", tags=["root"])
