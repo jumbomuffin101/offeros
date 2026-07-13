@@ -44,6 +44,12 @@ function normalizeResume(value: unknown): ResumeVersion | null {
     textExtractionError: stringValue(item.textExtractionError),
     extractedAt: stringValue(item.extractedAt),
     extractionCharacterCount: numberValue(item.extractionCharacterCount, stringValue(item.extractedText).length),
+    lastAnalyzedAt: stringValue(item.lastAnalyzedAt),
+    latestAnalysisId: stringValue(item.latestAnalysisId),
+    latestOverallScore: optionalScore(item.latestOverallScore),
+    latestAnalysisTargetRole: stringValue(item.latestAnalysisTargetRole),
+    latestAnalysisCompany: stringValue(item.latestAnalysisCompany),
+    analysisStatus: stringValue(item.analysisStatus),
     createdAt: stringValue(item.createdAt) || updatedAt, updatedAt,
   };
 }
@@ -52,6 +58,7 @@ function browserStorage() { if (typeof window === "undefined") throw new Error("
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
 function stringValue(value: unknown) { return typeof value === "string" ? value : ""; }
 function numberValue(value: unknown, fallback: number) { return typeof value === "number" && Number.isFinite(value) ? value : fallback; }
+function optionalScore(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : undefined; }
 function stringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function dateFromLegacy(value: unknown) { if (typeof value !== "string" || !value) return ""; const parsed = new Date(`${value}, ${new Date().getFullYear()}`); return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString(); }
 function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"] {

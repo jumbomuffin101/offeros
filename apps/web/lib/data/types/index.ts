@@ -26,6 +26,10 @@ export type ResumeAnalysisInput = {
   jobDescription: string;
   resumeText?: string;
 };
+export type ResumeAnalyzeResult = {
+  analysis: ResumeAnalysis;
+  resume: ResumeVersion;
+};
 export type ResumeUploadResult = {
   resume: ResumeVersion;
   extraction: {

@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import Field, field_validator
 
 from app.schemas.common import NonEmptyStr, ORMModel
+from app.schemas.resume import ResumeResponse
 
 
 class WeakBullet(ORMModel):
@@ -130,6 +131,11 @@ class ResumeAnalysisResponse(ORMModel):
                     "evidence": item.get("evidence") if isinstance(item.get("evidence"), str) else None,
                 })
         return normalized
+
+
+class ResumeAnalyzeResponse(ORMModel):
+    analysis: ResumeAnalysisResponse
+    resume: ResumeResponse
 
 
 class ResumeAnalysisResult(ORMModel):

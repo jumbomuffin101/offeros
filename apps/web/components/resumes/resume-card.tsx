@@ -14,6 +14,7 @@ export function ResumeCard({
   onOpen: () => void;
   onDuplicate: () => void;
 }) {
+  const analyzed = Boolean(resume.latestAnalysisId || resume.lastAnalyzedAt || resume.latestOverallScore != null);
   return (
     <article
       className={`premium-hover group relative rounded-2xl border p-5 transition ${
@@ -34,7 +35,7 @@ export function ResumeCard({
         <div className="flex flex-col items-end gap-2">
           <Badge tone={resume.status === "Active" ? "green" : "amber"}>{resume.status}</Badge>
           <Badge tone={resume.textExtractionStatus === "failed" ? "red" : resume.extractedText ? "green" : "amber"}>
-            {resume.textExtractionStatus === "failed" ? "Extraction failed" : resume.extractedText ? "Ready for analysis" : "Needs resume text"}
+            {analyzed ? "Analyzed" : resume.textExtractionStatus === "failed" ? "Extraction failed" : resume.extractedText ? "Ready for analysis" : "Needs resume text"}
           </Badge>
         </div>
       </div>
@@ -50,18 +51,28 @@ export function ResumeCard({
 
       <div className="pointer-events-none relative z-10 mt-5 grid grid-cols-2 gap-3 rounded-xl border border-white/10 bg-slate-950/30 p-3 text-sm">
         <div>
-          <div className="text-xs text-slate-500">Last updated</div>
-          <div className="mt-1 font-medium text-slate-100">{formatResumeDate(resume.updatedAt)}</div>
+          <div className="text-xs text-slate-500">{analyzed ? "Latest fit" : "Analysis"}</div>
+          <div className="mt-1 font-medium text-slate-100">{analyzed ? `${resume.latestOverallScore ?? resume.keywordMatchScore}%` : "Not analyzed yet"}</div>
         </div>
         <div>
           <div className="text-xs text-slate-500">Applications</div>
           <div className="mt-1 font-medium text-slate-100">{resume.applicationsUsed}</div>
         </div>
+        <div>
+          <div className="text-xs text-slate-500">Last analyzed</div>
+          <div className="mt-1 font-medium text-slate-100">{resume.lastAnalyzedAt ? formatResumeDate(resume.lastAnalyzedAt) : "Never"}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-500">Missing keywords</div>
+          <div className="mt-1 font-medium text-slate-100">{resume.missingKeywords.length}</div>
+        </div>
       </div>
+
+      {analyzed ? <p className="pointer-events-none relative z-10 mt-3 truncate text-xs text-slate-500">{resume.latestAnalysisTargetRole || resume.targetRole}{resume.latestAnalysisCompany ? ` at ${resume.latestAnalysisCompany}` : ""}</p> : null}
 
       <div className="pointer-events-none relative z-10 mt-5">
         <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-slate-400">Keyword match</span>
+          <span className="text-slate-400">Keyword coverage</span>
           <span className="font-semibold text-white">{resume.keywordMatchScore}%</span>
         </div>
         <Progress className="h-2.5" value={resume.keywordMatchScore} tone={resume.keywordMatchScore >= 85 ? "green" : "cyan"} />

@@ -11,15 +11,19 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
   const [error, setError] = useState<DataError | null>(null);
   const mounted = useRef(true);
   const requestId = useRef(0);
+  const dataRef = useRef<T | null>(null);
 
   const refresh = useCallback(async () => {
     const currentRequest = ++requestId.current;
     setError(null);
     try {
       const next = await loader();
-      if (mounted.current && currentRequest === requestId.current) setData(next);
+      if (mounted.current && currentRequest === requestId.current) {
+        dataRef.current = next;
+        setData(next);
+      }
     } catch (cause) {
-      if (mounted.current && currentRequest === requestId.current) setError(toDataError(cause, "Unable to load workspace data."));
+      if (mounted.current && currentRequest === requestId.current && dataRef.current === null) setError(toDataError(cause, "Unable to load workspace data."));
     } finally {
       if (mounted.current && currentRequest === requestId.current) setLoading(false);
     }
@@ -48,8 +52,15 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     setError(null);
     try {
       const result = await operation();
-      const next = await loader();
-      if (mounted.current && currentRequest === requestId.current) setData(next);
+      try {
+        const next = await loader();
+        if (mounted.current && currentRequest === requestId.current) {
+          dataRef.current = next;
+          setData(next);
+        }
+      } catch {
+        // Preserve the last successful UI state when a post-mutation background refresh times out.
+      }
       announceDataChange();
       return result;
     } catch (cause) {
@@ -59,5 +70,13 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     }
   }, [loader]);
 
-  return { data, loading, error, refresh, mutate };
+  const patchData = useCallback((updater: (current: T | null) => T | null) => {
+    setData((current) => {
+      const next = updater(current);
+      dataRef.current = next;
+      return next;
+    });
+  }, []);
+
+  return { data, loading, error, refresh, mutate, patchData };
 }

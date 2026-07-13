@@ -61,6 +61,12 @@ export type ApiResume = {
   text_extraction_error: string;
   extracted_at: string | null;
   extraction_character_count: number;
+  last_analyzed_at: string | null;
+  latest_analysis_id: string | null;
+  latest_overall_score: number | null;
+  latest_analysis_target_role: string;
+  latest_analysis_company: string;
+  analysis_status: string;
   created_at: string;
   updated_at: string;
 };
@@ -107,6 +113,11 @@ export type ApiResumeAnalysis = {
   error_message: string;
   created_at: string;
   updated_at: string;
+};
+
+export type ApiResumeAnalyzeResponse = {
+  analysis: ApiResumeAnalysis;
+  resume: ApiResume;
 };
 
 export type ApiPrepStatus = "not_started" | "in_progress" | "completed" | "skipped";

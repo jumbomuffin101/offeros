@@ -54,6 +54,12 @@ export type ResumeVersion = {
   textExtractionError: string;
   extractedAt?: string;
   extractionCharacterCount?: number;
+  lastAnalyzedAt?: string;
+  latestAnalysisId?: string;
+  latestOverallScore?: number;
+  latestAnalysisTargetRole?: string;
+  latestAnalysisCompany?: string;
+  analysisStatus?: string;
   createdAt: string;
   updatedAt: string;
 };

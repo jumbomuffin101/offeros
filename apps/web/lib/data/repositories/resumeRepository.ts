@@ -65,7 +65,8 @@ export const resumeRepository: ResumeRepository = {
     }
     const analysis = localMockAnalysis(resumeId, resumeText, payload);
     writeResumeAnalyses([analysis, ...readResumeAnalyses()]);
-    return analysis;
+    const updated = await this.update(resumeId, resumeSummaryFromAnalysis(analysis));
+    return { analysis, resume: updated };
   },
   async listResumeAnalyses(resumeId) {
     return readResumeAnalyses().filter((analysis) => analysis.resumeVersionId === resumeId);
@@ -149,3 +150,19 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
 }
 
 function clamp(value: number) { return Math.max(0, Math.min(100, value)); }
+
+function resumeSummaryFromAnalysis(analysis: ResumeAnalysis): Partial<ResumeVersion> {
+  return {
+    keywordMatchScore: analysis.keywordScore,
+    strengths: analysis.strengths,
+    weaknesses: analysis.risks,
+    missingKeywords: analysis.missingKeywords,
+    suggestedImprovement: analysis.recommendations.slice(0, 5).join("\n") || analysis.summary,
+    lastAnalyzedAt: analysis.createdAt,
+    latestAnalysisId: analysis.id,
+    latestOverallScore: analysis.overallScore,
+    latestAnalysisTargetRole: analysis.targetRole,
+    latestAnalysisCompany: analysis.companyName,
+    analysisStatus: analysis.status,
+  };
+}

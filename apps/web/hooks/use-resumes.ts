@@ -23,10 +23,22 @@ export function useResumes() {
     await resource.refresh();
     return result;
   }, [resource]);
-  const analyzeResume = useCallback((resumeId: string, payload: ResumeAnalysisInput) => resource.mutate(() => resumeRepository.analyzeResume(resumeId, payload)), [resource]);
+  const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
+    const result = await resumeRepository.analyzeResume(resumeId, payload);
+    resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? result.resume : resume) ?? current);
+    void resource.refresh();
+    return result;
+  }, [resource]);
   const listResumeAnalyses = useCallback((resumeId: string) => resumeRepository.listResumeAnalyses(resumeId), []);
   const getResumeAnalysis = useCallback((id: string) => resumeRepository.getResumeAnalysis(id), []);
-  const deleteResumeAnalysis = useCallback((id: string) => resource.mutate(() => resumeRepository.deleteResumeAnalysis(id)), [resource]);
+  const deleteResumeAnalysis = useCallback(async (id: string, resumeId?: string) => {
+    await resumeRepository.deleteResumeAnalysis(id);
+    if (resumeId) {
+      const updated = await resumeRepository.get(resumeId);
+      if (updated) resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? updated : resume) ?? current);
+    }
+    void resource.refresh();
+  }, [resource]);
   return {
     resumes: resource.data ?? [], loading: resource.loading, error: resource.error, refresh: resource.refresh,
     create, update, delete: remove, duplicate, toggleStatus, reset, updateResumeText,

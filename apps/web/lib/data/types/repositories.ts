@@ -8,6 +8,7 @@ import type {
   PrepUpdateInput,
   ResumeInput,
   ResumeAnalysisInput,
+  ResumeAnalyzeResult,
   ResumeUploadResult,
 } from "@/lib/data/types";
 
@@ -31,7 +32,7 @@ export interface ResumeRepository {
   reset(): Promise<ResumeVersion[]>;
   updateResumeText(resumeId: string, text: string): Promise<ResumeVersion>;
   uploadResumeFile?(resumeId: string, file: File): Promise<ResumeUploadResult>;
-  analyzeResume(resumeId: string, payload: ResumeAnalysisInput): Promise<ResumeAnalysis>;
+  analyzeResume(resumeId: string, payload: ResumeAnalysisInput): Promise<ResumeAnalyzeResult>;
   listResumeAnalyses(resumeId: string): Promise<ResumeAnalysis[]>;
   getResumeAnalysis(id: string): Promise<ResumeAnalysis | null>;
   deleteResumeAnalysis(id: string): Promise<void>;

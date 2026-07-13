@@ -1,5 +1,5 @@
 import type { ResumeRepository } from "@/lib/data/types/repositories";
-import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
+import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeAnalyzeResponse, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
@@ -56,8 +56,11 @@ export const apiResumeRepository: ResumeRepository = {
     };
   },
   async analyzeResume(resumeId, payload) {
-    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalysis>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));
-    return fromApiResumeAnalysis(response.data);
+    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalyzeResponse>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));
+    return {
+      analysis: fromApiResumeAnalysis(response.data.analysis),
+      resume: fromApiResume(response.data.resume),
+    };
   },
   async listResumeAnalyses(resumeId) {
     const response = await apiClient.get<ApiDataResponse<ApiResumeAnalysis[]>>(`/resumes/${resumeId}/analyses`);

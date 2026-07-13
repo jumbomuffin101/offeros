@@ -27,6 +27,12 @@ class ResumeCreate(ORMModel):
     text_extraction_error: str = Field(default="", max_length=2_000)
     extracted_at: datetime | None = None
     extraction_character_count: int = Field(default=0, ge=0)
+    last_analyzed_at: datetime | None = None
+    latest_analysis_id: UUID | None = None
+    latest_overall_score: int | None = Field(default=None, ge=0, le=100)
+    latest_analysis_target_role: str = Field(default="", max_length=200)
+    latest_analysis_company: str = Field(default="", max_length=200)
+    analysis_status: str = Field(default="", max_length=40)
 
 
 class ResumeUpdate(ORMModel):
@@ -48,6 +54,12 @@ class ResumeUpdate(ORMModel):
     text_extraction_error: str | None = Field(default=None, max_length=2_000)
     extracted_at: datetime | None = None
     extraction_character_count: int | None = Field(default=None, ge=0)
+    last_analyzed_at: datetime | None = None
+    latest_analysis_id: UUID | None = None
+    latest_overall_score: int | None = Field(default=None, ge=0, le=100)
+    latest_analysis_target_role: str | None = Field(default=None, max_length=200)
+    latest_analysis_company: str | None = Field(default=None, max_length=200)
+    analysis_status: str | None = Field(default=None, max_length=40)
 
 
 class ResumeResponse(ORMModel):
@@ -71,6 +83,12 @@ class ResumeResponse(ORMModel):
     text_extraction_error: str
     extracted_at: datetime | None = None
     extraction_character_count: int = 0
+    last_analyzed_at: datetime | None = None
+    latest_analysis_id: UUID | None = None
+    latest_overall_score: int | None = None
+    latest_analysis_target_role: str = ""
+    latest_analysis_company: str = ""
+    analysis_status: str = ""
     created_at: datetime
     updated_at: datetime
 
@@ -82,6 +100,9 @@ class ResumeResponse(ORMModel):
         "original_file_name",
         "extracted_text",
         "text_extraction_error",
+        "latest_analysis_target_role",
+        "latest_analysis_company",
+        "analysis_status",
         mode="before",
     )
     @classmethod
@@ -113,6 +134,16 @@ class ResumeResponse(ORMModel):
             return max(0, min(100, int(value)))
         except (TypeError, ValueError):
             return 0
+
+    @field_validator("latest_overall_score", mode="before")
+    @classmethod
+    def _nullable_score_default(cls, value: Any) -> int | None:
+        if value is None:
+            return None
+        try:
+            return max(0, min(100, int(value)))
+        except (TypeError, ValueError):
+            return None
 
     @field_validator("status", mode="before")
     @classmethod

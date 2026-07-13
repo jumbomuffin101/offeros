@@ -95,6 +95,12 @@ export function fromApiResume(value: ApiResume): ResumeVersion {
     textExtractionStatus: resumeTextStatus(value.text_extraction_status), textExtractionError: value.text_extraction_error ?? "",
     extractedAt: value.extracted_at ?? "",
     extractionCharacterCount: Number.isFinite(Number(value.extraction_character_count)) ? Number(value.extraction_character_count) : 0,
+    lastAnalyzedAt: value.last_analyzed_at ?? "",
+    latestAnalysisId: value.latest_analysis_id ?? "",
+    latestOverallScore: value.latest_overall_score == null ? undefined : safeScore(value.latest_overall_score),
+    latestAnalysisTargetRole: value.latest_analysis_target_role ?? "",
+    latestAnalysisCompany: value.latest_analysis_company ?? "",
+    analysisStatus: value.analysis_status ?? "",
     createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
@@ -109,6 +115,9 @@ export function toApiResume(value: Partial<ResumeInput>) {
     extracted_text: value.extractedText, text_extraction_status: value.textExtractionStatus,
     text_extraction_error: value.textExtractionError,
     extracted_at: value.extractedAt, extraction_character_count: value.extractionCharacterCount,
+    last_analyzed_at: value.lastAnalyzedAt, latest_analysis_id: value.latestAnalysisId,
+    latest_overall_score: value.latestOverallScore, latest_analysis_target_role: value.latestAnalysisTargetRole,
+    latest_analysis_company: value.latestAnalysisCompany, analysis_status: value.analysisStatus,
   });
 }
 

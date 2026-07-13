@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BrainCircuit, FileUp, History, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { BrainCircuit, Copy, ExternalLink, FileUp, History, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
-import type { ResumeAnalysisInput } from "@/lib/data/types";
+import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,8 @@ export function ResumeAnalysisPanel({
   onUploadResumeFile,
 }: {
   resume: ResumeVersion;
-  onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalysis>;
-  onDeleteAnalysis: (analysisId: string) => Promise<void>;
+  onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalyzeResult>;
+  onDeleteAnalysis: (analysisId: string, resumeId?: string) => Promise<void>;
   onListAnalyses: (resumeId: string) => Promise<ResumeAnalysis[]>;
   onUpdateResumeText: (resumeId: string, text: string) => Promise<ResumeVersion>;
   onUploadResumeFile?: (resumeId: string, file: File) => Promise<{ resume: ResumeVersion; extraction: { text: string; characterCount: number; warnings: string[] } }>;
@@ -39,6 +39,7 @@ export function ResumeAnalysisPanel({
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [fullAnalysis, setFullAnalysis] = useState<ResumeAnalysis | null>(null);
 
   useEffect(() => {
     onListAnalyses(resume.id)
@@ -86,14 +87,16 @@ export function ResumeAnalysisPanel({
     setError("");
     setMessage("");
     try {
-      const analysis = await onAnalyze(resume.id, {
+      const result = await onAnalyze(resume.id, {
         targetRole: targetRole.trim(),
         companyName: companyName.trim(),
         jobDescription: jobDescription.trim(),
         resumeText: resumeText.trim(),
       });
+      const analysis = result.analysis;
       setAnalyses((current) => [analysis, ...current.filter((item) => item.id !== analysis.id)]);
       setSelectedId(analysis.id);
+      setFullAnalysis(analysis);
       setMessage("Analysis saved to history.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
@@ -123,9 +126,10 @@ export function ResumeAnalysisPanel({
     setError("");
     setMessage("");
     try {
-      await onDeleteAnalysis(analysisId);
+      await onDeleteAnalysis(analysisId, resume.id);
       setAnalyses((current) => current.filter((analysis) => analysis.id !== analysisId));
       if (selectedId === analysisId) setSelectedId("");
+      if (fullAnalysis?.id === analysisId) setFullAnalysis(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to delete this analysis.");
     }
@@ -193,7 +197,7 @@ export function ResumeAnalysisPanel({
         </Button>
       </div>
 
-      {selected ? <AnalysisResult analysis={selected} /> : (
+      {selected ? <CompactAnalysisSummary analysis={selected} onView={() => setFullAnalysis(selected)} /> : (
         <div className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4 text-sm leading-6 text-slate-500">
           {historyLoading ? "Loading analysis history..." : "Run an analysis to see scorecards, keyword gaps, and suggested bullet rewrites here."}
         </div>
@@ -206,9 +210,12 @@ export function ResumeAnalysisPanel({
             {analyses.map((analysis) => (
               <div className="flex items-center gap-2 rounded-lg border border-slate-700/35 bg-slate-900/20 p-2" key={analysis.id}>
                 <button className="min-w-0 flex-1 text-left" onClick={() => setSelectedId(analysis.id)} type="button">
-                  <div className="truncate text-sm font-medium text-slate-100">{analysis.targetRole}</div>
-                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit - {new Date(analysis.createdAt).toLocaleDateString()}</div>
+                  <div className="truncate text-sm font-medium text-slate-100">{analysis.targetRole}{analysis.companyName ? ` at ${analysis.companyName}` : ""}</div>
+                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit - {analysis.keywordScore}% keywords - {analysis.model} - {new Date(analysis.createdAt).toLocaleDateString()}</div>
                 </button>
+                <Button className="px-2" onClick={() => setFullAnalysis(analysis)} variant="ghost" aria-label="View analysis">
+                  <ExternalLink className="size-4" />
+                </Button>
                 <Button className="px-2" onClick={() => void deleteAnalysis(analysis.id)} variant="ghost" aria-label="Delete analysis">
                   <Trash2 className="size-4" />
                 </Button>
@@ -217,44 +224,94 @@ export function ResumeAnalysisPanel({
           </div>
         </div>
       ) : null}
+      {fullAnalysis ? <AnalysisModal analysis={fullAnalysis} resume={resume} onClose={() => setFullAnalysis(null)} /> : null}
     </section>
+  );
+}
+
+function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis; onView: () => void }) {
+  return (
+    <div className="rounded-xl border border-slate-700/35 bg-slate-950/20 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="text-xs font-medium uppercase text-slate-500">Latest analysis</div>
+          <div className="mt-1 text-lg font-semibold text-white">{analysis.overallScore}% overall fit</div>
+          <div className="mt-1 text-sm text-slate-400">
+            {analysis.targetRole}{analysis.companyName ? ` at ${analysis.companyName}` : ""} - {new Date(analysis.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <Badge tone={analysis.status === "completed" ? "green" : analysis.status === "failed" ? "red" : "amber"}>{analysis.status}</Badge>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Score label="Keyword coverage" value={analysis.keywordScore} />
+        <Score label="Technical depth" value={analysis.technicalDepthScore} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button onClick={onView} variant="primary"><ExternalLink className="size-4" />View full analysis</Button>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisModal({ analysis, resume, onClose }: { analysis: ResumeAnalysis; resume: ResumeVersion; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/78 p-3 backdrop-blur-xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="analysis-title">
+      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-700/45 bg-[#1b1d2b] shadow-2xl shadow-black/35 sm:max-h-[calc(100dvh-3rem)]">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-700/45 px-5 py-4">
+          <div className="min-w-0">
+            <div className="text-xs font-medium uppercase text-slate-500">AI Resume Analysis</div>
+            <h2 className="mt-1 truncate text-xl font-semibold text-white" id="analysis-title">{resume.name}</h2>
+            <p className="mt-1 text-sm text-slate-400">{analysis.targetRole}{analysis.companyName ? ` at ${analysis.companyName}` : ""} - {new Date(analysis.createdAt).toLocaleDateString()}</p>
+            <p className="mt-1 text-xs text-slate-600">{analysis.provider} / {analysis.model}</p>
+          </div>
+          <Button onClick={onClose} variant="ghost" aria-label="Back to Resume Manager"><X className="size-4" />Close</Button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <AnalysisResult analysis={analysis} />
+        </div>
+      </div>
+    </div>
   );
 }
 
 function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
   return (
-    <div className="space-y-4 rounded-xl border border-slate-700/35 bg-slate-950/20 p-4">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Score label="Overall" value={analysis.overallScore} />
         <Score label="Keywords" value={analysis.keywordScore} />
         <Score label="Impact" value={analysis.impactScore} />
         <Score label="Clarity" value={analysis.clarityScore} />
-        <Score label="Technical depth" value={analysis.technicalDepthScore} className="col-span-2" />
-        <Score label="Experience match" value={analysis.experienceMatchScore} className="col-span-2" />
+        <Score label="Technical depth" value={analysis.technicalDepthScore} />
+        <Score label="Experience match" value={analysis.experienceMatchScore} />
       </div>
-      <SkillMatchGroup label="Required skills" items={analysis.requiredSkillsMatch} />
-      <SkillMatchGroup label="Preferred skills" items={analysis.preferredSkillsMatch} />
-      <ChipGroup label="Strong keywords" items={analysis.strongKeywords} tone="green" />
-      <ChipGroup label="Missing keywords" items={analysis.missingKeywords} tone="amber" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SkillMatchGroup label="Required skills" items={analysis.requiredSkillsMatch} />
+        <SkillMatchGroup label="Preferred skills" items={analysis.preferredSkillsMatch} />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChipGroup label="Strong keywords" items={analysis.strongKeywords} tone="green" />
+        <ChipGroup label="Missing keywords" items={analysis.missingKeywords} tone="amber" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ListGroup label="Strengths" items={analysis.strengths} />
+        <ListGroup label="Screening risks" items={analysis.risks} />
+      </div>
       <WeakBulletGroup items={analysis.weakBullets} />
       {analysis.suggestedBulletRewrites.length ? (
         <div>
           <h4 className="mb-2 text-xs font-medium uppercase text-slate-500">Suggested rewrites</h4>
           <div className="space-y-2">
             {analysis.suggestedBulletRewrites.map((rewrite) => (
-              <div className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-3" key={`${rewrite.original}-${rewrite.rewrite}`}>
-                <p className="text-xs leading-5 text-slate-500">{rewrite.original}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-200">{rewrite.rewrite}</p>
-                <p className="mt-2 text-xs leading-5 text-indigo-200/75">{rewrite.whyBetter}</p>
-                <p className="mt-1 text-xs text-emerald-200/70">{rewrite.groundedInResume === false ? "Needs fact check before use" : "Grounded in resume content"}</p>
+              <div className="grid gap-3 rounded-lg border border-slate-700/35 bg-slate-900/20 p-3 lg:grid-cols-2" key={`${rewrite.original}-${rewrite.rewrite}`}>
+                <div><div className="text-xs font-medium uppercase text-slate-500">Original</div><p className="mt-2 text-sm leading-6 text-slate-300">{rewrite.original}</p></div>
+                <div><div className="text-xs font-medium uppercase text-slate-500">Suggested rewrite</div><p className="mt-2 text-sm leading-6 text-slate-100">{rewrite.rewrite}</p><p className="mt-2 text-xs leading-5 text-indigo-200/75">{rewrite.whyBetter}</p><p className="mt-1 text-xs text-emerald-200/70">{rewrite.groundedInResume === false ? "Needs fact check before use" : "Grounded in resume content"}</p><Button className="mt-3" onClick={() => void navigator.clipboard?.writeText(rewrite.rewrite)} variant="secondary"><Copy className="size-4" />Copy rewrite</Button></div>
               </div>
             ))}
           </div>
         </div>
       ) : null}
-      <ListGroup label="Strengths" items={analysis.strengths} />
-      <ListGroup label="Risks" items={analysis.risks} />
-      <ListGroup label="Recommendations" items={analysis.recommendations} />
+      <ListGroup label="Prioritized recommendations" items={analysis.recommendations} />
       {analysis.recruiterSummary ? <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.05] p-3 text-sm leading-6 text-slate-300">{analysis.recruiterSummary}</div> : null}
       <div className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.05] p-3 text-sm leading-6 text-slate-300">{analysis.summary}</div>
       <div className="text-xs text-slate-600">Provider: {analysis.provider} - Model: {analysis.model}</div>

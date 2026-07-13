@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.common import DataResponse
-from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeAnalysisResponse
+from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeAnalysisResponse, ResumeAnalyzeResponse
 from app.core.config import Settings, get_settings
 from app.schemas.resume import ResumeCreate, ResumeExtractionSummary, ResumeResponse, ResumeUpdate, ResumeUploadResponse
 from app.services.resume_analysis import ResumeAnalysisService
@@ -100,15 +100,21 @@ async def upload_resume_file(
     )
 
 
-@router.post("/{resume_id}/analyze", response_model=DataResponse[ResumeAnalysisResponse])
+@router.post("/{resume_id}/analyze", response_model=DataResponse[ResumeAnalyzeResponse])
 def analyze_resume(
     resume_id: UUID,
     payload: ResumeAnalysisCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-) -> DataResponse[ResumeAnalysisResponse]:
-    return DataResponse(data=ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload))
+) -> DataResponse[ResumeAnalyzeResponse]:
+    analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
+    return DataResponse(
+        data=ResumeAnalyzeResponse(
+            analysis=ResumeAnalysisResponse.model_validate(analysis),
+            resume=ResumeResponse.model_validate(resume),
+        )
+    )
 
 
 @router.get("/{resume_id}/analyses", response_model=DataResponse[list[ResumeAnalysisResponse]])

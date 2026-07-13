@@ -50,7 +50,9 @@ def test_analyze_resume_mock_schema_is_valid(client: TestClient) -> None:
     history_response = client.get(f"/api/v1/resumes/{resume_id}/analyses")
 
     assert response.status_code == 200
-    analysis = response.json()["data"]
+    data = response.json()["data"]
+    analysis = data["analysis"]
+    resume = data["resume"]
     assert analysis["provider"] == "mock"
     assert 0 <= analysis["overall_score"] <= 100
     assert isinstance(analysis["missing_keywords"], list)
@@ -61,6 +63,12 @@ def test_analyze_resume_mock_schema_is_valid(client: TestClient) -> None:
     assert analysis["company_name"] == "Acme"
     assert isinstance(analysis["required_skills_match"], list)
     assert "experience_match_score" in analysis
+    assert resume["keyword_match_score"] == analysis["keyword_score"]
+    assert resume["latest_overall_score"] == analysis["overall_score"]
+    assert resume["latest_analysis_id"] == analysis["id"]
+    assert resume["latest_analysis_target_role"] == "Backend Engineer"
+    assert resume["latest_analysis_company"] == "Acme"
+    assert resume["analysis_status"] == "completed"
     if analysis["suggested_bullet_rewrites"]:
         assert "why_better" in analysis["suggested_bullet_rewrites"][0]
     assert history_response.status_code == 200
@@ -100,7 +108,7 @@ def test_user_cannot_access_another_users_analysis() -> None:
                 session,
                 Settings(app_env="test", auth_required=False, ai_mock_enabled=True),
             )
-            analysis = service.analyze(
+            analysis, _resume = service.analyze(
                 owner.id,
                 resume.id,
                 ResumeAnalysisCreate(
@@ -116,3 +124,52 @@ def test_user_cannot_access_another_users_analysis() -> None:
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_deleting_latest_analysis_recalculates_resume_summary(client: TestClient) -> None:
+    resume = client.post(
+        "/api/v1/resumes",
+        json={
+            "name": "Backend Resume",
+            "target_role": "Backend Engineer",
+            "extracted_text": "- Built FastAPI services with PostgreSQL and Docker\n- Reduced API latency by 35%",
+        },
+    ).json()["data"]
+
+    first = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Backend Engineer", "company_name": "Acme", "job_description": "Python FastAPI backend engineer role with APIs, PostgreSQL, testing, Docker, and ownership of reliable production services."},
+    ).json()["data"]["analysis"]
+    second = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Platform Engineer", "company_name": "Beta", "job_description": "Platform engineering role requiring Python, Docker, PostgreSQL, CI testing, backend APIs, and production reliability ownership."},
+    ).json()["data"]["analysis"]
+
+    delete_response = client.delete(f"/api/v1/resume-analyses/{second['id']}")
+    updated = client.get(f"/api/v1/resumes/{resume['id']}").json()["data"]
+
+    assert delete_response.status_code == 204
+    assert updated["latest_analysis_id"] == first["id"]
+    assert updated["latest_analysis_target_role"] == first["target_role"]
+
+
+def test_deleting_only_analysis_clears_resume_summary(client: TestClient) -> None:
+    resume = client.post(
+        "/api/v1/resumes",
+        json={
+            "name": "Backend Resume",
+            "target_role": "Backend Engineer",
+            "extracted_text": "- Built FastAPI services with PostgreSQL and Docker\n- Reduced API latency by 35%",
+        },
+    ).json()["data"]
+    analysis = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Backend Engineer", "company_name": "Acme", "job_description": "Python FastAPI backend engineer role with APIs, PostgreSQL, testing, Docker, and ownership of reliable production services."},
+    ).json()["data"]["analysis"]
+
+    client.delete(f"/api/v1/resume-analyses/{analysis['id']}")
+    updated = client.get(f"/api/v1/resumes/{resume['id']}").json()["data"]
+
+    assert updated["latest_analysis_id"] is None
+    assert updated["latest_overall_score"] is None
+    assert updated["keyword_match_score"] == 0

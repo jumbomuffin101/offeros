@@ -2,7 +2,7 @@ from uuid import UUID
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import (
@@ -47,6 +47,12 @@ class ResumeVersion(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     text_extraction_error: Mapped[str] = mapped_column(Text, default="")
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extraction_character_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_analyzed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    latest_analysis_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    latest_overall_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    latest_analysis_target_role: Mapped[str] = mapped_column(String(200), default="")
+    latest_analysis_company: Mapped[str] = mapped_column(String(200), default="")
+    analysis_status: Mapped[str] = mapped_column(String(40), default="")
 
     user = relationship("User", back_populates="resumes")
     analyses = relationship("ResumeAnalysis", back_populates="resume")

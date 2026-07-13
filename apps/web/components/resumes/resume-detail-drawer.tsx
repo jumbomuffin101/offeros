@@ -1,7 +1,6 @@
 import { Copy, FileText, Pencil, Power, Trash2, X } from "lucide-react";
-import type { ResumeVersion } from "@/lib/types";
-import type { ResumeAnalysis } from "@/lib/types";
-import type { ResumeAnalysisInput } from "@/lib/data/types";
+import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
+import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
 import { formatResumeDate } from "@/lib/resume-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +14,8 @@ export function ResumeDetailDrawer({ resume, onClose, onEdit, onDuplicate, onDel
   onDuplicate: (resume: ResumeVersion) => void;
   onDelete: (resume: ResumeVersion) => void;
   onToggleStatus: (resume: ResumeVersion) => void;
-  onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalysis>;
-  onDeleteAnalysis: (analysisId: string) => Promise<void>;
+  onAnalyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<ResumeAnalyzeResult>;
+  onDeleteAnalysis: (analysisId: string, resumeId?: string) => Promise<void>;
   onListAnalyses: (resumeId: string) => Promise<ResumeAnalysis[]>;
   onUpdateResumeText: (resumeId: string, text: string) => Promise<ResumeVersion>;
   onUploadResumeFile?: (resumeId: string, file: File) => Promise<{ resume: ResumeVersion; extraction: { text: string; characterCount: number; warnings: string[] } }>;

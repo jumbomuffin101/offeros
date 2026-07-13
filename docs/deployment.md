@@ -93,7 +93,7 @@ It also creates the analytics snapshot table used by the backend model set. To m
 alembic upgrade head
 ```
 
-Resume Intelligence migrations add extracted text metadata and job-matching analysis fields. Always run `alembic upgrade head` after deploying backend code that includes resume upload or analysis schema changes.
+Resume Intelligence migrations add extracted text metadata, job-matching analysis fields, and latest-analysis summary fields on `resume_versions`. Always run `alembic upgrade head` after deploying backend code that includes resume upload or analysis schema changes.
 
 For Neon, use a direct connection for migration jobs when available. The pooled connection is appropriate for API runtime traffic.
 
