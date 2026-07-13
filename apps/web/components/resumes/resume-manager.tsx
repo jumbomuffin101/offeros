@@ -68,18 +68,33 @@ export function ResumeManager() {
     try {
       setStatus("creating");
       const created = await resumeData.create(input);
+      devResumeUploadLog("resume create success", { id: created.id });
       setSelectedId(created.id);
       if (uploadFile && dataMode === "api") {
         try {
           setStatus("uploading");
+          devResumeUploadLog("upload request start", { resumeId: created.id, fileName: uploadFile.name, size: uploadFile.size });
+          await waitForPaint();
           setStatus("extracting");
           const uploaded = await resumeData.uploadResumeFile(created.id, uploadFile);
+          devResumeUploadLog("upload response status", { resumeId: created.id, status: 200 });
           setSelectedId(uploaded.resume.id);
           setStatus("ready");
-          setToast(`Resume ready for analysis - extracted ${uploaded.extraction.characterCount.toLocaleString()} characters.`);
+          setToast(`Resume uploaded and text extracted. ${uploaded.extraction.characterCount.toLocaleString()} characters extracted.`);
         } catch (cause) {
+          const message = cause instanceof Error ? cause.message : "Resume saved, but extraction failed. Paste resume text manually.";
+          try {
+            await resumeData.update(created.id, {
+              textExtractionStatus: "failed",
+              textExtractionError: message,
+              fileName: uploadFile.name,
+              originalFileName: uploadFile.name,
+            });
+          } catch {
+            // Keep the created resume visible even if the follow-up failure metadata update cannot be saved.
+          }
           setSelectedId(created.id);
-          setToast(cause instanceof Error ? cause.message : "Resume saved, but extraction failed. Paste resume text manually.");
+          setToast(message);
         }
       } else {
         setToast(uploadFile ? "Resume saved locally. Paste resume text manually for analysis." : "Resume saved");
@@ -96,16 +111,31 @@ export function ResumeManager() {
     try {
       setStatus("saving");
       const updated = await resumeData.update(editingResume.id, input);
+      devResumeUploadLog("resume update success", { id: updated.id });
       setSelectedId(updated.id);
       if (uploadFile && dataMode === "api") {
         try {
           setStatus("uploading");
+          devResumeUploadLog("upload request start", { resumeId: editingResume.id, fileName: uploadFile.name, size: uploadFile.size });
+          await waitForPaint();
           setStatus("extracting");
           const uploaded = await resumeData.uploadResumeFile(editingResume.id, uploadFile);
+          devResumeUploadLog("upload response status", { resumeId: editingResume.id, status: 200 });
           setSelectedId(uploaded.resume.id);
-          setToast(`Resume ready for analysis - extracted ${uploaded.extraction.characterCount.toLocaleString()} characters.`);
+          setToast(`Resume uploaded and text extracted. ${uploaded.extraction.characterCount.toLocaleString()} characters extracted.`);
         } catch (cause) {
-          setToast(cause instanceof Error ? cause.message : "Resume updated, but extraction failed. Paste resume text manually.");
+          const message = cause instanceof Error ? cause.message : "Resume updated, but extraction failed. Paste resume text manually.";
+          try {
+            await resumeData.update(editingResume.id, {
+              textExtractionStatus: "failed",
+              textExtractionError: message,
+              fileName: uploadFile.name,
+              originalFileName: uploadFile.name,
+            });
+          } catch {
+            // The upload error is the actionable failure for the user.
+          }
+          setToast(message);
         }
       } else {
         setToast(uploadFile ? "Resume updated locally. Paste resume text manually for analysis." : "Resume updated");
@@ -156,4 +186,13 @@ export function ResumeManager() {
       <Toast message={toast} />
     </div>
   );
+}
+
+function devResumeUploadLog(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug("[OfferOS Resume Upload]", message, details);
+}
+
+function waitForPaint() {
+  return new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }

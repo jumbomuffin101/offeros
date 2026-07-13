@@ -45,6 +45,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   onSubmit: (payload: ResumeFormPayload, setStatus: (status: ResumeSubmitStatus) => void) => Promise<void>;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const targetRoleInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ResumeFormPayload>(() => resume ? payloadFromResume(resume) : emptyForm);
   const [lists, setLists] = useState(() => ({
     tags: resume?.tags.join(", ") ?? "",
@@ -53,6 +55,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
     missingKeywords: resume?.missingKeywords.join(", ") ?? "",
   }));
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"name" | "targetRole", string>>>({});
   const [fileError, setFileError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -60,6 +63,9 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
 
   function update<K extends keyof ResumeFormPayload>(key: K, value: ResumeFormPayload[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    if (key === "name" || key === "targetRole") {
+      setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    }
   }
 
   function selectFile(file: File | undefined) {
@@ -83,6 +89,11 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
 
     update("fileName", file.name);
     update("originalFileName", file.name);
+    setForm((current) => ({
+      ...current,
+      name: current.name.trim() ? current.name : resumeNameFromFile(file.name),
+    }));
+    setFieldErrors((current) => ({ ...current, name: undefined }));
     setSelectedFile(file);
     setFileError("");
   }
@@ -99,11 +110,21 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
   }
 
   async function submit() {
-    if (!form.name.trim() || !form.targetRole.trim()) {
-      setError("Resume name and target role are required.");
+    const nextErrors: Partial<Record<"name" | "targetRole", string>> = {};
+    if (!form.name.trim()) nextErrors.name = "Resume name is required.";
+    if (!form.targetRole.trim()) nextErrors.targetRole = "Target role is required before creating a resume.";
+    if (nextErrors.name || nextErrors.targetRole) {
+      setFieldErrors(nextErrors);
+      setError("Fix the highlighted fields before creating this resume.");
+      window.requestAnimationFrame(() => {
+        const firstInvalid = nextErrors.name ? nameInputRef.current : targetRoleInputRef.current;
+        firstInvalid?.scrollIntoView({ block: "center", behavior: "smooth" });
+        firstInvalid?.focus({ preventScroll: true });
+      });
       return;
     }
     setError("");
+    setFieldErrors({});
     setSubmitStatus(resume ? "saving" : "creating");
     try {
       await onSubmit({
@@ -156,7 +177,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
                   ? "border-indigo-300/55 bg-indigo-400/10"
                   : "border-indigo-400/25 bg-indigo-400/[0.04] hover:border-indigo-400/40 hover:bg-indigo-400/[0.07]",
               )}
-              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting}
+              onClick={() => { if (!submitting) fileInputRef.current?.click(); }}
               onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDragOver={(event) => event.preventDefault()}
@@ -173,6 +195,7 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               aria-label="Resume file"
               className="sr-only"
+              disabled={submitting}
               onChange={handleFileChange}
               ref={fileInputRef}
               tabIndex={-1}
@@ -181,8 +204,8 @@ function ResumeFormContent({ resume, onClose, onSubmit }: {
             {fileError ? <p className="mt-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.08] px-3 py-2 text-sm text-rose-200" id="resume-file-error" role="alert">{fileError}</p> : null}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Resume name" required><Input data-autofocus value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
-            <Field label="Target role" required><Input value={form.targetRole} onChange={(event) => update("targetRole", event.target.value)} /></Field>
+            <Field error={fieldErrors.name} errorId="resume-name-error" label="Resume name" required><Input aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "resume-name-error" : undefined} data-autofocus ref={nameInputRef} value={form.name} onChange={(event) => update("name", event.target.value)} /></Field>
+            <Field error={fieldErrors.targetRole} errorId="resume-target-role-error" label="Target role" required><Input aria-invalid={Boolean(fieldErrors.targetRole)} aria-describedby={fieldErrors.targetRole ? "resume-target-role-error" : undefined} ref={targetRoleInputRef} value={form.targetRole} onChange={(event) => update("targetRole", event.target.value)} placeholder="Software Engineer Intern" /></Field>
             <Field label="Status"><Select value={form.status} onChange={(value) => update("status", value as ResumeVersion["status"])} /></Field>
             <Field label="File name"><Input placeholder="resume-backend.pdf" value={form.fileName} onChange={(event) => update("fileName", event.target.value)} /></Field>
             <Field label="Keyword match score"><Input min={0} max={100} type="number" value={form.keywordMatchScore} onChange={(event) => update("keywordMatchScore", Number(event.target.value))} /></Field>
@@ -205,8 +228,8 @@ function payloadFromResume(resume: ResumeVersion): ResumeFormPayload {
   return payload;
 }
 
-function Field({ label, required, className, children }: { label: string; required?: boolean; className?: string; children: ReactNode }) {
-  return <label className={className}><span className="mb-1.5 block text-xs font-medium text-slate-500">{label}{required ? <span className="text-cyan-300"> *</span> : null}</span>{children}</label>;
+function Field({ label, required, error, errorId, className, children }: { label: string; required?: boolean; error?: string; errorId?: string; className?: string; children: ReactNode }) {
+  return <label className={className}><span className="mb-1.5 block text-xs font-medium text-slate-500">{label}{required ? <span className="text-cyan-300"> *</span> : null}</span>{children}{error ? <span className="mt-1.5 block text-xs font-medium text-rose-200" id={errorId}>{error}</span> : null}</label>;
 }
 
 function ListField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
@@ -229,7 +252,7 @@ function formatFileSize(bytes: number) {
 function submitButtonLabel(resume: ResumeVersion | null, status: ResumeSubmitStatus) {
   if (status === "creating") return "Creating resume...";
   if (status === "saving") return "Saving changes...";
-  if (status === "uploading") return "Uploading file...";
+  if (status === "uploading") return "Uploading PDF...";
   if (status === "extracting") return "Extracting text...";
   if (status === "ready") return "Resume ready for analysis";
   return resume ? "Save changes" : "Create resume";
@@ -238,8 +261,12 @@ function submitButtonLabel(resume: ResumeVersion | null, status: ResumeSubmitSta
 function submitStatusMessage(status: ResumeSubmitStatus) {
   if (status === "creating") return "Creating resume...";
   if (status === "saving") return "Saving resume...";
-  if (status === "uploading") return "Uploading file...";
+  if (status === "uploading") return "Uploading PDF...";
   if (status === "extracting") return "Extracting text...";
   if (status === "ready") return "Resume ready for analysis.";
   return "";
+}
+
+function resumeNameFromFile(fileName: string) {
+  return fileName.replace(/\.[^/.]+$/, "").trim() || "Untitled Resume";
 }
