@@ -25,6 +25,7 @@ export function useResumes() {
     return result;
   }, [resource]);
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
+    setBackgroundNotice("");
     const result = await resumeRepository.analyzeResume(resumeId, payload);
     devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume.id });
     resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? result.resume : resume) ?? current);

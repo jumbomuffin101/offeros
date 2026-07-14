@@ -37,19 +37,42 @@ export function ResumeAnalysisPanel({
   const [savingText, setSavingText] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [analysisError, setAnalysisError] = useState("");
+  const [saveResumeTextError, setSaveResumeTextError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
   const [fullAnalysis, setFullAnalysis] = useState<ResumeAnalysis | null>(null);
   const analysisInFlight = useRef(false);
+  const historyRequestId = useRef(0);
+  const hasAnalysisData = useRef(false);
 
   useEffect(() => {
+    const requestId = ++historyRequestId.current;
+    window.queueMicrotask(() => {
+      if (requestId !== historyRequestId.current) return;
+      setHistoryLoading(true);
+      setHistoryError("");
+    });
+    devAnalysisPanelLog("history request start", { resumeId: resume.id, requestId });
     onListAnalyses(resume.id)
       .then((items) => {
+        if (requestId !== historyRequestId.current) return;
         setAnalyses(items);
         setSelectedId(items[0]?.id ?? "");
+        hasAnalysisData.current = items.length > 0;
+        setHistoryError("");
+        devAnalysisPanelLog("history request success", { resumeId: resume.id, requestId, count: items.length });
       })
-      .catch((cause) => setError(cause instanceof Error ? cause.message : "Unable to load analysis history."))
-      .finally(() => setHistoryLoading(false));
+      .catch((cause) => {
+        if (requestId !== historyRequestId.current) return;
+        const nextError = cause instanceof Error ? cause.message : "Unable to load analysis history.";
+        devAnalysisPanelLog("history request error", { resumeId: resume.id, requestId, message: nextError, hasAnalysisData: hasAnalysisData.current });
+        if (!hasAnalysisData.current) setHistoryError(nextError);
+      })
+      .finally(() => {
+        if (requestId === historyRequestId.current) setHistoryLoading(false);
+      });
   }, [onListAnalyses, resume.id]);
 
   const selected = useMemo(
@@ -59,13 +82,14 @@ export function ResumeAnalysisPanel({
 
   async function saveResumeText() {
     setSavingText(true);
-    setError("");
+    setSaveResumeTextError("");
     setMessage("");
     try {
       await onUpdateResumeText(resume.id, resumeText);
+      setSaveResumeTextError("");
       setMessage(resumeText.trim() ? "Resume text saved." : "Resume text cleared.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to save resume text.");
+      setSaveResumeTextError(cause instanceof Error ? cause.message : "Unable to save resume text.");
     } finally {
       setSavingText(false);
     }
@@ -74,21 +98,24 @@ export function ResumeAnalysisPanel({
   async function runAnalysis() {
     if (analysisInFlight.current) return;
     if (!targetRole.trim()) {
-      setError("Target role is required.");
+      setAnalysisError("Target role is required.");
       return;
     }
     if (!resumeText.trim()) {
-      setError("Upload a resume file or paste resume text before running AI analysis.");
+      setAnalysisError("Upload a resume file or paste resume text before running AI analysis.");
       return;
     }
     if (jobDescription.trim().length < 80) {
-      setError("Paste a target job description before running analysis.");
+      setAnalysisError("Paste a target job description before running analysis.");
       return;
     }
     analysisInFlight.current = true;
     setLoading(true);
-    setError("");
+    setAnalysisError("");
+    setHistoryError("");
     setMessage("");
+    const requestId = ++historyRequestId.current;
+    devAnalysisPanelLog("analysis request start", { resumeId: resume.id, requestId });
     try {
       const result = await onAnalyze(resume.id, {
         targetRole: targetRole.trim(),
@@ -100,9 +127,13 @@ export function ResumeAnalysisPanel({
       setAnalyses((current) => [analysis, ...current.filter((item) => item.id !== analysis.id)]);
       setSelectedId(analysis.id);
       setFullAnalysis(analysis);
+      hasAnalysisData.current = true;
+      setAnalysisError("");
+      setHistoryError("");
       setMessage("Analysis saved to history.");
+      devAnalysisPanelLog("analysis request success", { resumeId: resume.id, requestId, analysisId: analysis.id });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
+      setAnalysisError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
     } finally {
       analysisInFlight.current = false;
       setLoading(false);
@@ -112,22 +143,24 @@ export function ResumeAnalysisPanel({
   async function uploadFile(file: File | undefined) {
     if (!file || !onUploadResumeFile) return;
     setUploading(true);
-    setError("");
+    setUploadError("");
     setMessage("Uploading resume...");
     try {
       const result = await onUploadResumeFile(resume.id, file);
       setResumeText(result.extraction.text);
+      setUploadError("");
       setMessage(`Ready for analysis. Extracted ${result.extraction.characterCount.toLocaleString()} characters${result.extraction.warnings.length ? ` (${result.extraction.warnings[0]})` : "."}`);
     } catch (cause) {
       setMessage("");
-      setError(cause instanceof Error ? cause.message : "Unable to upload and extract this resume.");
+      setUploadError(cause instanceof Error ? cause.message : "Unable to upload and extract this resume.");
     } finally {
       setUploading(false);
     }
   }
 
   async function deleteAnalysis(analysisId: string) {
-    setError("");
+    setAnalysisError("");
+    setHistoryError("");
     setMessage("");
     try {
       await onDeleteAnalysis(analysisId, resume.id);
@@ -135,7 +168,7 @@ export function ResumeAnalysisPanel({
       if (selectedId === analysisId) setSelectedId("");
       if (fullAnalysis?.id === analysisId) setFullAnalysis(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to delete this analysis.");
+      setHistoryError(cause instanceof Error ? cause.message : "Unable to delete this analysis.");
     }
   }
 
@@ -187,7 +220,9 @@ export function ResumeAnalysisPanel({
         </label>
       </div>
 
-      {error ? <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{error}</div> : null}
+      {uploadError ? <ScopedError message={uploadError} /> : null}
+      {saveResumeTextError ? <ScopedError message={saveResumeTextError} /> : null}
+      {analysisError ? <ScopedError message={analysisError} /> : null}
       {message ? <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
 
       <div className="flex flex-wrap gap-2">
@@ -203,7 +238,7 @@ export function ResumeAnalysisPanel({
 
       {selected ? <CompactAnalysisSummary analysis={selected} onView={() => setFullAnalysis(selected)} /> : (
         <div className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4 text-sm leading-6 text-slate-500">
-          {historyLoading ? "Loading analysis history..." : "Run an analysis to see scorecards, keyword gaps, and suggested bullet rewrites here."}
+          {historyLoading ? "Loading analysis history..." : historyError || "Run an analysis to see scorecards, keyword gaps, and suggested bullet rewrites here."}
         </div>
       )}
 
@@ -231,6 +266,15 @@ export function ResumeAnalysisPanel({
       {fullAnalysis ? <AnalysisModal analysis={fullAnalysis} resume={resume} onClose={() => setFullAnalysis(null)} /> : null}
     </section>
   );
+}
+
+function ScopedError({ message }: { message: string }) {
+  return <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{message}</div>;
+}
+
+function devAnalysisPanelLog(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug("[OfferOS Resume Analysis Panel]", message, details);
 }
 
 function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis; onView: () => void }) {

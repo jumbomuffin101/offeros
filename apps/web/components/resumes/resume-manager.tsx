@@ -177,7 +177,7 @@ export function ResumeManager() {
   }
 
   if (resumeData.loading && !resumes.length) return <WorkspaceSkeleton cards={6} />;
-  if (resumeData.error) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
+  if (resumeData.error && !resumes.length) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
 
   return (
     <div className="space-y-5">
