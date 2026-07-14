@@ -2,6 +2,7 @@ import type { ResumeRepository } from "@/lib/data/types/repositories";
 import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeAnalyzeResponse, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
+import { parseAnalyzeData } from "@/lib/data/api/resumeAnalyzeResponse";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiResumeRepository: ResumeRepository = {
@@ -57,19 +58,20 @@ export const apiResumeRepository: ResumeRepository = {
   },
   async analyzeResume(resumeId, payload) {
     devAnalysisLog("analyze request start", { resumeId });
-    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalyzeResponse>>(
+    const response = await apiClient.post<unknown>(
       `/resumes/${resumeId}/analyze`,
       toApiResumeAnalysis(payload),
       { timeoutMs: 120_000 },
     );
+    const data = parseAnalyzeData(response);
+    const analysis = fromApiResumeAnalysis(data.analysis);
+    const resume = data.resume ? fromApiResume(data.resume) : await fetchResumeSummaryAfterPartialAnalyze(resumeId);
     devAnalysisLog("analyze request complete", {
-      resumeId: response.data.resume.id,
-      analysisId: response.data.analysis.id,
+      resumeId: resume?.id ?? resumeId,
+      analysisId: analysis.id,
+      resumeIncluded: Boolean(data.resume),
     });
-    return {
-      analysis: fromApiResumeAnalysis(response.data.analysis),
-      resume: fromApiResume(response.data.resume),
-    };
+    return { analysis, resume };
   },
   async listResumeAnalyses(resumeId) {
     const response = await apiClient.get<ApiDataResponse<ApiResumeAnalysis[]>>(`/resumes/${resumeId}/analyses`);
@@ -83,6 +85,17 @@ export const apiResumeRepository: ResumeRepository = {
     await apiClient.delete(`/resume-analyses/${id}`);
   },
 };
+
+async function fetchResumeSummaryAfterPartialAnalyze(resumeId: string) {
+  try {
+    devAnalysisLog("resume missing from analyze response; refreshing summary", { resumeId });
+    const response = await apiClient.get<ApiDataResponse<ApiResume>>(`/resumes/${resumeId}`, { timeoutMs: 45_000 });
+    return fromApiResume(response.data);
+  } catch {
+    devAnalysisLog("resume summary refresh failed after partial analyze", { resumeId });
+    return null;
+  }
+}
 
 function devAnalysisLog(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;

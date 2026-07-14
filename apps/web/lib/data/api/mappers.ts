@@ -137,18 +137,18 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
     experienceMatchScore: value.experience_match_score ?? 0,
     requiredSkillsMatch: skillMatches(value.required_skills_match),
     preferredSkillsMatch: skillMatches(value.preferred_skills_match),
-    missingKeywords: value.missing_keywords,
-    strongKeywords: value.strong_keywords,
+    missingKeywords: stringArray(value.missing_keywords),
+    strongKeywords: stringArray(value.strong_keywords),
     weakBullets: weakBullets(value.weak_bullets),
-    suggestedBulletRewrites: value.suggested_bullet_rewrites.map((rewrite) => ({
+    suggestedBulletRewrites: safeArray(value.suggested_bullet_rewrites).map((rewrite) => ({
       original: rewrite.original,
       rewrite: rewrite.rewrite,
       whyBetter: rewrite.why_better ?? rewrite.rationale ?? "",
       groundedInResume: rewrite.grounded_in_resume ?? true,
     })),
-    strengths: value.strengths,
-    risks: value.risks,
-    recommendations: value.recommendations,
+    strengths: stringArray(value.strengths),
+    risks: stringArray(value.risks),
+    recommendations: stringArray(value.recommendations),
     recruiterSummary: value.recruiter_summary ?? value.summary,
     summary: value.summary,
     provider: value.provider,
@@ -234,6 +234,7 @@ function invert<K extends string, V extends string>(value: Record<K, V>) {
 }
 function titleCase(value: string) { return `${value.charAt(0).toUpperCase()}${value.slice(1)}`; }
 function stringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
+function safeArray<T>(value: T[] | undefined | null) { return Array.isArray(value) ? value : []; }
 function safeScore(value: unknown) {
   const score = Number(value);
   return Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
@@ -242,7 +243,7 @@ function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"]
   return value === "manual" || value === "parsed" || value === "failed" ? value : "not_started";
 }
 function weakBullets(value: ApiResumeAnalysis["weak_bullets"]): ResumeAnalysis["weakBullets"] {
-  return value.map((item) => ({
+  return safeArray(value).map((item) => ({
     original: item.original ?? "",
     issue: item.issue ?? "",
     suggestion: item.suggestion ?? "",

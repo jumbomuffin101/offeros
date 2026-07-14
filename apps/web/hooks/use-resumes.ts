@@ -5,6 +5,7 @@ import type { ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeInput } from "@/lib/data/types";
 import { resumeRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
+import { mergeAnalyzedResume, RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR } from "@/lib/resume-analysis-state";
 
 const loadResumes = () => resumeRepository.list();
 
@@ -27,13 +28,17 @@ export function useResumes() {
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
     setBackgroundNotice("");
     const result = await resumeRepository.analyzeResume(resumeId, payload);
-    devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume.id });
-    resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? result.resume : resume) ?? current);
+    devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume?.id ?? null });
+    if (result.resume) {
+      resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));
+    } else {
+      setBackgroundNotice(RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR);
+    }
     void (async () => {
       devResumeRefreshLog("resume list refresh start", { reason: "analysis", resumeId });
       const ok = await resource.refreshSilently();
       devResumeRefreshLog("resume list refresh complete", { reason: "analysis", resumeId, ok });
-      if (!ok) setBackgroundNotice("Analysis saved, but the latest workspace refresh could not complete.");
+      if (!ok && result.resume) setBackgroundNotice("Analysis saved. Some updated workspace data could not be refreshed.");
     })();
     return result;
   }, [resource]);

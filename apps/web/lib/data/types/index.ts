@@ -28,7 +28,7 @@ export type ResumeAnalysisInput = {
 };
 export type ResumeAnalyzeResult = {
   analysis: ResumeAnalysis;
-  resume: ResumeVersion;
+  resume: ResumeVersion | null;
 };
 export type ResumeUploadResult = {
   resume: ResumeVersion;

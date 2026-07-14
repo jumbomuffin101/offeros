@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrainCircuit, Copy, ExternalLink, FileUp, History, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
+import { analysisErrorMessage } from "@/lib/resume-analysis-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +134,7 @@ export function ResumeAnalysisPanel({
       setMessage("Analysis saved to history.");
       devAnalysisPanelLog("analysis request success", { resumeId: resume.id, requestId, analysisId: analysis.id });
     } catch (cause) {
-      setAnalysisError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
+      setAnalysisError(analysisErrorMessage(cause));
     } finally {
       analysisInFlight.current = false;
       setLoading(false);
