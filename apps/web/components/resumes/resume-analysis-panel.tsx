@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BrainCircuit, Copy, ExternalLink, FileUp, History, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
@@ -40,6 +40,7 @@ export function ResumeAnalysisPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [fullAnalysis, setFullAnalysis] = useState<ResumeAnalysis | null>(null);
+  const analysisInFlight = useRef(false);
 
   useEffect(() => {
     onListAnalyses(resume.id)
@@ -71,6 +72,7 @@ export function ResumeAnalysisPanel({
   }
 
   async function runAnalysis() {
+    if (analysisInFlight.current) return;
     if (!targetRole.trim()) {
       setError("Target role is required.");
       return;
@@ -83,6 +85,7 @@ export function ResumeAnalysisPanel({
       setError("Paste a target job description before running analysis.");
       return;
     }
+    analysisInFlight.current = true;
     setLoading(true);
     setError("");
     setMessage("");
@@ -101,6 +104,7 @@ export function ResumeAnalysisPanel({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to analyze this resume.");
     } finally {
+      analysisInFlight.current = false;
       setLoading(false);
     }
   }

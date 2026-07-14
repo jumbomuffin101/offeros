@@ -29,6 +29,23 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     }
   }, [loader]);
 
+  const refreshSilently = useCallback(async () => {
+    const currentRequest = ++requestId.current;
+    try {
+      const next = await loader();
+      if (mounted.current && currentRequest === requestId.current) {
+        dataRef.current = next;
+        setData(next);
+        setError(null);
+      }
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (mounted.current && currentRequest === requestId.current) setLoading(false);
+    }
+  }, [loader]);
+
   useEffect(() => {
     mounted.current = true;
     window.queueMicrotask(() => void refresh());
@@ -78,5 +95,5 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     });
   }, []);
 
-  return { data, loading, error, refresh, mutate, patchData };
+  return { data, loading, error, refresh, refreshSilently, mutate, patchData };
 }

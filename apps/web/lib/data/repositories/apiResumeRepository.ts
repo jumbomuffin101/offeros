@@ -56,7 +56,16 @@ export const apiResumeRepository: ResumeRepository = {
     };
   },
   async analyzeResume(resumeId, payload) {
-    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalyzeResponse>>(`/resumes/${resumeId}/analyze`, toApiResumeAnalysis(payload));
+    devAnalysisLog("analyze request start", { resumeId });
+    const response = await apiClient.post<ApiDataResponse<ApiResumeAnalyzeResponse>>(
+      `/resumes/${resumeId}/analyze`,
+      toApiResumeAnalysis(payload),
+      { timeoutMs: 120_000 },
+    );
+    devAnalysisLog("analyze request complete", {
+      resumeId: response.data.resume.id,
+      analysisId: response.data.analysis.id,
+    });
     return {
       analysis: fromApiResumeAnalysis(response.data.analysis),
       resume: fromApiResume(response.data.resume),
@@ -74,3 +83,8 @@ export const apiResumeRepository: ResumeRepository = {
     await apiClient.delete(`/resume-analyses/${id}`);
   },
 };
+
+function devAnalysisLog(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug("[OfferOS Resume Analysis]", message, details);
+}

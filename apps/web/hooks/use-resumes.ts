@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeInput } from "@/lib/data/types";
 import { resumeRepository } from "@/lib/data/repositories/repositoryFactory";
@@ -10,6 +10,7 @@ const loadResumes = () => resumeRepository.list();
 
 export function useResumes() {
   const resource = useRepositoryResource(loadResumes);
+  const [backgroundNotice, setBackgroundNotice] = useState("");
   const create = useCallback((input: ResumeInput) => resource.mutate(() => resumeRepository.create(input)), [resource]);
   const update = useCallback((id: string, input: Partial<ResumeInput>) => resource.mutate(() => resumeRepository.update(id, input)), [resource]);
   const remove = useCallback((id: string) => resource.mutate(() => resumeRepository.delete(id)), [resource]);
@@ -25,8 +26,14 @@ export function useResumes() {
   }, [resource]);
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
     const result = await resumeRepository.analyzeResume(resumeId, payload);
+    devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume.id });
     resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? result.resume : resume) ?? current);
-    void resource.refresh();
+    void (async () => {
+      devResumeRefreshLog("resume list refresh start", { reason: "analysis", resumeId });
+      const ok = await resource.refreshSilently();
+      devResumeRefreshLog("resume list refresh complete", { reason: "analysis", resumeId, ok });
+      if (!ok) setBackgroundNotice("Analysis saved, but the latest workspace refresh could not complete.");
+    })();
     return result;
   }, [resource]);
   const listResumeAnalyses = useCallback((resumeId: string) => resumeRepository.listResumeAnalyses(resumeId), []);
@@ -37,11 +44,17 @@ export function useResumes() {
       const updated = await resumeRepository.get(resumeId);
       if (updated) resource.patchData((current) => current?.map((resume) => resume.id === resumeId ? updated : resume) ?? current);
     }
-    void resource.refresh();
+    void resource.refreshSilently();
   }, [resource]);
   return {
     resumes: resource.data ?? [], loading: resource.loading, error: resource.error, refresh: resource.refresh,
+    backgroundNotice, clearBackgroundNotice: () => setBackgroundNotice(""),
     create, update, delete: remove, duplicate, toggleStatus, reset, updateResumeText,
     uploadResumeFile, analyzeResume, listResumeAnalyses, getResumeAnalysis, deleteResumeAnalysis,
   };
+}
+
+function devResumeRefreshLog(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug("[OfferOS Resume Refresh]", message, details);
 }

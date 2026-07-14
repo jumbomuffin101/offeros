@@ -58,6 +58,14 @@ export function ResumeManager() {
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    if (!resumeData.backgroundNotice) return;
+    const notice = resumeData.backgroundNotice;
+    window.queueMicrotask(() => {
+      setToast(notice);
+      resumeData.clearBackgroundNotice();
+    });
+  }, [resumeData]);
 
   const visible = useMemo(() => sortResumes(filterResumes(resumes, search, status), sort), [resumes, search, status, sort]);
   const selected = resumes.find((resume) => resume.id === selectedId) ?? null;

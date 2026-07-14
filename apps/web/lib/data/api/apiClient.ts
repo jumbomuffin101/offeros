@@ -105,7 +105,7 @@ class ApiClient {
       if (!init.skipAuth) firstWorkspaceRequestComplete = true;
       return result;
     } catch (error) {
-      if (!init.skipAuth && error instanceof DataError && error.code === "NETWORK_ERROR") resetWakeup();
+      if (!init.skipAuth && error instanceof DataError && error.code === "NETWORK_ERROR" && !isAbortError(error.cause)) resetWakeup();
       throw error;
     }
   }
@@ -273,6 +273,10 @@ function resetWakeup() {
 
 function isRetryableNetworkError(error: unknown) {
   return error instanceof DataError && error.code === "NETWORK_ERROR";
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 function delay(ms: number) {
