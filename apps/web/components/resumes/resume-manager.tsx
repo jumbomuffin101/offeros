@@ -18,6 +18,7 @@ import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { dataMode } from "@/lib/data/repositories/repositoryFactory";
+import { shouldShowResumeFatalError } from "@/lib/resume-error-state";
 
 const OPEN_UPLOAD_EVENT = "offeros:upload-resume";
 const OPEN_UPLOAD_STORAGE_KEY = "offeros:open-upload-resume";
@@ -177,7 +178,12 @@ export function ResumeManager() {
   }
 
   if (resumeData.loading && !resumes.length) return <WorkspaceSkeleton cards={6} />;
-  if (resumeData.error && !resumes.length) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
+  if (resumeData.error && shouldShowResumeFatalError({
+    error: resumeData.error,
+    resumeCount: resumes.length,
+    selectedResumeId: selected?.id ?? null,
+    latestAnalysisStatus: selected?.analysisStatus,
+  })) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
 
   return (
     <div className="space-y-5">
