@@ -26,11 +26,16 @@ const {
   RESUME_ANALYSIS_MISSING_JOB_DESCRIPTION_ERROR,
   RESUME_ANALYSIS_MISSING_RESUME_ERROR,
   RESUME_ANALYSIS_MISSING_RESUME_TEXT_ERROR,
+  RESUME_ANALYSIS_INVALID_RESPONSE_ERROR,
+  RESUME_ANALYSIS_START_ERROR,
   RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR,
   analysisErrorMessage,
   buildResumeAnalysisRequest,
+  invokeResumeAnalysis,
   mergeAnalyzedResume,
-} = loadTsModule("../lib/resume-analysis-state.ts");
+} = loadTsModule("../lib/resume-analysis-state.ts", {
+  "@/lib/data/errors": { DataError },
+});
 const { resumeAnalyzePath } = loadTsModule("../lib/data/api/resumeAnalyzeRequest.ts");
 const { toApiResumeAnalysis } = loadTsModule("../lib/data/api/mappers.ts");
 
@@ -91,6 +96,73 @@ test("missing resume text shows validation before request", () => {
   );
 });
 
+test("valid input invokes the analysis repository with the resume id and payload", async () => {
+  const request = buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: "Backend Engineer",
+    companyName: "Acme",
+    jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resumeText: "Built FastAPI services with PostgreSQL.",
+  });
+  const calls = [];
+  const response = await invokeResumeAnalysis(async (resumeId, payload) => {
+    calls.push({ resumeId, payload });
+    return { analysis: { id: "analysis_1" }, resume: { id: "resume_1" } };
+  }, request);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].resumeId, "resume_1");
+  assert.equal(calls[0].payload.targetRole, "Backend Engineer");
+  assert.equal(response.analysis.id, "analysis_1");
+});
+
+test("invalid input never invokes the analysis repository", () => {
+  let called = false;
+  assert.throws(() => buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: "Backend Engineer",
+    companyName: "",
+    jobDescription: "",
+    resumeText: "Built FastAPI services.",
+  }));
+  assert.equal(called, false);
+});
+
+test("response validation occurs after the repository resolves", async () => {
+  let resolveRepository;
+  let invoked = false;
+  const request = buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: "Backend Engineer",
+    companyName: "",
+    jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resumeText: "Built FastAPI services.",
+  });
+  const pending = invokeResumeAnalysis(() => {
+    invoked = true;
+    return new Promise((resolve) => { resolveRepository = resolve; });
+  }, request);
+
+  assert.equal(invoked, true);
+  resolveRepository({ analysis: { id: "analysis_1" }, resume: { id: "resume_1" } });
+  const response = await pending;
+  assert.equal(response.resume.id, "resume_1");
+});
+
+test("malformed repository response is a friendly response error", async () => {
+  const request = buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: "Backend Engineer",
+    companyName: "",
+    jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resumeText: "Built FastAPI services.",
+  });
+  await assert.rejects(
+    () => invokeResumeAnalysis(async () => ({ resume: { id: "resume_1" } }), request),
+    (error) => error instanceof DataError && error.message === RESUME_ANALYSIS_INVALID_RESPONSE_ERROR,
+  );
+});
+
 test("valid analyze response exposes analysis and resume", () => {
   const parsed = parseAnalyzeData({ data: { analysis: { id: "analysis_1" }, resume: { id: "resume_1" } } });
 
@@ -136,7 +208,12 @@ test("successful response updates the matching resume cache entry", () => {
 test("raw undefined property TypeError never reaches analysis UI", () => {
   const message = analysisErrorMessage(new TypeError("Cannot read properties of undefined (reading 'id')"));
 
-  assert.equal(message, RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR);
+  assert.equal(message, RESUME_ANALYSIS_INVALID_RESPONSE_ERROR);
+});
+
+test("a frontend TypeError is not shown raw", () => {
+  assert.equal(analysisErrorMessage(new TypeError("onAnalyze is not a function")), RESUME_ANALYSIS_START_ERROR);
+  assert.notEqual(RESUME_ANALYSIS_START_ERROR, "onAnalyze is not a function");
 });
 
 function loadTsModule(relativePath, mocks = {}) {

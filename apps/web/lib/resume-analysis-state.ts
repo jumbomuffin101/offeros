@@ -1,4 +1,5 @@
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
+import { DataError } from "@/lib/data/errors";
 import type { ResumeVersion } from "@/lib/types";
 
 export const RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR =
@@ -10,7 +11,11 @@ export const RESUME_ANALYSIS_MISSING_JOB_DESCRIPTION_ERROR =
 export const RESUME_ANALYSIS_MISSING_RESUME_TEXT_ERROR =
   "Upload a resume or add resume text before running analysis.";
 export const RESUME_ANALYSIS_START_ERROR =
-  "Something went wrong while starting the analysis.";
+  "OfferOS could not start the analysis.";
+export const RESUME_ANALYSIS_INVALID_RESPONSE_ERROR =
+  "OfferOS received an unexpected analysis response.";
+
+export type ResumeAnalysisStatus = "idle" | "validating" | "submitting" | "completed" | "failed";
 
 export class ResumeAnalysisValidationError extends Error {
   constructor(message: string) {
@@ -30,14 +35,31 @@ export function mergeAnalyzedResume(
 
 export function analysisErrorMessage(cause: unknown) {
   if (cause instanceof ResumeAnalysisValidationError) return cause.message;
-  if (isUndefinedPropertyTypeError(cause)) return RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR;
+  if (cause instanceof DataError) return cause.message;
+  if (isUndefinedPropertyTypeError(cause)) return RESUME_ANALYSIS_INVALID_RESPONSE_ERROR;
+  if (cause instanceof TypeError) return RESUME_ANALYSIS_START_ERROR;
   return cause instanceof Error ? cause.message : "Unable to analyze this resume.";
 }
 
 export function unexpectedAnalysisStartError(cause: unknown) {
   if (cause instanceof ResumeAnalysisValidationError) return cause.message;
-  if (isUndefinedPropertyTypeError(cause)) return RESUME_ANALYSIS_START_ERROR;
-  return cause instanceof Error ? cause.message : RESUME_ANALYSIS_START_ERROR;
+  return RESUME_ANALYSIS_START_ERROR;
+}
+
+/** Validates the mutation result only after the analysis request has resolved. */
+export function validateResumeAnalysisResult(result: unknown): asserts result is ResumeAnalyzeResult {
+  if (!isRecord(result) || !isRecord(result.analysis) || !stringValue(result.analysis.id)) {
+    throw new DataError("API_ERROR", RESUME_ANALYSIS_INVALID_RESPONSE_ERROR);
+  }
+}
+
+export async function invokeResumeAnalysis(
+  analyze: (resumeId: string, payload: ResumeAnalysisInput) => Promise<unknown>,
+  request: ReturnType<typeof buildResumeAnalysisRequest>,
+): Promise<ResumeAnalyzeResult> {
+  const result = await analyze(request.resumeId, request.payload);
+  validateResumeAnalysisResult(result);
+  return result;
 }
 
 export function buildResumeAnalysisRequest({
@@ -84,6 +106,10 @@ export function buildResumeAnalysisRequest({
 
 function isUndefinedPropertyTypeError(cause: unknown) {
   return cause instanceof TypeError && /Cannot read properties of undefined/.test(cause.message);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function stringValue(value: unknown) {

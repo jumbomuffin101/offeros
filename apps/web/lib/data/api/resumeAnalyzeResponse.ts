@@ -5,7 +5,7 @@ export function parseAnalyzeData(response: unknown): { analysis: ApiResumeAnalys
   const data = readResponseData(response);
   const analysis = isRecord(data.analysis) ? data.analysis as ApiResumeAnalysis : null;
   if (!analysis || typeof analysis.id !== "string") {
-    throw new DataError("API_ERROR", "OfferOS could not read the completed resume analysis. Please refresh and try again.");
+    throw new DataError("API_ERROR", "OfferOS received an unexpected analysis response.");
   }
   const resume = isRecord(data.resume) && typeof data.resume.id === "string" ? data.resume as ApiResume : null;
   return { analysis, resume };

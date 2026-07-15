@@ -5,7 +5,11 @@ import type { ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeInput } from "@/lib/data/types";
 import { resumeRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
-import { mergeAnalyzedResume, RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR } from "@/lib/resume-analysis-state";
+import {
+  mergeAnalyzedResume,
+  RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR,
+  validateResumeAnalysisResult,
+} from "@/lib/resume-analysis-state";
 
 const loadResumes = () => resumeRepository.list();
 
@@ -28,6 +32,7 @@ export function useResumes() {
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
     setBackgroundNotice("");
     const result = await resumeRepository.analyzeResume(resumeId, payload);
+    validateResumeAnalysisResult(result);
     devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume?.id ?? null });
     if (result.resume) {
       resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));

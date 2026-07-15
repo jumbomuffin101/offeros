@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrainCircuit, Copy, ExternalLink, FileUp, History, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
-import { analysisErrorMessage, buildResumeAnalysisRequest, unexpectedAnalysisStartError } from "@/lib/resume-analysis-state";
+import {
+  analysisErrorMessage,
+  buildResumeAnalysisRequest,
+  invokeResumeAnalysis,
+  type ResumeAnalysisStatus,
+  unexpectedAnalysisStartError,
+} from "@/lib/resume-analysis-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +41,7 @@ export function ResumeAnalysisPanel({
   const [analyses, setAnalyses] = useState<ResumeAnalysis[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState<ResumeAnalysisStatus>("idle");
   const [savingText, setSavingText] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -98,24 +105,30 @@ export function ResumeAnalysisPanel({
 
   async function runAnalysis() {
     if (analysisInFlight.current) return;
+    devResumeAnalysis("click");
     setAnalysisError("");
     setHistoryError("");
     setMessage("");
+    setAnalysisStatus("validating");
     let request: ReturnType<typeof buildResumeAnalysisRequest>;
     try {
       request = buildResumeAnalysisRequest({ resume, targetRole, companyName, jobDescription, resumeText });
     } catch (cause) {
-      devAnalysisPanelError("analysis start validation failed", cause);
+      devResumeAnalysis("validation failed", { message: cause instanceof Error ? cause.message : "Unknown validation error" });
       setAnalysisError(unexpectedAnalysisStartError(cause));
+      setAnalysisStatus("failed");
       return;
     }
     analysisInFlight.current = true;
     setLoading(true);
+    setAnalysisStatus("submitting");
     const requestId = ++historyRequestId.current;
-    devAnalysisPanelLog("Starting", { resumeId: request.resumeId, hasResumeText: request.diagnostics.hasResumeText, hasJobDescription: request.diagnostics.hasJobDescription });
-    devAnalysisPanelLog("analysis request start", { resumeId: request.resumeId, requestId });
+    devResumeAnalysis("resumeId", { resumeId: request.resumeId });
+    devResumeAnalysis("validationPassed", { valid: true });
+    devResumeAnalysis("calling repository", { resumeId: request.resumeId, requestId });
     try {
-      const result = await onAnalyze(request.resumeId, request.payload);
+      const result = await invokeResumeAnalysis(onAnalyze, request);
+      // The repository has returned: response validation begins only at this point.
       const analysis = result.analysis;
       setAnalyses((current) => [analysis, ...current.filter((item) => item.id !== analysis.id)]);
       setSelectedId(analysis.id);
@@ -124,10 +137,12 @@ export function ResumeAnalysisPanel({
       setAnalysisError("");
       setHistoryError("");
       setMessage("Analysis saved to history.");
-      devAnalysisPanelLog("analysis request success", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
+      setAnalysisStatus("completed");
+      devResumeAnalysis("request completed", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
     } catch (cause) {
-      devAnalysisPanelError("analysis request failed", cause);
+      devResumeAnalysis("request failed", { resumeId: request.resumeId, requestId, message: cause instanceof Error ? cause.message : "Unknown error" });
       setAnalysisError(analysisErrorMessage(cause));
+      setAnalysisStatus("failed");
     } finally {
       analysisInFlight.current = false;
       setLoading(false);
@@ -224,7 +239,7 @@ export function ResumeAnalysisPanel({
           {savingText ? <Loader2 className="size-4 animate-spin" /> : null}
           {savingText ? "Saving text..." : "Save resume text"}
         </Button>
-        <Button disabled={loading || savingText || uploading} onClick={() => void runAnalysis()} variant="primary">
+        <Button aria-busy={analysisStatus === "submitting"} disabled={loading || savingText || uploading} onClick={() => void runAnalysis()} variant="primary">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           {loading ? "Analyzing resume fit..." : "Run AI Analysis"}
         </Button>
@@ -271,9 +286,29 @@ function devAnalysisPanelLog(message: string, details: Record<string, unknown>) 
   console.debug("[OfferOS Resume Analysis Panel]", message, details);
 }
 
-function devAnalysisPanelError(message: string, cause: unknown) {
+function devResumeAnalysis(message: string, details?: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Resume Analysis Panel]", message, cause instanceof Error ? { name: cause.name, message: cause.message, stack: cause.stack } : { cause });
+  if (message === "click") {
+    console.debug("[ResumeAnalysis] click");
+    return;
+  }
+  if (message === "resumeId") {
+    console.debug("[ResumeAnalysis] resumeId", details?.resumeId);
+    return;
+  }
+  if (message === "validationPassed") {
+    console.debug("[ResumeAnalysis] validationPassed", true);
+    return;
+  }
+  if (message === "calling repository") {
+    console.debug("[ResumeAnalysis] calling repository");
+    return;
+  }
+  if (details) {
+    console.debug(`[ResumeAnalysis] ${message}`, details);
+    return;
+  }
+  console.debug(`[ResumeAnalysis] ${message}`);
 }
 
 function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis; onView: () => void }) {
