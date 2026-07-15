@@ -23,10 +23,73 @@ const { parseAnalyzeData } = loadTsModule("../lib/data/api/resumeAnalyzeResponse
   "@/lib/data/errors": { DataError },
 });
 const {
+  RESUME_ANALYSIS_MISSING_JOB_DESCRIPTION_ERROR,
+  RESUME_ANALYSIS_MISSING_RESUME_ERROR,
+  RESUME_ANALYSIS_MISSING_RESUME_TEXT_ERROR,
   RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR,
   analysisErrorMessage,
+  buildResumeAnalysisRequest,
   mergeAnalyzedResume,
 } = loadTsModule("../lib/resume-analysis-state.ts");
+const { resumeAnalyzePath } = loadTsModule("../lib/data/api/resumeAnalyzeRequest.ts");
+const { toApiResumeAnalysis } = loadTsModule("../lib/data/api/mappers.ts");
+
+test("valid resume analysis input builds POST path and snake case payload", () => {
+  const request = buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: " Backend Engineer ",
+    companyName: " Acme ",
+    jobDescription: " Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership. ",
+    resumeText: " Built FastAPI services with PostgreSQL. ",
+  });
+
+  assert.equal(resumeAnalyzePath(request.resumeId), "/resumes/resume_1/analyze");
+  assert.deepEqual(JSON.parse(JSON.stringify(toApiResumeAnalysis(request.payload))), {
+    target_role: "Backend Engineer",
+    company_name: "Acme",
+    job_description: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resume_text: "Built FastAPI services with PostgreSQL.",
+  });
+});
+
+test("missing resume id does not crash before request", () => {
+  assert.throws(
+    () => buildResumeAnalysisRequest({
+      resume: {},
+      targetRole: "Backend Engineer",
+      companyName: "",
+      jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+      resumeText: "Built FastAPI services.",
+    }),
+    (error) => error.message === RESUME_ANALYSIS_MISSING_RESUME_ERROR,
+  );
+});
+
+test("missing job description shows validation before request", () => {
+  assert.throws(
+    () => buildResumeAnalysisRequest({
+      resume: { id: "resume_1" },
+      targetRole: "Backend Engineer",
+      companyName: "",
+      jobDescription: "",
+      resumeText: "Built FastAPI services.",
+    }),
+    (error) => error.message === RESUME_ANALYSIS_MISSING_JOB_DESCRIPTION_ERROR,
+  );
+});
+
+test("missing resume text shows validation before request", () => {
+  assert.throws(
+    () => buildResumeAnalysisRequest({
+      resume: { id: "resume_1" },
+      targetRole: "Backend Engineer",
+      companyName: "",
+      jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+      resumeText: undefined,
+    }),
+    (error) => error.message === RESUME_ANALYSIS_MISSING_RESUME_TEXT_ERROR,
+  );
+});
 
 test("valid analyze response exposes analysis and resume", () => {
   const parsed = parseAnalyzeData({ data: { analysis: { id: "analysis_1" }, resume: { id: "resume_1" } } });

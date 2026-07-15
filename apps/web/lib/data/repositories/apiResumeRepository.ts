@@ -3,6 +3,7 @@ import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeAnalyzeRes
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { parseAnalyzeData } from "@/lib/data/api/resumeAnalyzeResponse";
+import { resumeAnalyzePath } from "@/lib/data/api/resumeAnalyzeRequest";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiResumeRepository: ResumeRepository = {
@@ -57,16 +58,22 @@ export const apiResumeRepository: ResumeRepository = {
     };
   },
   async analyzeResume(resumeId, payload) {
-    devAnalysisLog("analyze request start", { resumeId });
-    const response = await apiClient.post<unknown>(
-      `/resumes/${resumeId}/analyze`,
-      toApiResumeAnalysis(payload),
-      { timeoutMs: 120_000 },
-    );
+    devAnalysisLog("request started", { resumeId, path: resumeAnalyzePath(resumeId) });
+    let response: unknown;
+    try {
+      response = await apiClient.post<unknown>(
+        resumeAnalyzePath(resumeId),
+        toApiResumeAnalysis(payload),
+        { timeoutMs: 120_000 },
+      );
+    } catch (cause) {
+      devAnalysisLog("request failed", { resumeId, message: cause instanceof Error ? cause.message : "Unknown error" });
+      throw cause;
+    }
     const data = parseAnalyzeData(response);
     const analysis = fromApiResumeAnalysis(data.analysis);
     const resume = data.resume ? fromApiResume(data.resume) : await fetchResumeSummaryAfterPartialAnalyze(resumeId);
-    devAnalysisLog("analyze request complete", {
+    devAnalysisLog("request completed", {
       resumeId: resume?.id ?? resumeId,
       analysisId: analysis.id,
       resumeIncluded: Boolean(data.resume),

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrainCircuit, Copy, ExternalLink, FileUp, History, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
-import { analysisErrorMessage } from "@/lib/resume-analysis-state";
+import { analysisErrorMessage, buildResumeAnalysisRequest, unexpectedAnalysisStartError } from "@/lib/resume-analysis-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,32 +98,24 @@ export function ResumeAnalysisPanel({
 
   async function runAnalysis() {
     if (analysisInFlight.current) return;
-    if (!targetRole.trim()) {
-      setAnalysisError("Target role is required.");
-      return;
-    }
-    if (!resumeText.trim()) {
-      setAnalysisError("Upload a resume file or paste resume text before running AI analysis.");
-      return;
-    }
-    if (jobDescription.trim().length < 80) {
-      setAnalysisError("Paste a target job description before running analysis.");
+    setAnalysisError("");
+    setHistoryError("");
+    setMessage("");
+    let request: ReturnType<typeof buildResumeAnalysisRequest>;
+    try {
+      request = buildResumeAnalysisRequest({ resume, targetRole, companyName, jobDescription, resumeText });
+    } catch (cause) {
+      devAnalysisPanelError("analysis start validation failed", cause);
+      setAnalysisError(unexpectedAnalysisStartError(cause));
       return;
     }
     analysisInFlight.current = true;
     setLoading(true);
-    setAnalysisError("");
-    setHistoryError("");
-    setMessage("");
     const requestId = ++historyRequestId.current;
-    devAnalysisPanelLog("analysis request start", { resumeId: resume.id, requestId });
+    devAnalysisPanelLog("Starting", { resumeId: request.resumeId, hasResumeText: request.diagnostics.hasResumeText, hasJobDescription: request.diagnostics.hasJobDescription });
+    devAnalysisPanelLog("analysis request start", { resumeId: request.resumeId, requestId });
     try {
-      const result = await onAnalyze(resume.id, {
-        targetRole: targetRole.trim(),
-        companyName: companyName.trim(),
-        jobDescription: jobDescription.trim(),
-        resumeText: resumeText.trim(),
-      });
+      const result = await onAnalyze(request.resumeId, request.payload);
       const analysis = result.analysis;
       setAnalyses((current) => [analysis, ...current.filter((item) => item.id !== analysis.id)]);
       setSelectedId(analysis.id);
@@ -132,8 +124,9 @@ export function ResumeAnalysisPanel({
       setAnalysisError("");
       setHistoryError("");
       setMessage("Analysis saved to history.");
-      devAnalysisPanelLog("analysis request success", { resumeId: resume.id, requestId, analysisId: analysis.id });
+      devAnalysisPanelLog("analysis request success", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
     } catch (cause) {
+      devAnalysisPanelError("analysis request failed", cause);
       setAnalysisError(analysisErrorMessage(cause));
     } finally {
       analysisInFlight.current = false;
@@ -276,6 +269,11 @@ function ScopedError({ message }: { message: string }) {
 function devAnalysisPanelLog(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;
   console.debug("[OfferOS Resume Analysis Panel]", message, details);
+}
+
+function devAnalysisPanelError(message: string, cause: unknown) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug("[OfferOS Resume Analysis Panel]", message, cause instanceof Error ? { name: cause.name, message: cause.message, stack: cause.stack } : { cause });
 }
 
 function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis; onView: () => void }) {
