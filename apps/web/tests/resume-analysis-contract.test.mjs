@@ -37,6 +37,12 @@ const {
   "@/lib/data/errors": { DataError },
 });
 const { resumeAnalyzePath } = loadTsModule("../lib/data/api/resumeAnalyzeRequest.ts");
+const {
+  NORMAL_API_TIMEOUT_MS,
+  RESUME_ANALYSIS_TIMEOUT_MESSAGE,
+  RESUME_ANALYSIS_TIMEOUT_MS,
+  RESUME_UPLOAD_TIMEOUT_MS,
+} = loadTsModule("../lib/data/api/request-timeouts.ts");
 const { toApiResumeAnalysis } = loadTsModule("../lib/data/api/mappers.ts");
 
 test("valid resume analysis input builds POST path and snake case payload", () => {
@@ -55,6 +61,26 @@ test("valid resume analysis input builds POST path and snake case payload", () =
     job_description: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
     resume_text: "Built FastAPI services with PostgreSQL.",
   });
+});
+
+test("analysis requests use a dedicated five-minute timeout", () => {
+  assert.equal(RESUME_ANALYSIS_TIMEOUT_MS, 300_000);
+  assert.equal(RESUME_UPLOAD_TIMEOUT_MS, 60_000);
+  assert.ok(RESUME_ANALYSIS_TIMEOUT_MS > NORMAL_API_TIMEOUT_MS);
+  assert.equal(RESUME_ANALYSIS_TIMEOUT_MESSAGE, "Resume analysis is taking longer than expected.");
+});
+
+test("analysis request id is mapped to the API body for idempotent retries", () => {
+  const request = buildResumeAnalysisRequest({
+    resume: { id: "resume_1" },
+    targetRole: "Backend Engineer",
+    companyName: "Acme",
+    jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resumeText: "Built FastAPI services with PostgreSQL.",
+    analysisRequestId: "b2a1f0e1-863b-4a52-9906-bc8ef726ad8c",
+  });
+
+  assert.equal(toApiResumeAnalysis(request.payload).analysis_request_id, "b2a1f0e1-863b-4a52-9906-bc8ef726ad8c");
 });
 
 test("missing resume id does not crash before request", () => {

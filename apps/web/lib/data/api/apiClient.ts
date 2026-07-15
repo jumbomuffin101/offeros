@@ -1,14 +1,16 @@
 import { DataError } from "@/lib/data/errors";
+import { NORMAL_API_TIMEOUT_MS } from "@/lib/data/api/request-timeouts";
 
 export type RequestOptions = {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   timeoutMs?: number;
+  timeoutMessage?: string;
   skipAuth?: boolean;
   skipWakeup?: boolean;
 };
 export type AuthTokenProvider = () => Promise<string | null>;
-const WARM_REQUEST_TIMEOUT_MS = 20_000;
+const WARM_REQUEST_TIMEOUT_MS = NORMAL_API_TIMEOUT_MS;
 const WAKEUP_TIMEOUT_MS = 60_000;
 const FIRST_WORKSPACE_TIMEOUT_MS = 45_000;
 const GET_CACHE_MS = 45_000;
@@ -154,7 +156,7 @@ class ApiClient {
       throw new DataError(
         "NETWORK_ERROR",
         aborted
-          ? "Your cloud workspace took longer than expected."
+          ? ((init as RequestOptions).timeoutMessage ?? "Your cloud workspace took longer than expected.")
           : "OfferOS could not reach your workspace. Check your connection and try again.",
         { cause: error },
       );

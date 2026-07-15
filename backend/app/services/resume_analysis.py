@@ -1,6 +1,8 @@
+import logging
 from datetime import UTC, datetime
 from hashlib import sha256
-from uuid import UUID
+from time import perf_counter
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,6 +15,9 @@ from app.services.ai_resume_analysis import provider_from_settings
 from app.services.resumes import ResumeService
 
 
+logger = logging.getLogger(__name__)
+
+
 class ResumeAnalysisService:
     def __init__(self, db: Session, settings: Settings) -> None:
         self.db = db
@@ -20,6 +25,16 @@ class ResumeAnalysisService:
 
     def analyze(self, user_id: UUID, resume_id: UUID, payload: ResumeAnalysisCreate) -> tuple[ResumeAnalysis, ResumeVersion]:
         resume = ResumeService(self.db).get(user_id, resume_id)
+        request_id = payload.analysis_request_id or uuid4()
+        existing = self.db.scalar(
+            select(ResumeAnalysis).where(
+                ResumeAnalysis.user_id == user_id,
+                ResumeAnalysis.analysis_request_id == request_id,
+                ResumeAnalysis.deleted_at.is_(None),
+            )
+        )
+        if existing is not None:
+            return existing, resume
         resume_text = (payload.resume_text or resume.extracted_text or "").strip()
         if not resume_text:
             raise ValidationError("Upload a resume file or paste resume text before running AI analysis.")
@@ -28,10 +43,17 @@ class ResumeAnalysisService:
             raise ValidationError("Paste a target job description before running job-specific resume analysis.")
 
         provider = provider_from_settings(self.settings)
+        analysis_started_at = perf_counter()
         result = provider.analyze(
             resume_text=resume_text,
             target_role=payload.target_role.strip(),
             job_description=job_description,
+        )
+        logger.info(
+            "Resume analysis provider completed in %d ms (provider=%s model=%s)",
+            round((perf_counter() - analysis_started_at) * 1000),
+            provider.provider,
+            provider.model,
         )
         try:
             if payload.resume_text and payload.resume_text.strip() != (resume.extracted_text or "").strip():
@@ -45,6 +67,7 @@ class ResumeAnalysisService:
             analysis = ResumeAnalysis(
                 user_id=user_id,
                 resume_version_id=resume.id,
+                analysis_request_id=request_id,
                 company_name=(payload.company_name or "").strip(),
                 target_role=payload.target_role.strip(),
                 job_description=job_description,

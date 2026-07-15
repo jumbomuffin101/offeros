@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str | None = None
     ai_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
     ai_mock_enabled: bool = False
-    ai_timeout_seconds: int = 60
+    ai_timeout_seconds: int = 240
+    ai_connect_timeout_seconds: int = 15
+    ai_max_tokens: int = 1800
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(

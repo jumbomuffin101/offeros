@@ -39,6 +39,7 @@ class ResumeAnalysisCreate(ORMModel):
     company_name: str | None = Field(default="", max_length=200)
     job_description: NonEmptyStr = Field(max_length=40_000)
     resume_text: str | None = Field(default=None, max_length=120_000)
+    analysis_request_id: UUID | None = None
 
     @field_validator("job_description", "resume_text", mode="before")
     @classmethod
@@ -50,6 +51,7 @@ class ResumeAnalysisResponse(ORMModel):
     id: UUID
     user_id: UUID
     resume_version_id: UUID
+    analysis_request_id: UUID | None = None
     company_name: str
     target_role: str
     job_description: str

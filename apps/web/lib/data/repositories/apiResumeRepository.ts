@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { parseAnalyzeData } from "@/lib/data/api/resumeAnalyzeResponse";
 import { resumeAnalyzePath } from "@/lib/data/api/resumeAnalyzeRequest";
+import { RESUME_ANALYSIS_TIMEOUT_MESSAGE, RESUME_ANALYSIS_TIMEOUT_MS, RESUME_UPLOAD_TIMEOUT_MS } from "@/lib/data/api/request-timeouts";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiResumeRepository: ResumeRepository = {
@@ -45,7 +46,10 @@ export const apiResumeRepository: ResumeRepository = {
   async uploadResumeFile(resumeId, file) {
     const body = new FormData();
     body.append("file", file);
-    const response = await apiClient.post<ApiDataResponse<ApiResumeUploadResponse>, FormData>(`/resumes/${resumeId}/upload`, body);
+    const response = await apiClient.post<ApiDataResponse<ApiResumeUploadResponse>, FormData>(`/resumes/${resumeId}/upload`, body, {
+      timeoutMs: RESUME_UPLOAD_TIMEOUT_MS,
+      timeoutMessage: "Resume upload is taking longer than expected. Please try again.",
+    });
     return {
       resume: fromApiResume(response.data.resume),
       extraction: {
@@ -64,7 +68,11 @@ export const apiResumeRepository: ResumeRepository = {
       response = await apiClient.post<unknown>(
         resumeAnalyzePath(resumeId),
         toApiResumeAnalysis(payload),
-        { timeoutMs: 120_000 },
+        {
+          timeoutMs: RESUME_ANALYSIS_TIMEOUT_MS,
+          timeoutMessage: RESUME_ANALYSIS_TIMEOUT_MESSAGE,
+          headers: payload.analysisRequestId ? { "Idempotency-Key": payload.analysisRequestId } : undefined,
+        },
       );
     } catch (cause) {
       devAnalysisLog("request failed", { resumeId, message: cause instanceof Error ? cause.message : "Unknown error" });

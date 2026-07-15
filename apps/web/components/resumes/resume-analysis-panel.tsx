@@ -15,8 +15,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { RESUME_ANALYSIS_TIMEOUT_MESSAGE } from "@/lib/data/api/request-timeouts";
 
 const RESUME_ANALYSIS_PREFILL_KEY = "offeros:resume-analysis-prefill";
+const ANALYSIS_STATUS_MESSAGES = [
+  "Reading resume...",
+  "Comparing job requirements...",
+  "Evaluating experience and skills...",
+  "Generating recommendations...",
+];
 
 export function ResumeAnalysisPanel({
   resume,
@@ -42,6 +49,7 @@ export function ResumeAnalysisPanel({
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState<ResumeAnalysisStatus>("idle");
+  const [analysisStatusMessage, setAnalysisStatusMessage] = useState(ANALYSIS_STATUS_MESSAGES[0]);
   const [savingText, setSavingText] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -52,6 +60,7 @@ export function ResumeAnalysisPanel({
   const [message, setMessage] = useState("");
   const [fullAnalysis, setFullAnalysis] = useState<ResumeAnalysis | null>(null);
   const analysisInFlight = useRef(false);
+  const analysisRequestId = useRef<string | null>(null);
   const historyRequestId = useRef(0);
   const hasAnalysisData = useRef(false);
 
@@ -83,6 +92,16 @@ export function ResumeAnalysisPanel({
       });
   }, [onListAnalyses, resume.id]);
 
+  useEffect(() => {
+    if (analysisStatus !== "submitting") return;
+    let index = 0;
+    const interval = window.setInterval(() => {
+      index = (index + 1) % ANALYSIS_STATUS_MESSAGES.length;
+      setAnalysisStatusMessage(ANALYSIS_STATUS_MESSAGES[index]);
+    }, 3500);
+    return () => window.clearInterval(interval);
+  }, [analysisStatus]);
+
   const selected = useMemo(
     () => analyses.find((analysis) => analysis.id === selectedId) ?? analyses[0] ?? null,
     [analyses, selectedId],
@@ -112,7 +131,15 @@ export function ResumeAnalysisPanel({
     setAnalysisStatus("validating");
     let request: ReturnType<typeof buildResumeAnalysisRequest>;
     try {
-      request = buildResumeAnalysisRequest({ resume, targetRole, companyName, jobDescription, resumeText });
+      analysisRequestId.current ??= createAnalysisRequestId();
+      request = buildResumeAnalysisRequest({
+        resume,
+        targetRole,
+        companyName,
+        jobDescription,
+        resumeText,
+        analysisRequestId: analysisRequestId.current,
+      });
     } catch (cause) {
       devResumeAnalysis("validation failed", { message: cause instanceof Error ? cause.message : "Unknown validation error" });
       setAnalysisError(unexpectedAnalysisStartError(cause));
@@ -121,6 +148,7 @@ export function ResumeAnalysisPanel({
     }
     analysisInFlight.current = true;
     setLoading(true);
+    setAnalysisStatusMessage(ANALYSIS_STATUS_MESSAGES[0]);
     setAnalysisStatus("submitting");
     const requestId = ++historyRequestId.current;
     devResumeAnalysis("resumeId", { resumeId: request.resumeId });
@@ -138,14 +166,35 @@ export function ResumeAnalysisPanel({
       setHistoryError("");
       setMessage("Analysis saved to history.");
       setAnalysisStatus("completed");
+      analysisRequestId.current = null;
       devResumeAnalysis("request completed", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
     } catch (cause) {
       devResumeAnalysis("request failed", { resumeId: request.resumeId, requestId, message: cause instanceof Error ? cause.message : "Unknown error" });
       setAnalysisError(analysisErrorMessage(cause));
       setAnalysisStatus("failed");
+      if (isAnalysisTimeout(cause)) void checkAnalysisHistoryAfterTimeout(requestId);
     } finally {
       analysisInFlight.current = false;
       setLoading(false);
+    }
+  }
+
+  async function checkAnalysisHistoryAfterTimeout(requestId: number) {
+    try {
+      const items = await onListAnalyses(resume.id);
+      if (requestId !== historyRequestId.current) return;
+      setAnalyses(items);
+      setSelectedId(items[0]?.id ?? "");
+      hasAnalysisData.current = items.length > 0;
+      if (items[0]?.status === "completed") {
+        setFullAnalysis(items[0]);
+        setAnalysisError("");
+        setMessage("The analysis completed in the background and is now available.");
+        setAnalysisStatus("completed");
+        analysisRequestId.current = null;
+      }
+    } catch {
+      // This is a best-effort history check after a client-side timeout.
     }
   }
 
@@ -233,6 +282,7 @@ export function ResumeAnalysisPanel({
       {saveResumeTextError ? <ScopedError message={saveResumeTextError} /> : null}
       {analysisError ? <ScopedError message={analysisError} /> : null}
       {message ? <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
+      {analysisStatus === "submitting" ? <div className="flex items-center gap-2 rounded-lg border border-indigo-300/15 bg-indigo-300/[0.06] px-3 py-2 text-sm text-indigo-100"><Loader2 className="size-4 animate-spin" />{analysisStatusMessage}</div> : null}
 
       <div className="flex flex-wrap gap-2">
         <Button disabled={savingText || loading || uploading} onClick={() => void saveResumeText()} variant="secondary">
@@ -241,7 +291,7 @@ export function ResumeAnalysisPanel({
         </Button>
         <Button aria-busy={analysisStatus === "submitting"} disabled={loading || savingText || uploading} onClick={() => void runAnalysis()} variant="primary">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          {loading ? "Analyzing resume fit..." : "Run AI Analysis"}
+          {loading ? "Analyzing resume..." : "Run AI Analysis"}
         </Button>
       </div>
 
@@ -309,6 +359,15 @@ function devResumeAnalysis(message: string, details?: Record<string, unknown>) {
     return;
   }
   console.debug(`[ResumeAnalysis] ${message}`);
+}
+
+function createAnalysisRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `analysis-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isAnalysisTimeout(cause: unknown) {
+  return cause instanceof Error && cause.message === RESUME_ANALYSIS_TIMEOUT_MESSAGE;
 }
 
 function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis; onView: () => void }) {

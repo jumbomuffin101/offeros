@@ -62,10 +62,12 @@ class ResumeAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base)
     __tablename__ = "resume_analyses"
     __table_args__ = (
         Index("ix_resume_analyses_user_resume_updated", "user_id", "resume_version_id", "updated_at"),
+        Index("uq_resume_analyses_user_request", "user_id", "analysis_request_id", unique=True),
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     resume_version_id: Mapped[UUID] = mapped_column(ForeignKey("resume_versions.id", ondelete="CASCADE"), index=True)
+    analysis_request_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     company_name: Mapped[str] = mapped_column(String(200), default="")
     target_role: Mapped[str] = mapped_column(String(200))
     job_description: Mapped[str] = mapped_column(Text, default="")

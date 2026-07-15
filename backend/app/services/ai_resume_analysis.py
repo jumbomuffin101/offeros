@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 import re
 from typing import Protocol
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+import httpx
 
 from pydantic import ValidationError as PydanticValidationError
 
@@ -204,10 +204,19 @@ class MockResumeAnalysisProvider:
 class OpenRouterProvider:
     provider = "openrouter"
 
-    def __init__(self, api_key: str, model: str, timeout_seconds: int = 60) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: int = 240,
+        connect_timeout_seconds: int = 15,
+        max_tokens: int = 1800,
+    ) -> None:
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.connect_timeout_seconds = connect_timeout_seconds
+        self.max_tokens = max_tokens
 
     def analyze(self, *, resume_text: str, target_role: str, job_description: str) -> ResumeAnalysisResult:
         messages = [
@@ -239,7 +248,8 @@ class OpenRouterProvider:
         try:
             return self._complete(messages)
         except AppError as exc:
-            if exc.status_code not in {502, 503, 504}:
+            # Retry one fast provider failure, but never multiply a long provider timeout.
+            if exc.code == "ai_provider_timeout" or exc.status_code not in {502, 503}:
                 raise
             return self._complete(messages)
 
@@ -248,31 +258,42 @@ class OpenRouterProvider:
             "model": self.model,
             "messages": messages,
             "temperature": 0.2,
+            "max_tokens": self.max_tokens,
             "response_format": {"type": "json_object"},
         }
-        request = Request(
-            "https://openrouter.ai/api/v1/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
+        try:
+            with httpx.Client(
+                timeout=httpx.Timeout(self.timeout_seconds, connect=self.connect_timeout_seconds)
+            ) as client:
+                response = client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json=payload,
+                    headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://offeros.app",
                 "X-Title": "OfferOS Resume Intelligence",
-            },
-            method="POST",
-        )
+                    },
+                )
+        except httpx.TimeoutException as exc:
+            raise AppError("ai_provider_timeout", "Resume analysis is taking longer than expected. Please try again.", 504) from exc
+        except httpx.RequestError as exc:
+            raise AppError("ai_provider_error", "OpenRouter is unavailable. Try again in a moment.", 503) from exc
+
+        if response.status_code == 429:
+            raise AppError("ai_rate_limited", "OpenRouter is rate limited. Try again later.", 429)
+        if response.status_code in {404, 410}:
+            raise AppError("ai_model_unavailable", "The configured OpenRouter model is unavailable. Update AI_MODEL on the backend.", 503)
+        if response.status_code in {408, 502, 503, 504}:
+            raise AppError("ai_provider_error", "OpenRouter could not complete the resume analysis. Try again in a moment.", 503)
+        if response.is_error:
+            raise AppError("ai_provider_error", "OpenRouter could not complete the resume analysis.", 502)
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                response_payload = json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            if exc.code == 429:
-                raise AppError("ai_rate_limited", "OpenRouter is rate limited. Try again later.", 429) from exc
-            if exc.code in {404, 410}:
-                raise AppError("ai_model_unavailable", "The configured OpenRouter model is unavailable. Update AI_MODEL on the backend.", 503) from exc
-            raise AppError("ai_provider_error", "OpenRouter could not complete the resume analysis.", 502, detail) from exc
-        except (TimeoutError, URLError, OSError) as exc:
-            raise AppError("ai_provider_unavailable", "OpenRouter timed out or is unavailable. Try again in a moment.", 503) from exc
+            response_payload = response.json()
+        except json.JSONDecodeError as exc:
+            raise AppError("ai_provider_error", "OpenRouter returned an unreadable resume analysis.", 502) from exc
+        if not isinstance(response_payload, dict):
+            raise AppError("ai_provider_error", "OpenRouter returned an unreadable resume analysis.", 502)
         return extract_openrouter_content(response_payload)
 
 
@@ -292,7 +313,13 @@ Use the exact OfferOS schema. Convert weak bullet strings into objects with orig
 def provider_from_settings(settings: Settings) -> AIProvider:
     provider = settings.ai_provider.lower().strip()
     if provider == "openrouter" and settings.openrouter_api_key:
-        return OpenRouterProvider(settings.openrouter_api_key, settings.ai_model, settings.ai_timeout_seconds)
+        return OpenRouterProvider(
+            settings.openrouter_api_key,
+            settings.ai_model,
+            settings.ai_timeout_seconds,
+            settings.ai_connect_timeout_seconds,
+            settings.ai_max_tokens,
+        )
     if settings.ai_mock_enabled and settings.app_env in {"local", "test"}:
         return MockResumeAnalysisProvider()
     if provider in {"", "disabled"}:

@@ -166,6 +166,7 @@ export function toApiResumeAnalysis(value: ResumeAnalysisInput) {
     company_name: value.companyName,
     job_description: value.jobDescription,
     resume_text: value.resumeText,
+    analysis_request_id: value.analysisRequestId,
   });
 }
 

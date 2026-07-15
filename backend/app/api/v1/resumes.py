@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -104,10 +104,13 @@ async def upload_resume_file(
 def analyze_resume(
     resume_id: UUID,
     payload: ResumeAnalysisCreate,
+    idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> DataResponse[ResumeAnalyzeResponse]:
+    if payload.analysis_request_id is None:
+        payload.analysis_request_id = idempotency_key
     analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
     return DataResponse(
         data=ResumeAnalyzeResponse(

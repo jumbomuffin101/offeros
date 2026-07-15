@@ -25,6 +25,7 @@ export type ResumeAnalysisInput = {
   companyName?: string;
   jobDescription: string;
   resumeText?: string;
+  analysisRequestId?: string;
 };
 export type ResumeAnalyzeResult = {
   analysis: ResumeAnalysis;

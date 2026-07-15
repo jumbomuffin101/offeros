@@ -68,12 +68,14 @@ export function buildResumeAnalysisRequest({
   companyName,
   jobDescription,
   resumeText,
+  analysisRequestId,
 }: {
   resume: ResumeVersion | null | undefined;
   targetRole: unknown;
   companyName: unknown;
   jobDescription: unknown;
   resumeText: unknown;
+  analysisRequestId?: unknown;
 }): { resumeId: string; payload: ResumeAnalysisInput; diagnostics: { hasResumeText: boolean; hasJobDescription: boolean } } {
   const resumeId = stringValue(resume?.id);
   if (!resumeId) throw new ResumeAnalysisValidationError(RESUME_ANALYSIS_MISSING_RESUME_ERROR);
@@ -96,6 +98,7 @@ export function buildResumeAnalysisRequest({
       companyName: stringValue(companyName),
       jobDescription: normalizedJobDescription,
       resumeText: normalizedResumeText,
+      analysisRequestId: stringValue(analysisRequestId) || undefined,
     },
     diagnostics: {
       hasResumeText: normalizedResumeText.length > 0,

@@ -86,6 +86,7 @@ export type ApiResumeAnalysis = {
   id: string;
   user_id: string;
   resume_version_id: string;
+  analysis_request_id?: string | null;
   company_name: string;
   target_role: string;
   job_description: string;
