@@ -1,5 +1,5 @@
 import type { ResumeRepository } from "@/lib/data/types/repositories";
-import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeAnalyzeResponse, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
+import type { ApiDataResponse, ApiResume, ApiResumeAnalysis, ApiResumeUploadResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { fromApiResume, fromApiResumeAnalysis, toApiResume, toApiResumeAnalysis } from "@/lib/data/api/mappers";
 import { parseAnalyzeData } from "@/lib/data/api/resumeAnalyzeResponse";
@@ -78,13 +78,14 @@ export const apiResumeRepository: ResumeRepository = {
       devAnalysisLog("request failed", { resumeId, message: cause instanceof Error ? cause.message : "Unknown error" });
       throw cause;
     }
+    devAnalysisResponseShape(response);
     const data = parseAnalyzeData(response);
     const analysis = fromApiResumeAnalysis(data.analysis);
-    const resume = data.resume ? fromApiResume(data.resume) : await fetchResumeSummaryAfterPartialAnalyze(resumeId);
+    const resume = fromApiResume(data.resume);
     devAnalysisLog("request completed", {
-      resumeId: resume?.id ?? resumeId,
+      resumeId: resume.id,
       analysisId: analysis.id,
-      resumeIncluded: Boolean(data.resume),
+      resumeIncluded: true,
     });
     return { analysis, resume };
   },
@@ -101,18 +102,19 @@ export const apiResumeRepository: ResumeRepository = {
   },
 };
 
-async function fetchResumeSummaryAfterPartialAnalyze(resumeId: string) {
-  try {
-    devAnalysisLog("resume missing from analyze response; refreshing summary", { resumeId });
-    const response = await apiClient.get<ApiDataResponse<ApiResume>>(`/resumes/${resumeId}`, { timeoutMs: 45_000 });
-    return fromApiResume(response.data);
-  } catch {
-    devAnalysisLog("resume summary refresh failed after partial analyze", { resumeId });
-    return null;
-  }
-}
-
 function devAnalysisLog(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;
   console.debug("[OfferOS Resume Analysis]", message, details);
+}
+
+function devAnalysisResponseShape(response: unknown) {
+  if (process.env.NODE_ENV !== "development" || !response || typeof response !== "object") return;
+  const body = response as Record<string, unknown>;
+  const analysis = body.analysis && typeof body.analysis === "object" ? body.analysis as Record<string, unknown> : null;
+  const resume = body.resume && typeof body.resume === "object" ? body.resume as Record<string, unknown> : null;
+  console.debug("[OfferOS Resume Analysis] response shape", {
+    rootKeys: Object.keys(body),
+    analysisKeys: analysis ? Object.keys(analysis) : [],
+    resumeKeys: resume ? Object.keys(resume) : [],
+  });
 }

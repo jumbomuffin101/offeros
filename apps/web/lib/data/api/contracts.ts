@@ -52,7 +52,7 @@ export type ApiResume = {
   strengths: string[];
   weaknesses: string[];
   missing_keywords: string[];
-  suggested_improvement: string;
+  suggested_improvement: string | null;
   notes: string;
   file_name: string;
   original_file_name: string;
@@ -87,7 +87,7 @@ export type ApiResumeAnalysis = {
   user_id: string;
   resume_version_id: string;
   analysis_request_id?: string | null;
-  company_name: string;
+  company_name: string | null;
   target_role: string;
   job_description: string;
   input_resume_hash: string;
@@ -96,7 +96,7 @@ export type ApiResumeAnalysis = {
   impact_score: number;
   clarity_score: number;
   technical_depth_score: number;
-  experience_match_score: number;
+  experience_match_score: number | null;
   required_skills_match: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
   preferred_skills_match: Array<{ skill: string; status: "strong" | "partial" | "missing"; evidence: string | null }>;
   missing_keywords: string[];
@@ -106,7 +106,7 @@ export type ApiResumeAnalysis = {
   strengths: string[];
   risks: string[];
   recommendations: string[];
-  recruiter_summary: string;
+  recruiter_summary: string | null;
   summary: string;
   provider: string;
   model: string;

@@ -100,7 +100,7 @@ async def upload_resume_file(
     )
 
 
-@router.post("/{resume_id}/analyze", response_model=DataResponse[ResumeAnalyzeResponse])
+@router.post("/{resume_id}/analyze", response_model=ResumeAnalyzeResponse)
 def analyze_resume(
     resume_id: UUID,
     payload: ResumeAnalysisCreate,
@@ -108,15 +108,13 @@ def analyze_resume(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
-) -> DataResponse[ResumeAnalyzeResponse]:
+) -> ResumeAnalyzeResponse:
     if payload.analysis_request_id is None:
         payload.analysis_request_id = idempotency_key
     analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
-    return DataResponse(
-        data=ResumeAnalyzeResponse(
-            analysis=ResumeAnalysisResponse.model_validate(analysis),
-            resume=ResumeResponse.model_validate(resume),
-        )
+    return ResumeAnalyzeResponse(
+        analysis=ResumeAnalysisResponse.model_validate(analysis),
+        resume=ResumeResponse.model_validate(resume),
     )
 
 

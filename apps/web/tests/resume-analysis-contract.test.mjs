@@ -190,7 +190,7 @@ test("malformed repository response is a friendly response error", async () => {
 });
 
 test("valid analyze response exposes analysis and resume", () => {
-  const parsed = parseAnalyzeData({ data: { analysis: { id: "analysis_1" }, resume: { id: "resume_1" } } });
+  const parsed = parseAnalyzeData(canonicalAnalyzeResponse());
 
   assert.equal(parsed.analysis.id, "analysis_1");
   assert.equal(parsed.resume.id, "resume_1");
@@ -198,16 +198,46 @@ test("valid analyze response exposes analysis and resume", () => {
 
 test("missing analysis object throws a typed response error", () => {
   assert.throws(
-    () => parseAnalyzeData({ data: { resume: { id: "resume_1" } } }),
+    () => parseAnalyzeData({ resume: canonicalAnalyzeResponse().resume }),
     (error) => error instanceof DataError && error.code === "API_ERROR",
   );
 });
 
-test("missing resume object preserves the analysis as a partial success", () => {
-  const parsed = parseAnalyzeData({ data: { analysis: { id: "analysis_1" } } });
+test("legacy data wrappers are rejected so components use one response shape", () => {
+  assert.throws(
+    () => parseAnalyzeData({ data: canonicalAnalyzeResponse() }),
+    (error) => error instanceof DataError && error.code === "API_ERROR",
+  );
+});
 
-  assert.equal(parsed.analysis.id, "analysis_1");
-  assert.equal(parsed.resume, null);
+test("missing resume object throws a typed response error", () => {
+  assert.throws(
+    () => parseAnalyzeData({ analysis: canonicalAnalyzeResponse().analysis }),
+    (error) => error instanceof DataError && error.code === "API_ERROR",
+  );
+});
+
+test("canonical response allows null optional fields and empty arrays", () => {
+  const parsed = parseAnalyzeData(canonicalAnalyzeResponse({
+    company_name: null,
+    experience_match_score: null,
+    recruiter_summary: null,
+    missing_keywords: [],
+    strong_keywords: [],
+    strengths: [],
+    risks: [],
+    recommendations: [],
+  }));
+
+  assert.equal(parsed.analysis.company_name, null);
+  assert.deepEqual(parsed.analysis.missing_keywords, []);
+});
+
+test("out-of-range response scores throw a typed response error", () => {
+  assert.throws(
+    () => parseAnalyzeData(canonicalAnalyzeResponse({ overall_score: 101 })),
+    (error) => error instanceof DataError && error.code === "API_ERROR",
+  );
 });
 
 test("malformed analyze response throws a typed response error", () => {
@@ -241,6 +271,49 @@ test("a frontend TypeError is not shown raw", () => {
   assert.equal(analysisErrorMessage(new TypeError("onAnalyze is not a function")), RESUME_ANALYSIS_START_ERROR);
   assert.notEqual(RESUME_ANALYSIS_START_ERROR, "onAnalyze is not a function");
 });
+
+function canonicalAnalyzeResponse(analysisOverrides = {}, resumeOverrides = {}) {
+  return {
+    analysis: {
+      id: "analysis_1",
+      resume_version_id: "resume_1",
+      target_role: "Backend Engineer",
+      company_name: "Acme",
+      overall_score: 82,
+      keyword_score: 80,
+      impact_score: 78,
+      clarity_score: 84,
+      technical_depth_score: 76,
+      experience_match_score: 75,
+      missing_keywords: ["Docker"],
+      strong_keywords: ["Python"],
+      weak_bullets: [],
+      suggested_bullet_rewrites: [],
+      strengths: ["Relevant backend experience"],
+      risks: [],
+      recommendations: ["Add metrics"],
+      recruiter_summary: "Strong baseline fit.",
+      summary: "Heuristic guidance.",
+      provider: "openrouter",
+      model: "test-model",
+      status: "completed",
+      created_at: "2026-07-16T12:00:00Z",
+      ...analysisOverrides,
+    },
+    resume: {
+      id: "resume_1",
+      keyword_match_score: 80,
+      latest_overall_score: 82,
+      latest_analysis_id: "analysis_1",
+      last_analyzed_at: "2026-07-16T12:00:00Z",
+      strengths: ["Relevant backend experience"],
+      weaknesses: [],
+      missing_keywords: ["Docker"],
+      suggested_improvement: "Add metrics",
+      ...resumeOverrides,
+    },
+  };
+}
 
 function loadTsModule(relativePath, mocks = {}) {
   const source = readFileSync(join(testDir, relativePath), "utf8");
