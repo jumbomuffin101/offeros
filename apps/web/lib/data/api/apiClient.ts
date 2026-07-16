@@ -6,6 +6,7 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
   timeoutMessage?: string;
+  debugLabel?: "resume-analysis";
   skipAuth?: boolean;
   skipWakeup?: boolean;
 };
@@ -140,6 +141,9 @@ class ApiClient {
     const method = init.method ?? "GET";
     const startedAt = now();
     noteRequest(method, url);
+    if ((init as RequestOptions).debugLabel === "resume-analysis") {
+      if (DEV_API_DIAGNOSTICS) console.debug("[ResumeAnalysis] fetch starting", { method, path: new URL(url).pathname });
+    }
     const timeoutController = init.signal ? null : new AbortController();
     const timeoutId = timeoutController
       ? globalThis.setTimeout(() => timeoutController.abort(), timeoutMs)

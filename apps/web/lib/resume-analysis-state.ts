@@ -81,7 +81,7 @@ export function buildResumeAnalysisRequest({
   if (!resumeId) throw new ResumeAnalysisValidationError(RESUME_ANALYSIS_MISSING_RESUME_ERROR);
 
   const normalizedTargetRole = stringValue(targetRole);
-  if (!normalizedTargetRole) throw new ResumeAnalysisValidationError("Target role is required.");
+  if (!normalizedTargetRole) throw new ResumeAnalysisValidationError("Add a target role before running analysis.");
 
   const normalizedResumeText = stringValue(resumeText);
   if (!normalizedResumeText) throw new ResumeAnalysisValidationError(RESUME_ANALYSIS_MISSING_RESUME_TEXT_ERROR);

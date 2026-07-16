@@ -163,7 +163,7 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
 export function toApiResumeAnalysis(value: ResumeAnalysisInput) {
   return defined({
     target_role: value.targetRole,
-    company_name: value.companyName,
+    company_name: value.companyName || null,
     job_description: value.jobDescription,
     resume_text: value.resumeText,
     analysis_request_id: value.analysisRequestId,

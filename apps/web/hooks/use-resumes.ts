@@ -30,6 +30,7 @@ export function useResumes() {
     return result;
   }, [resource]);
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
+    devResumeAnalysis("calling analyzeResume", { resumeId });
     setBackgroundNotice("");
     const result = await resumeRepository.analyzeResume(resumeId, payload);
     validateResumeAnalysisResult(result);
@@ -68,4 +69,9 @@ export function useResumes() {
 function devResumeRefreshLog(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;
   console.debug("[OfferOS Resume Refresh]", message, details);
+}
+
+function devResumeAnalysis(message: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug(`[ResumeAnalysis] ${message}`, details);
 }

@@ -125,6 +125,8 @@ export function ResumeAnalysisPanel({
   async function runAnalysis() {
     if (analysisInFlight.current) return;
     devResumeAnalysis("click");
+    devResumeAnalysis("handler entered");
+    devResumeAnalysis("resume id", { resumeId: resume?.id });
     setAnalysisError("");
     setHistoryError("");
     setMessage("");
@@ -141,7 +143,7 @@ export function ResumeAnalysisPanel({
         analysisRequestId: analysisRequestId.current,
       });
     } catch (cause) {
-      devResumeAnalysis("validation failed", { message: cause instanceof Error ? cause.message : "Unknown validation error" });
+      devResumeAnalysisError("validation failed", cause);
       setAnalysisError(unexpectedAnalysisStartError(cause));
       setAnalysisStatus("failed");
       return;
@@ -151,9 +153,8 @@ export function ResumeAnalysisPanel({
     setAnalysisStatusMessage(ANALYSIS_STATUS_MESSAGES[0]);
     setAnalysisStatus("submitting");
     const requestId = ++historyRequestId.current;
-    devResumeAnalysis("resumeId", { resumeId: request.resumeId });
-    devResumeAnalysis("validationPassed", { valid: true });
-    devResumeAnalysis("calling repository", { resumeId: request.resumeId, requestId });
+    devResumeAnalysis("validation passed");
+    devResumeAnalysis("calling analyzeResume", { resumeId: request.resumeId, requestId });
     try {
       const result = await invokeResumeAnalysis(onAnalyze, request);
       // The repository has returned: response validation begins only at this point.
@@ -169,7 +170,7 @@ export function ResumeAnalysisPanel({
       analysisRequestId.current = null;
       devResumeAnalysis("request completed", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
     } catch (cause) {
-      devResumeAnalysis("request failed", { resumeId: request.resumeId, requestId, message: cause instanceof Error ? cause.message : "Unknown error" });
+      devResumeAnalysisError("request failed", cause, { resumeId: request.resumeId, requestId });
       setAnalysisError(analysisErrorMessage(cause));
       setAnalysisStatus("failed");
       if (isAnalysisTimeout(cause)) void checkAnalysisHistoryAfterTimeout(requestId);
@@ -342,16 +343,16 @@ function devResumeAnalysis(message: string, details?: Record<string, unknown>) {
     console.debug("[ResumeAnalysis] click");
     return;
   }
-  if (message === "resumeId") {
-    console.debug("[ResumeAnalysis] resumeId", details?.resumeId);
+  if (message === "resume id") {
+    console.debug("[ResumeAnalysis] resume id:", details?.resumeId);
     return;
   }
-  if (message === "validationPassed") {
-    console.debug("[ResumeAnalysis] validationPassed", true);
+  if (message === "validation passed") {
+    console.debug("[ResumeAnalysis] validation passed");
     return;
   }
-  if (message === "calling repository") {
-    console.debug("[ResumeAnalysis] calling repository");
+  if (message === "calling analyzeResume") {
+    console.debug("[ResumeAnalysis] calling analyzeResume");
     return;
   }
   if (details) {
@@ -359,6 +360,11 @@ function devResumeAnalysis(message: string, details?: Record<string, unknown>) {
     return;
   }
   console.debug(`[ResumeAnalysis] ${message}`);
+}
+
+function devResumeAnalysisError(message: string, cause: unknown, details?: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.error(`[ResumeAnalysis] ${message}`, details ?? {}, cause);
 }
 
 function createAnalysisRequestId() {

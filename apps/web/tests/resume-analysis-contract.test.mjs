@@ -83,6 +83,51 @@ test("analysis request id is mapped to the API body for idempotent retries", () 
   assert.equal(toApiResumeAnalysis(request.payload).analysis_request_id, "b2a1f0e1-863b-4a52-9906-bc8ef726ad8c");
 });
 
+test("API resume repository posts the canonical analysis endpoint and payload", async () => {
+  const calls = [];
+  const { apiResumeRepository } = loadTsModule("../lib/data/repositories/apiResumeRepository.ts", {
+    "@/lib/data/api/apiClient": {
+      apiClient: {
+        post: async (path, body, options) => {
+          calls.push({ path, body, options });
+          return canonicalAnalyzeResponse();
+        },
+      },
+    },
+    "@/lib/data/api/mappers": {
+      toApiResumeAnalysis,
+      fromApiResumeAnalysis: (value) => value,
+      fromApiResume: (value) => value,
+      toApiResume: (value) => value,
+    },
+    "@/lib/data/api/resumeAnalyzeResponse": { parseAnalyzeData: (value) => value },
+    "@/lib/data/api/resumeAnalyzeRequest": { resumeAnalyzePath },
+    "@/lib/data/api/request-timeouts": {
+      RESUME_ANALYSIS_TIMEOUT_MESSAGE,
+      RESUME_ANALYSIS_TIMEOUT_MS,
+      RESUME_UPLOAD_TIMEOUT_MS,
+    },
+    "@/lib/data/repositories/apiWorkspaceReset": { resetApiWorkspace: async () => ({}) },
+  });
+
+  await apiResumeRepository.analyzeResume("resume_1", {
+    targetRole: "Backend Engineer",
+    companyName: "",
+    jobDescription: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resumeText: "Built FastAPI services with PostgreSQL.",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, "/resumes/resume_1/analyze");
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0].body)), {
+    target_role: "Backend Engineer",
+    company_name: null,
+    job_description: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
+    resume_text: "Built FastAPI services with PostgreSQL.",
+  });
+  assert.equal(calls[0].options.debugLabel, "resume-analysis");
+});
+
 test("missing resume id does not crash before request", () => {
   assert.throws(
     () => buildResumeAnalysisRequest({
@@ -322,6 +367,6 @@ function loadTsModule(relativePath, mocks = {}) {
   }).outputText;
   const testModule = { exports: {} };
   const scopedRequire = (specifier) => mocks[specifier] ?? require(specifier);
-  vm.runInNewContext(compiled, { exports: testModule.exports, module: testModule, require: scopedRequire, TypeError }, { filename: relativePath });
+  vm.runInNewContext(compiled, { exports: testModule.exports, module: testModule, require: scopedRequire, TypeError, process, console }, { filename: relativePath });
   return testModule.exports;
 }

@@ -62,7 +62,8 @@ export const apiResumeRepository: ResumeRepository = {
     };
   },
   async analyzeResume(resumeId, payload) {
-    devAnalysisLog("request started", { resumeId, path: resumeAnalyzePath(resumeId) });
+    devResumeAnalysisLog("repository entered", { resumeId });
+    devResumeAnalysisLog("apiClient.post entered", { resumeId, path: resumeAnalyzePath(resumeId) });
     let response: unknown;
     try {
       response = await apiClient.post<unknown>(
@@ -71,18 +72,19 @@ export const apiResumeRepository: ResumeRepository = {
         {
           timeoutMs: RESUME_ANALYSIS_TIMEOUT_MS,
           timeoutMessage: RESUME_ANALYSIS_TIMEOUT_MESSAGE,
+          debugLabel: "resume-analysis",
           headers: payload.analysisRequestId ? { "Idempotency-Key": payload.analysisRequestId } : undefined,
         },
       );
     } catch (cause) {
-      devAnalysisLog("request failed", { resumeId, message: cause instanceof Error ? cause.message : "Unknown error" });
+      devResumeAnalysisError("apiClient.post failed", cause, { resumeId });
       throw cause;
     }
     devAnalysisResponseShape(response);
     const data = parseAnalyzeData(response);
     const analysis = fromApiResumeAnalysis(data.analysis);
     const resume = fromApiResume(data.resume);
-    devAnalysisLog("request completed", {
+    devResumeAnalysisLog("request completed", {
       resumeId: resume.id,
       analysisId: analysis.id,
       resumeIncluded: true,
@@ -102,9 +104,9 @@ export const apiResumeRepository: ResumeRepository = {
   },
 };
 
-function devAnalysisLog(message: string, details: Record<string, unknown>) {
+function devResumeAnalysisLog(message: string, details: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Resume Analysis]", message, details);
+  console.debug(`[ResumeAnalysis] ${message}`, details);
 }
 
 function devAnalysisResponseShape(response: unknown) {
@@ -112,9 +114,14 @@ function devAnalysisResponseShape(response: unknown) {
   const body = response as Record<string, unknown>;
   const analysis = body.analysis && typeof body.analysis === "object" ? body.analysis as Record<string, unknown> : null;
   const resume = body.resume && typeof body.resume === "object" ? body.resume as Record<string, unknown> : null;
-  console.debug("[OfferOS Resume Analysis] response shape", {
+  console.debug("[ResumeAnalysis] response shape", {
     rootKeys: Object.keys(body),
     analysisKeys: analysis ? Object.keys(analysis) : [],
     resumeKeys: resume ? Object.keys(resume) : [],
   });
+}
+
+function devResumeAnalysisError(message: string, cause: unknown, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.error(`[ResumeAnalysis] ${message}`, details, cause);
 }
