@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { ResumeVersion } from "@/lib/types";
 import type { ResumeAnalysisInput, ResumeInput } from "@/lib/data/types";
 import { resumeRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
 import {
   mergeAnalyzedResume,
-  RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR,
   validateResumeAnalysisResult,
 } from "@/lib/resume-analysis-state";
 
@@ -15,7 +14,6 @@ const loadResumes = () => resumeRepository.list();
 
 export function useResumes() {
   const resource = useRepositoryResource(loadResumes);
-  const [backgroundNotice, setBackgroundNotice] = useState("");
   const create = useCallback((input: ResumeInput) => resource.mutate(() => resumeRepository.create(input)), [resource]);
   const update = useCallback((id: string, input: Partial<ResumeInput>) => resource.mutate(() => resumeRepository.update(id, input)), [resource]);
   const remove = useCallback((id: string) => resource.mutate(() => resumeRepository.delete(id)), [resource]);
@@ -31,21 +29,14 @@ export function useResumes() {
   }, [resource]);
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
     devResumeAnalysis("calling analyzeResume", { resumeId });
-    setBackgroundNotice("");
     const result = await resumeRepository.analyzeResume(resumeId, payload);
     validateResumeAnalysisResult(result);
     devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume?.id ?? null });
     if (result.resume) {
       resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));
-    } else {
-      setBackgroundNotice(RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR);
     }
-    void (async () => {
-      devResumeRefreshLog("resume list refresh start", { reason: "analysis", resumeId });
-      const ok = await resource.refreshSilently();
-      devResumeRefreshLog("resume list refresh complete", { reason: "analysis", resumeId, ok });
-      if (!ok && result.resume) setBackgroundNotice("Analysis saved. Some updated workspace data could not be refreshed.");
-    })();
+    // The analyze response is authoritative. Avoid a follow-up list request
+    // overwriting its fresh summary with a stale cache response.
     return result;
   }, [resource]);
   const listResumeAnalyses = useCallback((resumeId: string) => resumeRepository.listResumeAnalyses(resumeId), []);
@@ -60,7 +51,6 @@ export function useResumes() {
   }, [resource]);
   return {
     resumes: resource.data ?? [], loading: resource.loading, error: resource.error, refresh: resource.refresh,
-    backgroundNotice, clearBackgroundNotice: () => setBackgroundNotice(""),
     create, update, delete: remove, duplicate, toggleStatus, reset, updateResumeText,
     uploadResumeFile, analyzeResume, listResumeAnalyses, getResumeAnalysis, deleteResumeAnalysis,
   };

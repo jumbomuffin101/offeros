@@ -44,6 +44,9 @@ const {
   RESUME_UPLOAD_TIMEOUT_MS,
 } = loadTsModule("../lib/data/api/request-timeouts.ts");
 const { toApiResumeAnalysis } = loadTsModule("../lib/data/api/mappers.ts");
+const { resumeFilePresentation } = loadTsModule("../lib/resume-file-state.ts", {
+  "@/lib/types": {},
+});
 
 test("valid resume analysis input builds POST path and snake case payload", () => {
   const request = buildResumeAnalysisRequest({
@@ -314,6 +317,17 @@ test("successful response updates the matching resume cache entry", () => {
 
   assert.equal(next[0].latestAnalysisId, "analysis_1");
   assert.equal(next[1].latestAnalysisId, "");
+});
+
+test("a saved resume shows its stored file metadata until replacement is requested", () => {
+  const saved = resumeFilePresentation({ originalFileName: "Aryan Resume.pdf", fileName: "Aryan Resume.pdf" }, false);
+  const replacing = resumeFilePresentation({ originalFileName: "Aryan Resume.pdf", fileName: "Aryan Resume.pdf" }, true);
+  const newResume = resumeFilePresentation({ originalFileName: "", fileName: "" }, false);
+
+  assert.equal(saved.storedName, "Aryan Resume.pdf");
+  assert.equal(saved.showPicker, false);
+  assert.equal(replacing.showPicker, true);
+  assert.equal(newResume.showPicker, true);
 });
 
 test("raw undefined property TypeError never reaches analysis UI", () => {

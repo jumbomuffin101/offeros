@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { RESUME_ANALYSIS_TIMEOUT_MESSAGE } from "@/lib/data/api/request-timeouts";
+import { resumeFilePresentation } from "@/lib/resume-file-state";
 
 const RESUME_ANALYSIS_PREFILL_KEY = "offeros:resume-analysis-prefill";
 const ANALYSIS_STATUS_MESSAGES = [
@@ -59,6 +60,7 @@ export function ResumeAnalysisPanel({
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
   const [fullAnalysis, setFullAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [showFilePicker, setShowFilePicker] = useState(false);
   const analysisInFlight = useRef(false);
   const analysisRequestId = useRef<string | null>(null);
   const historyRequestId = useRef(0);
@@ -207,6 +209,7 @@ export function ResumeAnalysisPanel({
     try {
       const result = await onUploadResumeFile(resume.id, file);
       setResumeText(result.extraction.text);
+      setShowFilePicker(false);
       setUploadError("");
       setMessage(`Ready for analysis. Extracted ${result.extraction.characterCount.toLocaleString()} characters${result.extraction.warnings.length ? ` (${result.extraction.warnings[0]})` : "."}`);
     } catch (cause) {
@@ -246,20 +249,15 @@ export function ResumeAnalysisPanel({
       </div>
 
       <div className="grid gap-3">
-        <label className="rounded-xl border border-slate-700/45 bg-slate-950/25 p-3">
-          <span className="mb-2 block text-xs font-medium text-slate-500">Resume file</span>
-          <input
-            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-            className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-400/15 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-100 hover:file:bg-indigo-400/20"
-            disabled={uploading || !onUploadResumeFile}
-            onChange={(event) => void uploadFile(event.target.files?.[0])}
-            type="file"
-          />
-          <span className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <FileUp className="size-3.5" />}
-            {uploading ? "Uploading and extracting text..." : "PDF, DOCX, or TXT up to 5 MB. OCR for scanned PDFs is not available yet."}
-          </span>
-        </label>
+        <ResumeFileControl
+          resume={resume}
+          replacing={showFilePicker}
+          uploading={uploading}
+          uploadAvailable={Boolean(onUploadResumeFile)}
+          onCancelReplace={() => setShowFilePicker(false)}
+          onFileChange={(file) => void uploadFile(file)}
+          onReplace={() => setShowFilePicker(true)}
+        />
         <label>
           <span className="mb-1.5 block text-xs font-medium text-slate-500">Target role</span>
           <Input value={targetRole} onChange={(event) => setTargetRole(event.target.value)} placeholder="Backend Software Engineer Intern" />
@@ -400,11 +398,57 @@ function CompactAnalysisSummary({ analysis, onView }: { analysis: ResumeAnalysis
   );
 }
 
+function ResumeFileControl({ resume, replacing, uploading, uploadAvailable, onCancelReplace, onFileChange, onReplace }: {
+  resume: ResumeVersion;
+  replacing: boolean;
+  uploading: boolean;
+  uploadAvailable: boolean;
+  onCancelReplace: () => void;
+  onFileChange: (file: File | undefined) => void;
+  onReplace: () => void;
+}) {
+  const { storedName, showPicker } = resumeFilePresentation(resume, replacing);
+  return (
+    <div className="rounded-xl border border-slate-700/45 bg-slate-950/25 p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-slate-500">Resume file</span>
+        {storedName && !showPicker ? <Button className="h-8 px-2.5 text-xs" disabled={uploading || !uploadAvailable} onClick={onReplace} variant="ghost">Replace file</Button> : null}
+      </div>
+      {showPicker ? (
+        <>
+          <input
+            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            aria-label={storedName ? "Choose replacement resume file" : "Choose resume file"}
+            className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-400/15 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-100 hover:file:bg-indigo-400/20"
+            disabled={uploading || !uploadAvailable}
+            onChange={(event) => onFileChange(event.target.files?.[0])}
+            type="file"
+          />
+          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
+            <span className="flex items-center gap-2">{uploading ? <Loader2 className="size-3.5 animate-spin" /> : <FileUp className="size-3.5" />}{uploading ? "Uploading and extracting text..." : "PDF, DOCX, or TXT up to 5 MB. OCR for scanned PDFs is not available yet."}</span>
+            {storedName && replacing ? <button className="shrink-0 text-slate-300 hover:text-white" disabled={uploading} onClick={onCancelReplace} type="button">Cancel</button> : null}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.045] p-3">
+          <FileUp className="mt-0.5 size-4 shrink-0 text-emerald-200" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-slate-100">{storedName}</div>
+            <div className="mt-1 text-xs text-emerald-100/80">{resume.textExtractionStatus === "failed" ? "Extraction failed" : "Ready for analysis"}</div>
+            <div className="mt-1 text-xs leading-5 text-slate-500">{resume.extractionCharacterCount || resume.extractedText.length ? `${(resume.extractionCharacterCount || resume.extractedText.length).toLocaleString()} characters extracted` : "Filename saved"}{resume.extractedAt ? ` · Extracted ${new Date(resume.extractedAt).toLocaleDateString()}` : ""}</div>
+            <div className="mt-1 text-xs leading-5 text-slate-600">OfferOS stores the filename and extracted text, not the original file bytes.</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AnalysisModal({ analysis, resume, onClose }: { analysis: ResumeAnalysis; resume: ResumeVersion; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/78 p-3 backdrop-blur-xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="analysis-title">
-      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-700/45 bg-[#1b1d2b] shadow-2xl shadow-black/35 sm:max-h-[calc(100dvh-3rem)]">
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-700/45 px-5 py-4">
+      <div className="flex h-[calc(100dvh-1.5rem)] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-slate-700/45 bg-[#1b1d2b] shadow-2xl shadow-black/35 sm:h-[calc(100dvh-3rem)]">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-700/45 px-5 py-4 sm:px-7">
           <div className="min-w-0">
             <div className="text-xs font-medium uppercase text-slate-500">AI Resume Analysis</div>
             <h2 className="mt-1 truncate text-xl font-semibold text-white" id="analysis-title">{resume.name}</h2>
@@ -413,7 +457,7 @@ function AnalysisModal({ analysis, resume, onClose }: { analysis: ResumeAnalysis
           </div>
           <Button onClick={onClose} variant="ghost" aria-label="Back to Resume Manager"><X className="size-4" />Close</Button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
           <AnalysisResult analysis={analysis} />
         </div>
       </div>
