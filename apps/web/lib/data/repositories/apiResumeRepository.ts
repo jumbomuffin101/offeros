@@ -83,11 +83,11 @@ export const apiResumeRepository: ResumeRepository = {
     devAnalysisResponseShape(response);
     const data = parseAnalyzeData(response);
     const analysis = fromApiResumeAnalysis(data.analysis);
-    const resume = fromApiResume(data.resume);
+    const resume = data.resume ? fromApiResume(data.resume) : null;
     devResumeAnalysisLog("request completed", {
-      resumeId: resume.id,
+      resumeId: resume?.id ?? resumeId,
       analysisId: analysis.id,
-      resumeIncluded: true,
+      resumeIncluded: Boolean(resume),
     });
     return { analysis, resume };
   },

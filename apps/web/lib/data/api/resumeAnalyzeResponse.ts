@@ -1,10 +1,17 @@
 import type { ApiResume, ApiResumeAnalysis } from "@/lib/data/api/contracts";
 import { DataError } from "@/lib/data/errors";
 
-export function parseAnalyzeData(response: unknown): { analysis: ApiResumeAnalysis; resume: ApiResume } {
+export function parseAnalyzeData(response: unknown): { analysis: ApiResumeAnalysis; resume: ApiResume | null } {
   if (!isRecord(response)) {
     throw new DataError("API_ERROR", "OfferOS received an unexpected analysis response.");
   }
+
+  // The canonical endpoint returns { analysis, resume }. Keep this adapter as
+  // the only legacy boundary while an older backend deployment is replaced.
+  if (isRecord(response.data) && isCanonicalAnalysis(response.data as ApiResumeAnalysis)) {
+    return { analysis: response.data as ApiResumeAnalysis, resume: null };
+  }
+
   const analysis = isRecord(response.analysis) ? response.analysis as ApiResumeAnalysis : null;
   const resume = isRecord(response.resume) ? response.resume as ApiResume : null;
   if (!analysis || !resume || !isCanonicalAnalysis(analysis) || !isCanonicalResume(resume)) {
@@ -42,6 +49,9 @@ function isCanonicalResume(value: ApiResume) {
     && areScoresValid([value.keyword_match_score, value.latest_overall_score])
     && isNullableId(value.latest_analysis_id)
     && isNullableString(value.last_analyzed_at)
+    && isString(value.latest_analysis_target_role)
+    && isString(value.latest_analysis_company)
+    && isString(value.analysis_status)
     && areStringArrays([value.strengths, value.weaknesses, value.missing_keywords])
     && isNullableString(value.suggested_improvement);
 }

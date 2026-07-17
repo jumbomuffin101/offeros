@@ -29,7 +29,9 @@ export type ResumeAnalysisInput = {
 };
 export type ResumeAnalyzeResult = {
   analysis: ResumeAnalysis;
-  resume: ResumeVersion;
+  // Legacy API deployments may return an analysis before the resume summary
+  // contract is deployed. The repository normalizes that response here.
+  resume: ResumeVersion | null;
 };
 export type ResumeUploadResult = {
   resume: ResumeVersion;

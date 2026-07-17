@@ -50,7 +50,8 @@ def test_analyze_resume_mock_schema_is_valid(client: TestClient) -> None:
     history_response = client.get(f"/api/v1/resumes/{resume_id}/analyses")
 
     assert response.status_code == 200
-    data = response.json()["data"]
+    data = response.json()
+    assert set(data) == {"analysis", "resume"}
     analysis = data["analysis"]
     resume = data["resume"]
     assert analysis["provider"] == "mock"
@@ -69,6 +70,11 @@ def test_analyze_resume_mock_schema_is_valid(client: TestClient) -> None:
     assert resume["latest_analysis_target_role"] == "Backend Engineer"
     assert resume["latest_analysis_company"] == "Acme"
     assert resume["analysis_status"] == "completed"
+    assert resume["last_analyzed_at"] is not None
+    assert resume["strengths"] == analysis["strengths"]
+    assert resume["weaknesses"] == analysis["risks"]
+    assert resume["missing_keywords"] == analysis["missing_keywords"]
+    assert resume["suggested_improvement"] == analysis["summary"]
     if analysis["suggested_bullet_rewrites"]:
         assert "why_better" in analysis["suggested_bullet_rewrites"][0]
     assert history_response.status_code == 200

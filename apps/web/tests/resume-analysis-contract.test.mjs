@@ -239,6 +239,9 @@ test("valid analyze response exposes analysis and resume", () => {
 
   assert.equal(parsed.analysis.id, "analysis_1");
   assert.equal(parsed.resume.id, "resume_1");
+  assert.equal(parsed.resume.latest_analysis_target_role, "Backend Engineer");
+  assert.equal(parsed.resume.latest_analysis_company, "Acme");
+  assert.equal(parsed.resume.analysis_status, "completed");
 });
 
 test("missing analysis object throws a typed response error", () => {
@@ -248,11 +251,11 @@ test("missing analysis object throws a typed response error", () => {
   );
 });
 
-test("legacy data wrappers are rejected so components use one response shape", () => {
-  assert.throws(
-    () => parseAnalyzeData({ data: canonicalAnalyzeResponse() }),
-    (error) => error instanceof DataError && error.code === "API_ERROR",
-  );
+test("legacy data analysis wrapper is normalized only in the repository adapter", () => {
+  const parsed = parseAnalyzeData({ data: canonicalAnalyzeResponse().analysis });
+
+  assert.equal(parsed.analysis.id, "analysis_1");
+  assert.equal(parsed.resume, null);
 });
 
 test("missing resume object throws a typed response error", () => {
@@ -272,10 +275,17 @@ test("canonical response allows null optional fields and empty arrays", () => {
     strengths: [],
     risks: [],
     recommendations: [],
+  }, {
+    latest_overall_score: null,
+    latest_analysis_id: null,
+    last_analyzed_at: null,
+    suggested_improvement: null,
   }));
 
   assert.equal(parsed.analysis.company_name, null);
   assert.deepEqual(parsed.analysis.missing_keywords, []);
+  assert.equal(parsed.resume.latest_overall_score, null);
+  assert.equal(parsed.resume.suggested_improvement, null);
 });
 
 test("out-of-range response scores throw a typed response error", () => {
@@ -350,13 +360,16 @@ function canonicalAnalyzeResponse(analysisOverrides = {}, resumeOverrides = {}) 
       keyword_match_score: 80,
       latest_overall_score: 82,
       latest_analysis_id: "analysis_1",
-      last_analyzed_at: "2026-07-16T12:00:00Z",
-      strengths: ["Relevant backend experience"],
-      weaknesses: [],
-      missing_keywords: ["Docker"],
-      suggested_improvement: "Add metrics",
-      ...resumeOverrides,
-    },
+    last_analyzed_at: "2026-07-16T12:00:00Z",
+    strengths: ["Relevant backend experience"],
+    weaknesses: [],
+    missing_keywords: ["Docker"],
+    suggested_improvement: "Add metrics",
+    latest_analysis_target_role: "Backend Engineer",
+    latest_analysis_company: "Acme",
+    analysis_status: "completed",
+    ...resumeOverrides,
+  },
   };
 }
 
