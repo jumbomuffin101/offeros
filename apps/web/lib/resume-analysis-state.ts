@@ -1,6 +1,6 @@
 import type { ResumeAnalysisInput, ResumeAnalyzeResult } from "@/lib/data/types";
 import { DataError } from "@/lib/data/errors";
-import type { ResumeVersion } from "@/lib/types";
+import type { ResumeAnalysis, ResumeVersion } from "@/lib/types";
 
 export const RESUME_ANALYSIS_SUMMARY_UPDATE_ERROR =
   "Analysis completed, but OfferOS could not update the resume summary. Please refresh and try again.";
@@ -29,8 +29,27 @@ export function mergeAnalyzedResume(
   resumeId: string,
   result: ResumeAnalyzeResult,
 ) {
-  if (!resumes || !result.resume) return resumes;
-  return resumes.map((resume) => resume.id === resumeId ? result.resume ?? resume : resume);
+  if (!resumes) return resumes;
+  return resumes.map((resume) => resume.id === resumeId ? result.resume ?? resumeSummaryFromAnalysis(resume, result.analysis) : resume);
+}
+
+export function resumeSummaryFromAnalysis(resume: ResumeVersion, analysis: ResumeAnalysis): ResumeVersion {
+  return {
+    ...resume,
+    keywordMatchScore: analysis.keywordScore,
+    strengths: analysis.strengths,
+    weaknesses: analysis.risks,
+    missingKeywords: analysis.missingKeywords,
+    suggestedImprovement: analysis.recommendations[0] || analysis.summary,
+    lastAnalyzedAt: analysis.createdAt,
+    latestAnalysisId: analysis.id,
+    latestOverallScore: analysis.overallScore,
+    latestAnalysisTargetRole: analysis.targetRole,
+    latestAnalysisCompany: analysis.companyName,
+    analysisStatus: analysis.status,
+    lastUpdated: analysis.updatedAt || resume.lastUpdated,
+    updatedAt: analysis.updatedAt || resume.updatedAt,
+  };
 }
 
 export function analysisErrorMessage(cause: unknown) {

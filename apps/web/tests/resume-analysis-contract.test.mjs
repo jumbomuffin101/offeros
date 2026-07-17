@@ -33,6 +33,7 @@ const {
   buildResumeAnalysisRequest,
   invokeResumeAnalysis,
   mergeAnalyzedResume,
+  resumeSummaryFromAnalysis,
 } = loadTsModule("../lib/resume-analysis-state.ts", {
   "@/lib/data/errors": { DataError },
 });
@@ -323,6 +324,27 @@ test("successful response updates the matching resume cache entry", () => {
 
   assert.equal(next[0].latestAnalysisId, "analysis_1");
   assert.equal(next[1].latestAnalysisId, "");
+});
+
+test("legacy analysis-only responses still update the resume card summary", () => {
+  const current = [{
+    id: "resume_1", keywordMatchScore: 0, strengths: [], weaknesses: [], missingKeywords: [],
+    suggestedImprovement: "", lastUpdated: "old", updatedAt: "old",
+  }];
+  const analysis = {
+    id: "analysis_1", overallScore: 85, keywordScore: 70, strengths: ["FastAPI"], risks: ["Missing metrics"],
+    missingKeywords: ["Kubernetes"], recommendations: ["Quantify production impact."], summary: "Summary",
+    createdAt: "2026-07-17T12:00:00Z", updatedAt: "2026-07-17T12:00:00Z", targetRole: "Software Engineer Intern", companyName: "Palantir", status: "completed",
+  };
+  const next = mergeAnalyzedResume(current, "resume_1", { analysis, resume: null });
+  const derived = resumeSummaryFromAnalysis(current[0], analysis);
+
+  assert.equal(next[0].latestOverallScore, 85);
+  assert.equal(next[0].keywordMatchScore, 70);
+  assert.equal(next[0].lastAnalyzedAt, "2026-07-17T12:00:00Z");
+  assert.equal(next[0].missingKeywords.length, 1);
+  assert.equal(next[0].analysisStatus, "completed");
+  assert.equal(derived.suggestedImprovement, "Quantify production impact.");
 });
 
 test("a saved resume shows its stored file metadata until replacement is requested", () => {

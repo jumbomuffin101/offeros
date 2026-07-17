@@ -32,9 +32,7 @@ export function useResumes() {
     const result = await resumeRepository.analyzeResume(resumeId, payload);
     validateResumeAnalysisResult(result);
     devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume?.id ?? null });
-    if (result.resume) {
-      resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));
-    }
+    resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));
     // The analyze response is authoritative. Avoid a follow-up list request
     // overwriting its fresh summary with a stale cache response.
     return result;
