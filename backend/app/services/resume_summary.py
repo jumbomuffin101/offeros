@@ -1,6 +1,50 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from app.models.resume import ResumeAnalysis, ResumeVersion
+
+
+def _safe_text(value: object, default: str = "") -> str:
+    return default if value is None else str(value)
+
+
+def _safe_string_list(value: object, *, limit: int) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if item is not None][:limit]
+
+
+def latest_analysis_summary_values(analysis: ResumeAnalysis | None) -> dict[str, Any]:
+    """Return a response-safe latest-analysis overlay without mutating a resume."""
+    if analysis is None:
+        return {
+            "keyword_match_score": 0,
+            "strengths": [],
+            "weaknesses": [],
+            "missing_keywords": [],
+            "suggested_improvement": "",
+            "last_analyzed_at": None,
+            "latest_analysis_id": None,
+            "latest_overall_score": None,
+            "latest_analysis_target_role": "",
+            "latest_analysis_company": "",
+            "analysis_status": "",
+        }
+
+    recommendations = _safe_string_list(getattr(analysis, "recommendations", None), limit=12)
+    return {
+        "keyword_match_score": getattr(analysis, "keyword_score", 0),
+        "strengths": _safe_string_list(getattr(analysis, "strengths", None), limit=12),
+        "weaknesses": _safe_string_list(getattr(analysis, "risks", None), limit=12),
+        "missing_keywords": _safe_string_list(getattr(analysis, "missing_keywords", None), limit=30),
+        "suggested_improvement": recommendations[0] if recommendations else _safe_text(getattr(analysis, "summary", None)),
+        "last_analyzed_at": getattr(analysis, "created_at", None),
+        "latest_analysis_id": getattr(analysis, "id", None),
+        "latest_overall_score": getattr(analysis, "overall_score", None),
+        "latest_analysis_target_role": _safe_text(getattr(analysis, "target_role", None)),
+        "latest_analysis_company": _safe_text(getattr(analysis, "company_name", None)),
+        "analysis_status": _safe_text(getattr(analysis, "status", None)),
+    }
 
 
 def apply_latest_analysis_summary(resume: ResumeVersion, analysis: ResumeAnalysis) -> None:

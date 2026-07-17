@@ -9,17 +9,12 @@ from app.core.errors import NotFoundError
 from app.models.base import ResumeStatus
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.repositories.resumes import ResumeRepository
-from app.schemas.resume import ResumeCreate, ResumeUpdate
+from app.schemas.resume import ResumeCreate, ResumeResponse, ResumeUpdate
 from app.schemas.common import persistence_values
 from app.services.resume_extraction import ExtractionResult
 from app.services.resume_extraction import ResumeExtractionService
 from app.services.validation import reject_null_fields
-from app.services.resume_summary import (
-    apply_latest_analysis_summary,
-    clear_latest_analysis_summary,
-    has_analysis_summary,
-    summary_matches_analysis,
-)
+from app.services.resume_summary import latest_analysis_summary_values
 
 
 logger = logging.getLogger(__name__)
@@ -30,14 +25,21 @@ class ResumeService:
         self.db = db
         self.repository = ResumeRepository(db)
 
-    def list(self, user_id: UUID) -> list[ResumeVersion]:
+    def list(self, user_id: UUID) -> list[ResumeResponse]:
         resumes = self.repository.list(user_id)
-        self._backfill_latest_analysis_summaries(user_id, resumes)
-        return resumes
+        latest_by_resume = self._latest_completed_analyses(user_id, resumes)
+        response_models: list[ResumeResponse] = []
+        for resume in resumes:
+            values = ResumeResponse.model_validate(resume).model_dump()
+            values.update(latest_analysis_summary_values(latest_by_resume.get(resume.id)))
+            response_models.append(ResumeResponse.model_validate(values))
+        return response_models
 
-    def _backfill_latest_analysis_summaries(self, user_id: UUID, resumes: list[ResumeVersion]) -> None:
+    def _latest_completed_analyses(
+        self, user_id: UUID, resumes: list[ResumeVersion]
+    ) -> dict[UUID, ResumeAnalysis]:
         if not resumes:
-            return
+            return {}
         resume_ids = [resume.id for resume in resumes]
         analyses = self.db.scalars(
             select(ResumeAnalysis)
@@ -52,18 +54,7 @@ class ResumeService:
         latest_by_resume: dict[UUID, ResumeAnalysis] = {}
         for analysis in analyses:
             latest_by_resume.setdefault(analysis.resume_version_id, analysis)
-
-        changed = False
-        for resume in resumes:
-            latest = latest_by_resume.get(resume.id)
-            if latest and not summary_matches_analysis(resume, latest):
-                apply_latest_analysis_summary(resume, latest)
-                changed = True
-            elif latest is None and has_analysis_summary(resume):
-                clear_latest_analysis_summary(resume)
-                changed = True
-        if changed:
-            self.db.commit()
+        return latest_by_resume
 
     def get(self, user_id: UUID, resume_id: UUID) -> ResumeVersion:
         resume = self.repository.get(user_id, resume_id)

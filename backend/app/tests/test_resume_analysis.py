@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -14,6 +15,7 @@ from app.models.user import User
 from app.services.ai_resume_analysis import parse_analysis_result
 from app.schemas.resume_analysis import ResumeAnalysisCreate
 from app.services.resume_analysis import ResumeAnalysisService
+from app.services.resume_summary import latest_analysis_summary_values
 
 
 def test_analyze_resume_without_text_returns_422(client: TestClient) -> None:
@@ -181,7 +183,7 @@ def test_deleting_only_analysis_clears_resume_summary(client: TestClient) -> Non
     assert updated["keyword_match_score"] == 0
 
 
-def test_listing_resumes_backfills_stale_analysis_summary(client: TestClient) -> None:
+def test_listing_resumes_derives_stale_analysis_summary_without_writing(client: TestClient) -> None:
     resume = client.post(
         "/api/v1/resumes",
         json={
@@ -221,3 +223,69 @@ def test_listing_resumes_backfills_stale_analysis_summary(client: TestClient) ->
     assert summary["latest_analysis_target_role"] == analysis["target_role"]
     assert summary["latest_analysis_company"] == analysis["company_name"]
     assert summary["analysis_status"] == "completed"
+
+
+def test_listing_resumes_without_analysis_has_a_safe_empty_summary(client: TestClient) -> None:
+    client.post(
+        "/api/v1/resumes",
+        json={"name": "New Resume", "target_role": "Software Engineer"},
+    )
+
+    response = client.get("/api/v1/resumes")
+
+    assert response.status_code == 200
+    summary = response.json()["data"][0]
+    assert summary["latest_analysis_id"] is None
+    assert summary["latest_overall_score"] is None
+    assert summary["keyword_match_score"] == 0
+    assert summary["missing_keywords"] == []
+
+
+def test_listing_resumes_uses_latest_non_deleted_completed_analysis(client: TestClient) -> None:
+    resume = client.post(
+        "/api/v1/resumes",
+        json={
+            "name": "History Resume",
+            "target_role": "Backend Engineer",
+            "extracted_text": "Built FastAPI services with PostgreSQL, Docker, and API tests.",
+        },
+    ).json()["data"]
+    first = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Backend Engineer", "job_description": "FastAPI, PostgreSQL, Docker, and API testing."},
+    ).json()["analysis"]
+    second = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Platform Engineer", "job_description": "Platform engineering with Docker, PostgreSQL, and API ownership."},
+    ).json()["analysis"]
+
+    assert client.delete(f"/api/v1/resume-analyses/{second['id']}").status_code == 204
+    listed = client.get("/api/v1/resumes")
+
+    assert listed.status_code == 200
+    assert listed.json()["data"][0]["latest_analysis_id"] == first["id"]
+
+
+def test_latest_analysis_summary_values_handles_legacy_nulls_and_empty_lists() -> None:
+    analysis = SimpleNamespace(
+        id=uuid4(),
+        keyword_score=None,
+        strengths=None,
+        risks=None,
+        missing_keywords=None,
+        recommendations=[],
+        summary=None,
+        created_at=None,
+        overall_score=None,
+        target_role=None,
+        company_name=None,
+        status=None,
+    )
+
+    values = latest_analysis_summary_values(analysis)
+
+    assert values["strengths"] == []
+    assert values["weaknesses"] == []
+    assert values["missing_keywords"] == []
+    assert values["suggested_improvement"] == ""
+    assert values["latest_analysis_company"] == ""

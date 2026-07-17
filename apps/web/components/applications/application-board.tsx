@@ -166,15 +166,20 @@ export function ApplicationBoard() {
     recordRecentlyViewed({ id: application.id, type: "Application", label: application.company, detail: application.role, href: "/applications" });
   }
 
-  if ((applicationData.loading && !applications.length) || resumeData.loading) return <WorkspaceSkeleton cards={8} />;
+  if (applicationData.loading && !applications.length) return <WorkspaceSkeleton cards={8} />;
   if (applicationData.error) return <DataErrorState error={applicationData.error} onRetry={() => void applicationData.refresh()} />;
-  if (resumeData.error) return <DataErrorState error={resumeData.error} onRetry={() => void resumeData.refresh()} />;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ApplicationStats applications={applications} />
       </div>
+
+      {resumeData.error ? (
+        <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-slate-300">
+          Resume metadata is temporarily unavailable. You can continue tracking applications.
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="flex-1">
