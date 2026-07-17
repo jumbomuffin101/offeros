@@ -68,7 +68,7 @@ export function ResumeCard({
         </div>
       </div>
 
-      {analyzed ? <p className="pointer-events-none relative z-10 mt-3 truncate text-xs text-slate-500">{resume.latestAnalysisTargetRole || resume.targetRole}{resume.latestAnalysisCompany ? ` at ${resume.latestAnalysisCompany}` : ""}</p> : null}
+      {analyzed ? <p className="pointer-events-none relative z-10 mt-3 truncate text-xs text-slate-500">{resume.latestOverallScore ?? resume.keywordMatchScore}% fit for {resume.latestAnalysisTargetRole || resume.targetRole}{resume.latestAnalysisCompany ? ` at ${resume.latestAnalysisCompany}` : ""}</p> : null}
 
       <div className="pointer-events-none relative z-10 mt-5">
         <div className="mb-2 flex items-center justify-between text-sm">
@@ -79,7 +79,7 @@ export function ResumeCard({
       </div>
 
       <div className="relative z-20 mt-5 grid grid-cols-2 gap-2">
-        <Button className="px-2" onClick={onOpen} variant="ghost"><Eye className="size-4" />View</Button>
+        <Button className="px-2" onClick={onOpen} variant="ghost"><Eye className="size-4" />{analyzed ? "View analysis" : "Analyze for a role"}</Button>
         <Button className="px-2" onClick={onDuplicate} variant="ghost"><Copy className="size-4" />Duplicate</Button>
       </div>
     </article>

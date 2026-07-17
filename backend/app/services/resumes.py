@@ -14,6 +14,12 @@ from app.schemas.common import persistence_values
 from app.services.resume_extraction import ExtractionResult
 from app.services.resume_extraction import ResumeExtractionService
 from app.services.validation import reject_null_fields
+from app.services.resume_summary import (
+    apply_latest_analysis_summary,
+    clear_latest_analysis_summary,
+    has_analysis_summary,
+    summary_matches_analysis,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +31,39 @@ class ResumeService:
         self.repository = ResumeRepository(db)
 
     def list(self, user_id: UUID) -> list[ResumeVersion]:
-        return self.repository.list(user_id)
+        resumes = self.repository.list(user_id)
+        self._backfill_latest_analysis_summaries(user_id, resumes)
+        return resumes
+
+    def _backfill_latest_analysis_summaries(self, user_id: UUID, resumes: list[ResumeVersion]) -> None:
+        if not resumes:
+            return
+        resume_ids = [resume.id for resume in resumes]
+        analyses = self.db.scalars(
+            select(ResumeAnalysis)
+            .where(
+                ResumeAnalysis.user_id == user_id,
+                ResumeAnalysis.resume_version_id.in_(resume_ids),
+                ResumeAnalysis.deleted_at.is_(None),
+                ResumeAnalysis.status == "completed",
+            )
+            .order_by(ResumeAnalysis.resume_version_id, ResumeAnalysis.created_at.desc(), ResumeAnalysis.updated_at.desc())
+        )
+        latest_by_resume: dict[UUID, ResumeAnalysis] = {}
+        for analysis in analyses:
+            latest_by_resume.setdefault(analysis.resume_version_id, analysis)
+
+        changed = False
+        for resume in resumes:
+            latest = latest_by_resume.get(resume.id)
+            if latest and not summary_matches_analysis(resume, latest):
+                apply_latest_analysis_summary(resume, latest)
+                changed = True
+            elif latest is None and has_analysis_summary(resume):
+                clear_latest_analysis_summary(resume)
+                changed = True
+        if changed:
+            self.db.commit()
 
     def get(self, user_id: UUID, resume_id: UUID) -> ResumeVersion:
         resume = self.repository.get(user_id, resume_id)

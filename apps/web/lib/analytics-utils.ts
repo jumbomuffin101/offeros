@@ -2,6 +2,7 @@ import type { AnalyticsMetric, Application, ApplicationPriority, ApplicationStat
 import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
 import { calculateStreak, prepGoalProgress } from "@/lib/prep-utils";
 import { percent, submittedApplications } from "@/lib/dashboard-utils";
+import { isResumeAnalyzed } from "@/lib/resume-insights";
 
 export type CountDatum = { label: string; value: number };
 export type AnalyticsModel = {
@@ -41,7 +42,7 @@ export function buildAnalytics(applications: Application[], resumes: ResumeVersi
     sourceDistribution: countBy(applications, (item) => item.source || "Unspecified"),
     priorityDistribution: (["High", "Medium", "Low"] as ApplicationPriority[]).map((priority) => ({ label: priority, value: applications.filter((item) => item.priority === priority).length })),
     mostUsedResume: mostUsedResume(applications, resumes),
-    bestMatchResume: [...resumes].sort((a, b) => b.keywordMatchScore - a.keywordMatchScore)[0] ?? null,
+    bestMatchResume: [...resumes].filter(isResumeAnalyzed).sort((a, b) => b.keywordMatchScore - a.keywordMatchScore)[0] ?? null,
     prepTrend: prep.weeklyDays.map((day) => ({ label: new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(new Date(`${day.date}T12:00:00`)), value: day.coding + day.behavioral + day.systemDesign, total: 3 })),
     prepStreak: calculateStreak(prep.weeklyDays),
     goalProgress: prep.goals.map((goal) => ({ label: goal.label, current: prepGoalProgress(goal, prep.sessions, prep.weeklyDays), target: goal.target })),

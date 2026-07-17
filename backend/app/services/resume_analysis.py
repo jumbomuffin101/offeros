@@ -13,6 +13,7 @@ from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.schemas.resume_analysis import ResumeAnalysisCreate
 from app.services.ai_resume_analysis import provider_from_settings
 from app.services.resumes import ResumeService
+from app.services.resume_summary import apply_latest_analysis_summary, clear_latest_analysis_summary
 
 
 logger = logging.getLogger(__name__)
@@ -141,31 +142,3 @@ class ResumeAnalysisService:
 def resume_hash(value: str) -> str:
     normalized = " ".join(value.split()).lower()
     return sha256(normalized.encode("utf-8")).hexdigest()
-
-
-def apply_latest_analysis_summary(resume: ResumeVersion, analysis: ResumeAnalysis) -> None:
-    resume.keyword_match_score = analysis.keyword_score
-    resume.strengths = list(analysis.strengths or [])[:12]
-    resume.weaknesses = list(analysis.risks or [])[:12]
-    resume.missing_keywords = list(analysis.missing_keywords or [])[:30]
-    resume.suggested_improvement = "\n".join(list(analysis.recommendations or [])[:5]) or analysis.summary
-    resume.last_analyzed_at = analysis.created_at or datetime.now(UTC)
-    resume.latest_analysis_id = analysis.id
-    resume.latest_overall_score = analysis.overall_score
-    resume.latest_analysis_target_role = analysis.target_role
-    resume.latest_analysis_company = analysis.company_name
-    resume.analysis_status = analysis.status
-
-
-def clear_latest_analysis_summary(resume: ResumeVersion) -> None:
-    resume.keyword_match_score = 0
-    resume.strengths = []
-    resume.weaknesses = []
-    resume.missing_keywords = []
-    resume.suggested_improvement = ""
-    resume.last_analyzed_at = None
-    resume.latest_analysis_id = None
-    resume.latest_overall_score = None
-    resume.latest_analysis_target_role = ""
-    resume.latest_analysis_company = ""
-    resume.analysis_status = ""

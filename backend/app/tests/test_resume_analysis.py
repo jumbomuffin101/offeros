@@ -74,7 +74,7 @@ def test_analyze_resume_mock_schema_is_valid(client: TestClient) -> None:
     assert resume["strengths"] == analysis["strengths"]
     assert resume["weaknesses"] == analysis["risks"]
     assert resume["missing_keywords"] == analysis["missing_keywords"]
-    assert resume["suggested_improvement"] == analysis["summary"]
+    assert resume["suggested_improvement"] == analysis["recommendations"][0]
     if analysis["suggested_bullet_rewrites"]:
         assert "why_better" in analysis["suggested_bullet_rewrites"][0]
     assert history_response.status_code == 200
@@ -145,11 +145,11 @@ def test_deleting_latest_analysis_recalculates_resume_summary(client: TestClient
     first = client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
         json={"target_role": "Backend Engineer", "company_name": "Acme", "job_description": "Python FastAPI backend engineer role with APIs, PostgreSQL, testing, Docker, and ownership of reliable production services."},
-    ).json()["data"]["analysis"]
+    ).json()["analysis"]
     second = client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
         json={"target_role": "Platform Engineer", "company_name": "Beta", "job_description": "Platform engineering role requiring Python, Docker, PostgreSQL, CI testing, backend APIs, and production reliability ownership."},
-    ).json()["data"]["analysis"]
+    ).json()["analysis"]
 
     delete_response = client.delete(f"/api/v1/resume-analyses/{second['id']}")
     updated = client.get(f"/api/v1/resumes/{resume['id']}").json()["data"]
@@ -171,7 +171,7 @@ def test_deleting_only_analysis_clears_resume_summary(client: TestClient) -> Non
     analysis = client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
         json={"target_role": "Backend Engineer", "company_name": "Acme", "job_description": "Python FastAPI backend engineer role with APIs, PostgreSQL, testing, Docker, and ownership of reliable production services."},
-    ).json()["data"]["analysis"]
+    ).json()["analysis"]
 
     client.delete(f"/api/v1/resume-analyses/{analysis['id']}")
     updated = client.get(f"/api/v1/resumes/{resume['id']}").json()["data"]
@@ -179,3 +179,45 @@ def test_deleting_only_analysis_clears_resume_summary(client: TestClient) -> Non
     assert updated["latest_analysis_id"] is None
     assert updated["latest_overall_score"] is None
     assert updated["keyword_match_score"] == 0
+
+
+def test_listing_resumes_backfills_stale_analysis_summary(client: TestClient) -> None:
+    resume = client.post(
+        "/api/v1/resumes",
+        json={
+            "name": "Backfill Resume",
+            "target_role": "Backend Engineer",
+            "extracted_text": "- Built FastAPI services with PostgreSQL and Docker\n- Reduced API latency by 35%",
+        },
+    ).json()["data"]
+    analysis = client.post(
+        f"/api/v1/resumes/{resume['id']}/analyze",
+        json={"target_role": "Backend Engineer", "company_name": "Acme", "job_description": "Python FastAPI backend engineer role with APIs, PostgreSQL, testing, Docker, and ownership of reliable production services."},
+    ).json()["analysis"]
+
+    client.patch(
+        f"/api/v1/resumes/{resume['id']}",
+        json={
+            "keyword_match_score": 0,
+            "strengths": [],
+            "weaknesses": [],
+            "missing_keywords": [],
+            "suggested_improvement": "",
+            "latest_overall_score": 0,
+            "latest_analysis_target_role": "",
+            "latest_analysis_company": "",
+            "analysis_status": "",
+        },
+    )
+
+    listed = client.get("/api/v1/resumes")
+
+    assert listed.status_code == 200
+    summary = listed.json()["data"][0]
+    assert summary["latest_analysis_id"] == analysis["id"]
+    assert summary["latest_overall_score"] == analysis["overall_score"]
+    assert summary["keyword_match_score"] == analysis["keyword_score"]
+    assert summary["missing_keywords"] == analysis["missing_keywords"]
+    assert summary["latest_analysis_target_role"] == analysis["target_role"]
+    assert summary["latest_analysis_company"] == analysis["company_name"]
+    assert summary["analysis_status"] == "completed"

@@ -47,6 +47,12 @@ const { toApiResumeAnalysis } = loadTsModule("../lib/data/api/mappers.ts");
 const { resumeFilePresentation } = loadTsModule("../lib/resume-file-state.ts", {
   "@/lib/types": {},
 });
+const { buildResumeInsights } = loadTsModule("../lib/resume-insights.ts", {
+  "@/lib/types": {},
+  "@/lib/resume-utils": {
+    mostCommonMissingKeywords: (resumes, limit) => [...new Set(resumes.flatMap((resume) => resume.missingKeywords))].slice(0, limit),
+  },
+});
 
 test("valid resume analysis input builds POST path and snake case payload", () => {
   const request = buildResumeAnalysisRequest({
@@ -328,6 +334,29 @@ test("a saved resume shows its stored file metadata until replacement is request
   assert.equal(saved.showPicker, false);
   assert.equal(replacing.showPicker, true);
   assert.equal(newResume.showPicker, true);
+});
+
+test("resume insights only use completed analysis summaries", () => {
+  const summary = buildResumeInsights([
+    {
+      id: "draft", name: "Draft", applicationsUsed: 0, keywordMatchScore: 99, missingKeywords: ["Ignore"],
+      suggestedImprovement: "Ignore", analysisStatus: "", latestAnalysisId: "", latestOverallScore: 99,
+    },
+    {
+      id: "analysis-a", name: "Backend", applicationsUsed: 2, keywordMatchScore: 80, missingKeywords: ["Docker", "AWS"],
+      suggestedImprovement: "Quantify impact.", analysisStatus: "completed", latestAnalysisId: "analysis-a", latestOverallScore: 85, lastAnalyzedAt: "2026-07-17T10:00:00Z",
+    },
+    {
+      id: "analysis-b", name: "Platform", applicationsUsed: 1, keywordMatchScore: 88, missingKeywords: ["AWS"],
+      suggestedImprovement: "Lead with reliability work.", analysisStatus: "completed", latestAnalysisId: "analysis-b", latestOverallScore: 82, lastAnalyzedAt: "2026-07-16T10:00:00Z",
+    },
+  ]);
+
+  assert.equal(summary.analysisCoverage.current, 2);
+  assert.equal(summary.bestKeywordMatch.name, "Platform");
+  assert.equal(summary.bestOverallFit.name, "Backend");
+  assert.deepEqual(summary.commonMissingKeywords, ["Docker", "AWS"]);
+  assert.equal(summary.topNextImprovement, "Quantify impact.");
 });
 
 test("raw undefined property TypeError never reaches analysis UI", () => {

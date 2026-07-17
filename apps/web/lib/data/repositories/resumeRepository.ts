@@ -157,7 +157,7 @@ function resumeSummaryFromAnalysis(analysis: ResumeAnalysis): Partial<ResumeVers
     strengths: analysis.strengths,
     weaknesses: analysis.risks,
     missingKeywords: analysis.missingKeywords,
-    suggestedImprovement: analysis.recommendations.slice(0, 5).join("\n") || analysis.summary,
+    suggestedImprovement: analysis.recommendations[0] || analysis.summary,
     lastAnalyzedAt: analysis.createdAt,
     latestAnalysisId: analysis.id,
     latestOverallScore: analysis.overallScore,
