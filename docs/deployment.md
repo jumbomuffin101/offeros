@@ -97,6 +97,25 @@ Resume Intelligence migrations add extracted text metadata, job-matching analysi
 
 For Neon, use a direct connection for migration jobs when available. The pooled connection is appropriate for API runtime traffic.
 
+### Recover from a missing-column error
+
+An error such as `UndefinedColumn: column resume_versions.last_analyzed_at does not exist`
+means the API image is newer than the Neon schema. Do not change the API query or add
+runtime writes to work around it. Run the existing migration chain once against the
+same production `DATABASE_URL`:
+
+```bash
+cd backend
+alembic current
+alembic upgrade head
+alembic current
+```
+
+On Render, run `alembic upgrade head` from a one-off shell in the backend working
+directory, then redeploy. Verify the configured service uses the repository-root
+`render.yaml` pre-deploy command so future deploys apply revisions before the web
+process starts.
+
 ## Clerk JWT Template
 
 In the Clerk Dashboard, select the production instance, open **JWT templates**, and create a blank template named `offeros-api` with these claims:
