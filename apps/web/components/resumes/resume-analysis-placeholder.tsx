@@ -11,10 +11,10 @@ export function ResumeAnalysisPlaceholder() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold text-white">AI resume analysis</h2>
-            <Badge tone="purple">Coming soon</Badge>
+            <Badge tone="green">Available</Badge>
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Analyze a resume against a target SWE role or job description to surface missing keywords, weak bullets, and fit score.
+            Analyze a resume against a target SWE role or job description to surface missing keywords, weak bullets, role fit, and actionable improvements.
           </p>
         </div>
       </div>

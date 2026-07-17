@@ -359,6 +359,13 @@ test("resume insights only use completed analysis summaries", () => {
   assert.equal(summary.topNextImprovement, "Quantify impact.");
 });
 
+test("resume analysis banner advertises the available workflow", () => {
+  const source = readFileSync(join(testDir, "../components/resumes/resume-analysis-placeholder.tsx"), "utf8");
+
+  assert.match(source, /Available/);
+  assert.doesNotMatch(source, /Coming soon/);
+});
+
 test("raw undefined property TypeError never reaches analysis UI", () => {
   const message = analysisErrorMessage(new TypeError("Cannot read properties of undefined (reading 'id')"));
 
