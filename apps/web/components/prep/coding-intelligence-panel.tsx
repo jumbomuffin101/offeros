@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { CheckCircle2, Code2, ExternalLink, Link2, Loader2, Plus, RefreshCw, Unplug, Upload } from "lucide-react";
+import { CheckCircle2, Code2, ExternalLink, Link2, Loader2, Plus, Unplug, Upload } from "lucide-react";
+import { DataError } from "@/lib/data/errors";
 import { useCodingIntelligence, type ActivityInput, type CodingGoal } from "@/hooks/use-coding-intelligence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,27 @@ export function CodingIntelligencePanel() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [connectionError, setConnectionError] = useState("");
   const [goal, setGoal] = useState<CodingGoal | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  async function connect() { setBusy(true); setNotice(""); try { const profile = await coding.connect(username); setNotice(`Connected @${profile.username}. Automatic sync is currently unavailable.`); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Unable to connect profile."); } finally { setBusy(false); } }
-  async function sync() { setBusy(true); setNotice(""); try { const result = await coding.sync(); setNotice(result.message); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Unable to sync profile."); } finally { setBusy(false); } }
+  async function connect() {
+    const normalized = username.trim().replace(/^@/, "");
+    if (process.env.NODE_ENV === "development") { console.debug("[LeetCodeConnect] click"); console.debug("[LeetCodeConnect] handler entered"); }
+    setConnectionError(""); setNotice("");
+    if (!normalized) { setConnectionError("Enter your LeetCode username."); return; }
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(normalized)) { setConnectionError("Use only letters, numbers, underscores, or hyphens."); return; }
+    if (process.env.NODE_ENV === "development") { console.debug("[LeetCodeConnect] username", normalized); console.debug("[LeetCodeConnect] validation passed"); console.debug("[LeetCodeConnect] repository called"); }
+    setBusy(true);
+    try {
+      const profile = await coding.connect(normalized);
+      setUsername(profile.username);
+      setNotice(`Connected @${profile.username}. Automatic sync is unavailable; log or import practice manually.`);
+    } catch (cause) {
+      if (process.env.NODE_ENV === "development") console.error("[LeetCodeConnect] failed", cause);
+      setConnectionError(connectionMessage(cause));
+    } finally { setBusy(false); }
+  }
   async function logActivity() { setBusy(true); setNotice(""); try { await coding.createActivity({ ...form, topics: topics.split(",").map((topic) => topic.trim()).filter(Boolean) }); setForm(emptyActivity); setTopics(""); setOpen(false); setNotice("Coding activity logged."); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Unable to log activity."); } finally { setBusy(false); } }
   async function saveGoal() { if (!goal) return; setBusy(true); try { await coding.saveGoal(goal); setNotice("Weekly coding goal saved."); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Unable to save goal."); } finally { setBusy(false); } }
   async function importFile(file: File | undefined) {
@@ -42,8 +59,8 @@ export function CodingIntelligencePanel() {
 
   return <section className="space-y-5">
     <div className="rounded-xl border border-slate-700/35 bg-[#1b1d2b]/80 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="flex gap-3"><div className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.08] p-2.5"><Code2 className="size-5 text-indigo-200" /></div><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-semibold text-white">LeetCode profile</h2>{coding.profile ? <Badge tone="green">Connected</Badge> : <Badge tone="slate">Not connected</Badge>}</div><p className="mt-1 text-sm leading-6 text-slate-500">Connect a public username only. OfferOS never asks for your LeetCode password, cookies, or session tokens.</p></div></div>{coding.profile ? <div className="flex flex-wrap gap-2"><a className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-700/45 px-3 text-sm text-slate-300 hover:text-white" href={coding.profile.profileUrl} rel="noreferrer" target="_blank"><ExternalLink className="size-4" />View profile</a><Button disabled={busy} onClick={() => void sync()} variant="secondary"><RefreshCw className="size-4" />Sync now</Button><Button disabled={busy} onClick={() => void coding.disconnect()} variant="ghost"><Unplug className="size-4" />Disconnect</Button></div> : null}</div>
-      {coding.profile ? <div className="mt-4 rounded-lg border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2 text-sm text-amber-100/90">@{coding.profile.username} is connected. Automatic activity sync is unavailable; log or import practice manually to keep your dashboard accurate.</div> : <div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input onChange={(event) => setUsername(event.target.value)} placeholder="LeetCode username" value={username} /><Button disabled={busy || !username.trim()} onClick={() => void connect()} variant="primary">{busy ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}Connect profile</Button></div>}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="flex gap-3"><div className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.08] p-2.5"><Code2 className="size-5 text-indigo-200" /></div><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-semibold text-white">LeetCode profile</h2>{coding.profile ? <Badge tone="green">Connected</Badge> : <Badge tone="slate">Not connected</Badge>}</div><p className="mt-1 text-sm leading-6 text-slate-500">Connect a public username only. OfferOS never asks for your LeetCode password, cookies, or session tokens.</p></div></div>{coding.profile ? <div className="flex flex-wrap gap-2"><a className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-700/45 px-3 text-sm text-slate-300 hover:text-white" href={coding.profile.profileUrl} rel="noreferrer" target="_blank"><ExternalLink className="size-4" />View profile</a><Button disabled={busy} onClick={() => void coding.disconnect()} type="button" variant="ghost"><Unplug className="size-4" />Disconnect</Button></div> : null}</div>
+      {coding.profile ? <div className="mt-4 rounded-lg border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2 text-sm text-amber-100/90">@{coding.profile.username} is connected. Automatic activity sync is unsupported, so log or import practice manually to keep your dashboard accurate.</div> : <div className="mt-4"><div className="flex flex-col gap-2 sm:flex-row"><Input aria-describedby={connectionError ? "leetcode-connection-error" : undefined} aria-invalid={Boolean(connectionError)} onChange={(event) => { setUsername(event.target.value); if (connectionError) setConnectionError(""); }} placeholder="LeetCode username" value={username} /><Button disabled={busy} onClick={() => void connect()} type="button" variant="primary">{busy ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}{busy ? "Connecting..." : "Connect profile"}</Button></div>{connectionError ? <p className="mt-2 text-sm text-rose-300" id="leetcode-connection-error" role="alert">{connectionError}</p> : null}</div>}
     </div>
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="Total solved" value={coding.summary.totalSolved} /><Stat label="This week" value={coding.summary.completedThisWeek} /><Stat label="Practice streak" value={`${coding.summary.currentStreak} days`} /><Stat label="Minutes this week" value={coding.summary.timeSpentThisWeek} /></div>
@@ -63,6 +80,15 @@ function Stat({ label, value }: { label: string; value: string | number }) { ret
 function Metric({ label, value, total }: { label: string; value: number; total: number }) { return <div><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-slate-400">{label}</span><span className="text-slate-200">{value}</span></div><Progress value={(value / total) * 100} tone="cyan" /></div>; }
 function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) { return <label className={className}><span className="mb-1.5 block text-xs font-medium text-slate-500">{label}</span>{children}</label>; }
 function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: string[] }) { return <select className="h-10 w-full rounded-xl border border-slate-700/70 bg-slate-950/45 px-3 text-sm text-slate-100" onChange={(event) => onChange(event.target.value)} value={value}>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>; }
+
+function connectionMessage(cause: unknown) {
+  if (cause instanceof DataError) {
+    if (cause.code === "UNAUTHORIZED" || cause.code === "FORBIDDEN") return "Your session needs to be refreshed before connecting a profile.";
+    if (cause.code === "NETWORK_ERROR") return "OfferOS could not reach your cloud workspace. Try again in a moment.";
+    return cause.message;
+  }
+  return "OfferOS could not connect this profile. Please try again.";
+}
 
 function parseActivitiesCsv(content: string): ActivityInput[] {
   const lines = content.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/data/api/apiClient";
+import { DataError } from "@/lib/data/errors";
 import { dataMode } from "@/lib/data/repositories/repositoryFactory";
 import { announceDataChange } from "@/lib/data/repositories/events";
 
@@ -46,14 +47,18 @@ export function useCodingIntelligence() {
   }, [refresh]);
 
   const connect = useCallback(async (username: string) => {
+    const normalized = normalizeUsername(username);
+    if (!normalized) throw new DataError("VALIDATION_ERROR", "Enter your LeetCode username.");
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(normalized)) throw new DataError("VALIDATION_ERROR", "Use only letters, numbers, underscores, or hyphens in your LeetCode username.");
+    debugConnect("repository called", { apiMode: dataMode === "api" });
     if (dataMode === "local") {
       const local = readLocal();
-      const normalized = username.trim().replace(/^@/, "");
-      if (!/^[A-Za-z0-9_-]{1,80}$/.test(normalized)) throw new Error("Enter a valid LeetCode username.");
       local.profile = { provider: "leetcode", username: normalized, profileUrl: `https://leetcode.com/u/${normalized}/`, connectionStatus: "connected", syncStatus: "unsupported", lastSyncedAt: "", lastSyncError: "Automatic sync is unavailable in local mode." };
       writeLocal(local); await refresh(); return local.profile;
     }
-    const response = await apiClient.post<{ data: ApiProfile }>("/prep/coding-profile/connect", { provider: "leetcode", username });
+    debugConnect("validation passed", { username: normalized });
+    const response = await apiClient.post<{ data: ApiProfile }>("/prep/coding-profile/connect", { provider: "leetcode", username: normalized }, { debugLabel: "leetcode-connect", skipWakeup: true });
+    if (!response || !isApiProfile(response.data)) throw new DataError("API_ERROR", "OfferOS received an invalid profile connection response.");
     const next = fromProfile(response.data); setProfile(next); return next;
   }, [refresh]);
 
@@ -119,3 +124,7 @@ function readLocal(): LocalData { if (typeof window === "undefined") return { pr
 function writeLocal(value: LocalData) { window.localStorage.setItem(LOCAL_KEY, JSON.stringify(value)); announceDataChange(); }
 function summarize(activities: CodingActivity[], goal: CodingGoal | null): CodingSummary { const solved = activities.filter((item) => item.status === "solved"); const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); const week = solved.filter((item) => new Date(item.solvedAt).getTime() >= weekStart.getTime()); const difficultyBreakdown = { easy: solved.filter((item) => item.difficulty === "easy").length, medium: solved.filter((item) => item.difficulty === "medium").length, hard: solved.filter((item) => item.difficulty === "hard").length }; const topicCoverage: Record<string, number> = {}; solved.forEach((item) => item.topics.forEach((topic) => { topicCoverage[topic] = (topicCoverage[topic] ?? 0) + 1; })); return { totalSolved: solved.length, difficultyBreakdown, completedThisWeek: week.length, currentStreak: streak(solved), timeSpentThisWeek: week.reduce((sum, item) => sum + (item.timeSpentMinutes || 0), 0), topicCoverage, recentActivity: activities.slice(0, 8), goal }; }
 function streak(items: CodingActivity[]) { const days = new Set(items.filter((item) => item.solvedAt).map((item) => item.solvedAt.slice(0, 10))); let current = new Date(); current.setHours(0, 0, 0, 0); if (!days.has(current.toISOString().slice(0, 10))) current.setDate(current.getDate() - 1); let value = 0; while (days.has(current.toISOString().slice(0, 10))) { value += 1; current.setDate(current.getDate() - 1); } return value; }
+
+function normalizeUsername(value: string) { return value.trim().replace(/^@/, ""); }
+function isApiProfile(value: unknown): value is ApiProfile { if (!value || typeof value !== "object") return false; const profile = value as Record<string, unknown>; return profile.provider === "leetcode" && typeof profile.username === "string" && typeof profile.profile_url === "string" && typeof profile.connection_status === "string" && typeof profile.sync_status === "string"; }
+function debugConnect(message: string, details: Record<string, unknown>) { if (process.env.NODE_ENV === "development") console.debug(`[LeetCodeConnect] ${message}`, details); }

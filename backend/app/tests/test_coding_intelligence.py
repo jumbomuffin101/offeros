@@ -24,6 +24,8 @@ def test_connect_profile_and_manual_activity_feed_summary(client: TestClient) ->
 
     assert connection.status_code == 200
     assert connection.json()["data"]["profile_url"] == "https://leetcode.com/u/offer_user/"
+    assert connection.json()["data"]["connection_status"] == "connected"
+    assert connection.json()["data"]["sync_status"] == "unsupported"
     assert activity.status_code == 201
 
     summary = client.get("/api/v1/prep/coding-summary")
@@ -31,6 +33,16 @@ def test_connect_profile_and_manual_activity_feed_summary(client: TestClient) ->
     assert summary.json()["data"]["total_solved"] == 1
     assert summary.json()["data"]["difficulty_breakdown"]["easy"] == 1
     assert summary.json()["data"]["topic_coverage"]["Arrays"] == 1
+
+
+def test_connect_profile_updates_existing_connection(client: TestClient) -> None:
+    first = client.post("/api/v1/prep/coding-profile/connect", json={"provider": "leetcode", "username": "first_user"})
+    second = client.post("/api/v1/prep/coding-profile/connect", json={"provider": "leetcode", "username": "second_user"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["data"]["username"] == "second_user"
+    assert client.get("/api/v1/prep/coding-profile").json()["data"]["username"] == "second_user"
 
 
 def test_import_skips_duplicate_rows(client: TestClient) -> None:

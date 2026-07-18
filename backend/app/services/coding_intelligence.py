@@ -31,16 +31,20 @@ class CodingIntelligenceService:
     def connect(self, user_id: UUID, payload: CodingProfileConnect) -> CodingProfileResponse:
         provider = provider_for(payload.provider)
         username = provider.validate_username(payload.username)
+        unsupported_message = "Automatic LeetCode activity sync is unavailable. Log or import practice manually."
         connection = self._connection(user_id, payload.provider)
         if connection is None:
-            connection = CodingProfileConnection(user_id=user_id, provider=payload.provider, username=username, profile_url=provider.profile_url(username))
+            connection = CodingProfileConnection(
+                user_id=user_id, provider=payload.provider, username=username, profile_url=provider.profile_url(username),
+                sync_status="unsupported", last_sync_error=unsupported_message,
+            )
             self.db.add(connection)
         else:
             connection.username = username
             connection.profile_url = provider.profile_url(username)
             connection.connection_status = "connected"
-            connection.sync_status = "never_synced"
-            connection.last_sync_error = ""
+            connection.sync_status = "unsupported"
+            connection.last_sync_error = unsupported_message
         self.db.commit()
         self.db.refresh(connection)
         return CodingProfileResponse.model_validate(connection)

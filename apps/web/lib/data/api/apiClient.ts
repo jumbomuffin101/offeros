@@ -6,7 +6,7 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
   timeoutMessage?: string;
-  debugLabel?: "resume-analysis";
+  debugLabel?: "resume-analysis" | "leetcode-connect";
   skipAuth?: boolean;
   skipWakeup?: boolean;
 };
@@ -141,9 +141,7 @@ class ApiClient {
     const method = init.method ?? "GET";
     const startedAt = now();
     noteRequest(method, url);
-    if ((init as RequestOptions).debugLabel === "resume-analysis") {
-      if (DEV_API_DIAGNOSTICS) console.debug("[ResumeAnalysis] fetch starting", { method, path: new URL(url).pathname });
-    }
+    logDebugRequest((init as RequestOptions).debugLabel, "fetch starting", { method, path: new URL(url).pathname });
     const timeoutController = init.signal ? null : new AbortController();
     const timeoutId = timeoutController
       ? globalThis.setTimeout(() => timeoutController.abort(), timeoutMs)
@@ -169,6 +167,7 @@ class ApiClient {
     }
 
     const payload = await parseResponse(response);
+    logDebugRequest((init as RequestOptions).debugLabel, "response status", { status: response.status });
     logTiming(`api.${method}.${new URL(url).pathname}.${response.status}`, startedAt, { attempt });
     if (!response.ok) throw apiResponseError(response.status, payload, { method, url });
     return payload as T;
@@ -247,6 +246,12 @@ function noteRequest(method: string, url: string) {
 function debugApi(message: string, details: Record<string, unknown>) {
   if (!DEV_API_DIAGNOSTICS) return;
   console.debug("[OfferOS API]", message, details);
+}
+
+function logDebugRequest(label: RequestOptions["debugLabel"], message: string, details: Record<string, unknown>) {
+  if (!DEV_API_DIAGNOSTICS || !label) return;
+  const prefix = label === "leetcode-connect" ? "LeetCodeConnect" : "ResumeAnalysis";
+  console.debug(`[${prefix}] ${message}`, details);
 }
 
 async function ensureBackendAwake(baseUrl: string): Promise<void> {
