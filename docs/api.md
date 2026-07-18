@@ -29,6 +29,8 @@ Coding practice is intentionally manual-first. OfferOS may save a public LeetCod
 
 CSV imports use `rows` of the standard coding activity write shape. The web client accepts `title`, `url`, `difficulty`, `topics`, `status`, `date`, `time_spent_minutes`, and `notes`, then maps it to this API shape. Duplicate activities are detected by normalized title and solved/attempted date.
 
+`coding-summary` is derived only from the authenticated user's non-deleted `CodingActivity` rows. `total_solved` and difficulty counts include `status=solved`; `solved_this_week` uses the current UTC calendar week (Monday through Sunday); `minutes_this_week` sums all logged coding activity in that week. A practice streak is consecutive UTC calendar days with at least one logged activity ending today, or yesterday when the user has not yet practiced today. Topic coverage aggregates all logged activities. URL imports deduplicate by normalized URL first, then by normalized title and practice date.
+
 ## Standards
 
 ### Authentication

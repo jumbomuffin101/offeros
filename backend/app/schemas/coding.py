@@ -111,7 +111,12 @@ class CodingGoalResponse(CodingGoalUpdate):
 
 class CodingSummaryResponse(ORMModel):
     total_solved: int
+    solved_this_week: int
+    practice_streak_days: int
+    minutes_this_week: int
     difficulty_breakdown: dict[str, int]
+    topic_breakdown: list[dict[str, int | str]]
+    # Legacy aliases retained for the existing Prep client during rollout.
     completed_this_week: int
     current_streak: int
     time_spent_this_week: int

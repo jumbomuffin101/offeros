@@ -12,6 +12,7 @@ export function PrepModalShell({
   onClose,
   onSave,
   saveLabel,
+  saveDisabled = false,
 }: {
   title: string;
   description: string;
@@ -19,6 +20,7 @@ export function PrepModalShell({
   onClose: () => void;
   onSave: () => void;
   saveLabel: string;
+  saveDisabled?: boolean;
 }) {
   const titleId = "prep-form-title";
 
@@ -28,7 +30,7 @@ export function PrepModalShell({
       footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button onClick={onClose} type="button" variant="ghost">Cancel</Button>
-          <Button onClick={onSave} type="button" variant="primary">{saveLabel}</Button>
+          <Button disabled={saveDisabled} onClick={onSave} type="button" variant="primary">{saveLabel}</Button>
         </div>
       }
       header={

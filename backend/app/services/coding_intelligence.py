@@ -89,6 +89,8 @@ class CodingIntelligenceService:
 
     def create_activity(self, user_id: UUID, payload: CodingActivityCreate, *, source: str = "manual") -> CodingActivityResponse:
         values = persistence_values(payload)
+        if not values.get("solved_at") and not values.get("attempted_at"):
+            raise ValidationError("Choose the date you practiced this problem.")
         values["provider"] = "manual"
         values["source"] = source
         values = self._normalize_activity_values(values)
@@ -133,17 +135,21 @@ class CodingIntelligenceService:
     def summary(self, user_id: UUID) -> CodingSummaryResponse:
         activities = list(self.db.scalars(select(CodingActivity).where(CodingActivity.user_id == user_id, CodingActivity.deleted_at.is_(None)).order_by(CodingActivity.solved_at.desc(), CodingActivity.updated_at.desc())))
         solved = [item for item in activities if item.status == "solved"]
-        start_of_week = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=datetime.now(UTC).weekday())
+        now = datetime.now(UTC)
+        start_of_week = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=now.weekday())
         weekly = [item for item in solved if item.solved_at and item.solved_at >= start_of_week]
+        weekly_activity = [item for item in activities if _activity_date(item) and _activity_date(item) >= start_of_week]
         breakdown = {level: sum(item.difficulty == level for item in solved) for level in ("easy", "medium", "hard")}
         topics: dict[str, int] = {}
-        for item in solved:
+        for item in activities:
             for topic in item.topics or []:
                 topics[topic] = topics.get(topic, 0) + 1
         goal = self.db.scalar(select(CodingGoal).where(CodingGoal.user_id == user_id))
         return CodingSummaryResponse(
-            total_solved=len(solved), difficulty_breakdown=breakdown, completed_this_week=len(weekly),
-            current_streak=_streak(solved), time_spent_this_week=sum(item.time_spent_minutes or 0 for item in weekly),
+            total_solved=len(solved), solved_this_week=len(weekly), practice_streak_days=_streak(activities),
+            minutes_this_week=sum(item.time_spent_minutes or 0 for item in weekly_activity), difficulty_breakdown=breakdown,
+            topic_breakdown=[{"topic": topic, "count": count} for topic, count in sorted(topics.items(), key=lambda item: (-item[1], item[0]))],
+            completed_this_week=len(weekly), current_streak=_streak(activities), time_spent_this_week=sum(item.time_spent_minutes or 0 for item in weekly_activity),
             topic_coverage=dict(sorted(topics.items(), key=lambda item: (-item[1], item[0]))),
             recent_activity=[CodingActivityResponse.model_validate(item) for item in activities[:8]],
             goal=CodingGoalResponse.model_validate(goal) if goal else None,
@@ -171,6 +177,17 @@ class CodingIntelligenceService:
         return activity
 
     def _duplicate(self, user_id: UUID, values: dict[str, object]) -> bool:
+        url = _normalized_url(values.get("problem_url"))
+        if url:
+            existing_url = self.db.scalar(
+                select(CodingActivity).where(
+                    CodingActivity.user_id == user_id,
+                    CodingActivity.deleted_at.is_(None),
+                    func.lower(func.rtrim(CodingActivity.problem_url, "/")) == url,
+                )
+            )
+            if existing_url is not None:
+                return True
         title = str(values.get("problem_title", "")).strip().lower()
         solved_at = values.get("solved_at") or values.get("attempted_at")
         statement = select(CodingActivity).where(CodingActivity.user_id == user_id, CodingActivity.deleted_at.is_(None), func.lower(CodingActivity.problem_title) == title)
@@ -189,7 +206,9 @@ class CodingIntelligenceService:
 
 
 def _streak(activities: list[CodingActivity]) -> int:
-    days = {item.solved_at.date() for item in activities if item.solved_at}
+    # A streak is consecutive UTC calendar days with at least one logged coding activity,
+    # ending today or yesterday so a user does not lose a streak before today's practice.
+    days = {_activity_date(item).date() for item in activities if _activity_date(item)}
     if not days:
         return 0
     cursor = datetime.now(UTC).date()
@@ -200,3 +219,11 @@ def _streak(activities: list[CodingActivity]) -> int:
         streak += 1
         cursor -= timedelta(days=1)
     return streak
+
+
+def _activity_date(activity: CodingActivity) -> datetime | None:
+    return activity.solved_at or activity.attempted_at
+
+
+def _normalized_url(value: object) -> str:
+    return str(value or "").strip().lower().rstrip("/")
