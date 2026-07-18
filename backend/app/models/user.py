@@ -17,4 +17,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     coding_problems = relationship("CodingProblem", back_populates="user")
     behavioral_questions = relationship("BehavioralQuestion", back_populates="user")
     system_design_prompts = relationship("SystemDesignPrompt", back_populates="user")
+    coding_profile_connections = relationship("CodingProfileConnection", back_populates="user")
+    coding_activities = relationship("CodingActivity", back_populates="user")
+    coding_goal = relationship("CodingGoal", back_populates="user", uselist=False)
     settings = relationship("UserSettings", back_populates="user", uselist=False)

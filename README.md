@@ -11,6 +11,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Resume manager with targeted versions, keyword scores, and mock insights
 - AI Resume Intelligence with PDF/DOCX/TXT ingestion, job-specific role matching, keyword gaps, bullet rewrites, and technical-depth feedback
 - Interview prep workspace for coding, behavioral, and system design practice
+- LeetCode profile links, manual coding activity logging, CSV import, and weekly coding goals without account scraping
 - Analytics page with simple visual indicators for response and conversion trends
 - Responsive dark-mode-first shell with desktop sidebar and mobile navigation
 - Installable PWA with standalone display, iOS metadata, connection awareness, and basic offline asset caching
@@ -84,6 +85,12 @@ The web app lives in `apps/web`. The root workspace scripts forward to that app.
 - API mode reset actions call the authenticated FastAPI workspace reset endpoint. The backend deletes only the signed-in user's scoped rows and Dashboard/Analytics refresh from the updated API data.
 - Brand-new signed-in users who choose **Start Fresh** get an empty cloud workspace with the existing polished empty states and CTAs.
 - If browser-local records exist while running API mode, Settings offers **Import local workspace**. The import is manual, skips likely duplicates, and stores only normal OfferOS records in the authenticated API account.
+
+### Coding Practice Profiles
+
+OfferOS can link a public LeetCode username and stores only the username and public profile URL. It never requests or stores a LeetCode password, cookie, session token, or CSRF token. Automatic activity synchronization is intentionally unavailable because OfferOS does not scrape LeetCode or use undocumented private APIs.
+
+Use **Log problem** or **Import CSV** in Prep to record activity. CSV headers are `title`, `url`, `difficulty`, `topics`, `status`, `date`, `time_spent_minutes`, and `notes`; duplicates are skipped by problem title and date. API mode persists activities to the authenticated account, while local mode stores them in browser localStorage.
 
 ## Backend Scaffold
 

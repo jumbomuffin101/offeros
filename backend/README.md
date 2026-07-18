@@ -15,6 +15,23 @@ FastAPI foundation for the OfferOS technical recruiting workspace. The Next.js f
 
 Authentication is implemented through Clerk JWT verification in `app/core/auth.py`. `AUTH_REQUIRED=false` keeps the deterministic demo user for local development and existing tests. `AUTH_REQUIRED=true` requires a valid Clerk bearer token and finds or creates a local user by Clerk subject.
 
+## Coding Practice Intelligence
+
+The coding practice API is user-scoped and intentionally does not scrape LeetCode or call private/undocumented endpoints. A connection stores only a validated public username and profile URL. No passwords, cookies, session tokens, or CSRF values are accepted or stored.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/prep/coding-profile/connect` | Save public LeetCode username |
+| GET/DELETE | `/api/v1/prep/coding-profile` | Read or remove connection |
+| POST | `/api/v1/prep/coding-profile/sync` | Return explicit unsupported-sync status |
+| GET/POST | `/api/v1/prep/coding-activities` | List or create manual activities |
+| PATCH/DELETE | `/api/v1/prep/coding-activities/{id}` | Edit or soft-delete an activity |
+| POST | `/api/v1/prep/coding-activities/import` | Import up to 1,000 user-provided rows |
+| GET | `/api/v1/prep/coding-summary` | Totals, streak, topics, and weekly progress |
+| POST | `/api/v1/prep/coding-goal` | Save weekly coding targets |
+
+Run `alembic upgrade head` to create `coding_profile_connections`, `coding_activities`, and `coding_goals`.
+
 ## Local Setup
 
 From `backend/`:

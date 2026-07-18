@@ -309,3 +309,5 @@ Notifications, sessions, imports, audit events, outbox events, and AI requests a
 - Store user timezone and render local dates at the edge; never persist ambiguous local timestamps.
 - Introduce table partitioning only after measured table growth and query plans justify it.
 - Use database constraints for invariants that must survive every code path; use services for cross-row workflow policy.
+- `coding_profile_connections` stores only public provider metadata; it must never contain credentials, session values, or scraped profile payloads.
+- `coding_activities` is user-scoped, soft-deletable manual/imported history with indexes for user, solved date, and status. `coding_goals` contains one weekly target record per user.

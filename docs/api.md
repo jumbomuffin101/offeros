@@ -12,6 +12,23 @@ https://api.offeros.com/api/v1
 
 The FastAPI backend implements the current MVP subset of this contract. Future resources in this document remain architectural guidance until implemented.
 
+## Coding Practice Intelligence
+
+Coding practice is intentionally manual-first. OfferOS may save a public LeetCode username and profile URL, but it does not scrape LeetCode, call private or undocumented endpoints, or accept passwords, cookies, sessions, or CSRF tokens. The profile sync endpoint returns an explicit `unsupported` status; the activity history is populated by the authenticated user through logging or CSV import.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/prep/coding-profile/connect` | Save a validated public username |
+| GET/DELETE | `/prep/coding-profile` | Read or remove the profile link |
+| POST | `/prep/coding-profile/sync` | Return safe unsupported-sync status |
+| GET/POST | `/prep/coding-activities` | List/filter or create manual activity |
+| PATCH/DELETE | `/prep/coding-activities/{id}` | Edit or soft-delete one activity |
+| POST | `/prep/coding-activities/import` | Import up to 1,000 user-provided rows |
+| GET | `/prep/coding-summary` | Totals, difficulty breakdown, streak, topics, and weekly progress |
+| POST | `/prep/coding-goal` | Save a weekly coding target |
+
+CSV imports use `rows` of the standard coding activity write shape. The web client accepts `title`, `url`, `difficulty`, `topics`, `status`, `date`, `time_spent_minutes`, and `notes`, then maps it to this API shape. Duplicate activities are detected by normalized title and solved/attempted date.
+
 ## Standards
 
 ### Authentication

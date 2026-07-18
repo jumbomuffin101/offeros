@@ -9,7 +9,7 @@ import { BehavioralPracticeCard } from "@/components/prep/behavioral-practice-ca
 import { CodingProblemModal, type CodingProblemPayload } from "@/components/prep/coding-problem-modal";
 import { DailyCodingCard } from "@/components/prep/daily-coding-card";
 import { PrepGoals } from "@/components/prep/prep-goals";
-import { LeetCodePlaceholder } from "@/components/prep/leetcode-placeholder";
+import { CodingIntelligencePanel } from "@/components/prep/coding-intelligence-panel";
 import { SystemDesignCard } from "@/components/prep/system-design-card";
 import { SystemDesignModal, type SystemDesignPayload } from "@/components/prep/system-design-modal";
 import { WeeklyProgress } from "@/components/prep/weekly-progress";
@@ -106,7 +106,7 @@ export function PrepWorkspace() {
 
   return <div className="space-y-5">
     {isEmpty ? <div className="rounded-xl border border-dashed border-slate-700/45 bg-slate-900/20 px-6 py-16 text-center"><Code2 className="mx-auto size-7 text-indigo-300" /><h2 className="mt-4 text-lg font-semibold text-white">No prep history yet</h2><p className="mt-2 text-sm text-slate-500">Start with one focused problem and build a technical interview practice rhythm.</p><Button className="mt-5" onClick={() => setCodingOpen(true)} variant="primary"><Code2 className="size-4" />Start today&apos;s coding problem</Button></div> : <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"><div className="space-y-6"><DailyCodingCard problems={data.codingProblems} onAdd={() => { setEditingCoding(null); setCodingOpen(true); }} onEdit={(problem) => { setEditingCoding(problem); recordRecentlyViewed({ id: problem.id, type: "Prep", label: problem.title, detail: `${problem.topic} coding problem`, href: "/prep" }); setCodingOpen(true); }} onStatus={changeCodingStatus} /><BehavioralPracticeCard questions={data.behavioralQuestions} onEdit={(question) => { recordRecentlyViewed({ id: question.id, type: "Prep", label: question.question, detail: "Behavioral practice", href: "/prep" }); setBehavioralOpen(question); }} onStatus={changeBehavioralStatus} /><SystemDesignCard prompts={data.systemDesignPrompts} onAdd={() => { setEditingSystem(null); setSystemOpen(true); }} onEdit={(prompt) => { recordRecentlyViewed({ id: prompt.id, type: "Prep", label: prompt.title, detail: "System design prompt", href: "/prep" }); setEditingSystem(prompt); setSystemOpen(true); }} onStatus={changeSystemStatus} /></div><aside className="space-y-6"><WeeklyProgress days={data.weeklyDays} sessions={data.sessions} /><PrepGoals days={data.weeklyDays} goals={data.goals} sessions={data.sessions} onSave={saveGoals} /></aside></div>}
-    <LeetCodePlaceholder />
+    <CodingIntelligencePanel />
     <CodingProblemModal open={codingOpen} problem={editingCoding} onClose={() => { setCodingOpen(false); setEditingCoding(null); }} onSubmit={saveCoding} />
     <BehavioralAnswerDrawer question={behavioralOpen} onClose={() => setBehavioralOpen(null)} onSave={saveBehavioral} />
     <SystemDesignModal open={systemOpen} designPrompt={editingSystem} onClose={() => { setSystemOpen(false); setEditingSystem(null); }} onSubmit={saveSystem} />
