@@ -35,6 +35,16 @@ function normalizeApplication(value: unknown, fallback?: Application): Applicati
     deadline: stringValue(item.deadline, fallback?.deadline ?? ""),
     source: stringValue(item.source, fallback?.source ?? ""),
     resumeUsed: stringValue(item.resumeUsed, stringValue(item.resume, fallback?.resumeUsed ?? "General SWE Resume")),
+    resumeVersionId: stringValue(item.resumeVersionId, fallback?.resumeVersionId ?? ""),
+    resumeAnalysisId: stringValue(item.resumeAnalysisId, fallback?.resumeAnalysisId ?? ""),
+    jobDescription: stringValue(item.jobDescription, fallback?.jobDescription ?? ""),
+    selectedResumeName: stringValue(item.selectedResumeName, fallback?.selectedResumeName ?? ""),
+    selectedResumeTargetRole: stringValue(item.selectedResumeTargetRole, fallback?.selectedResumeTargetRole ?? ""),
+    analysisStatus: stringValue(item.analysisStatus, fallback?.analysisStatus ?? "") as Application["analysisStatus"],
+    analysisOverallScore: numberValue(item.analysisOverallScore, fallback?.analysisOverallScore),
+    analysisKeywordScore: numberValue(item.analysisKeywordScore, fallback?.analysisKeywordScore),
+    analysisMissingKeywordCount: numberValue(item.analysisMissingKeywordCount, fallback?.analysisMissingKeywordCount) ?? 0,
+    analysisLastAnalyzedAt: stringValue(item.analysisLastAnalyzedAt, fallback?.analysisLastAnalyzedAt ?? ""),
     jobUrl: stringValue(item.jobUrl, fallback?.jobUrl ?? ""),
     recruiterName: stringValue(item.recruiterName, fallback?.recruiterName ?? ""),
     recruiterEmail: stringValue(item.recruiterEmail, fallback?.recruiterEmail ?? ""),
@@ -55,3 +65,7 @@ function browserStorage() {
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null; }
 function stringValue(value: unknown, fallback: string) { return typeof value === "string" ? value : fallback; }
+function numberValue(value: unknown, fallback: number | undefined) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}

@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, Index, String, Text
+from sqlalchemy import Date, ForeignKey, Index, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import (
@@ -34,6 +34,13 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     source: Mapped[str] = mapped_column(String(120), default="")
     resume_used: Mapped[str] = mapped_column(String(200), default="")
+    resume_version_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("resume_versions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    resume_analysis_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("resume_analyses.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    job_description: Mapped[str] = mapped_column(Text, default="")
     job_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     recruiter_name: Mapped[str] = mapped_column(String(200), default="")
     recruiter_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
@@ -45,3 +52,5 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     tags: Mapped[list[str]] = mapped_column(string_list_type, default=list)
 
     user = relationship("User", back_populates="applications")
+    selected_resume = relationship("ResumeVersion", foreign_keys=[resume_version_id])
+    resume_analysis = relationship("ResumeAnalysis", foreign_keys=[resume_analysis_id])

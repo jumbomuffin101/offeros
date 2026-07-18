@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.errors import NotFoundError, ValidationError
 from app.models.resume import ResumeAnalysis, ResumeVersion
+from app.models.application import Application
 from app.schemas.resume_analysis import ResumeAnalysisCreate
 from app.services.ai_resume_analysis import provider_from_settings
 from app.services.resumes import ResumeService
@@ -24,7 +25,14 @@ class ResumeAnalysisService:
         self.db = db
         self.settings = settings
 
-    def analyze(self, user_id: UUID, resume_id: UUID, payload: ResumeAnalysisCreate) -> tuple[ResumeAnalysis, ResumeVersion]:
+    def analyze(
+        self,
+        user_id: UUID,
+        resume_id: UUID,
+        payload: ResumeAnalysisCreate,
+        *,
+        application: Application | None = None,
+    ) -> tuple[ResumeAnalysis, ResumeVersion]:
         resume = ResumeService(self.db).get(user_id, resume_id)
         request_id = payload.analysis_request_id or uuid4()
         existing = self.db.scalar(
@@ -35,6 +43,12 @@ class ResumeAnalysisService:
             )
         )
         if existing is not None:
+            if existing.resume_version_id != resume.id:
+                raise ValidationError("This analysis request belongs to a different saved resume.")
+            if application is not None and application.resume_analysis_id != existing.id:
+                application.resume_analysis_id = existing.id
+                self.db.commit()
+                self.db.refresh(application)
             return existing, resume
         resume_text = (payload.resume_text or resume.extracted_text or "").strip()
         if not resume_text:
@@ -81,12 +95,16 @@ class ResumeAnalysisService:
             self.db.add(analysis)
             self.db.flush()
             apply_latest_analysis_summary(resume, analysis)
+            if application is not None:
+                application.resume_analysis_id = analysis.id
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
         self.db.refresh(analysis)
         self.db.refresh(resume)
+        if application is not None:
+            self.db.refresh(application)
         return analysis, resume
 
     def list_for_resume(self, user_id: UUID, resume_id: UUID) -> list[ResumeAnalysis]:

@@ -2,6 +2,7 @@ import type { Application, PrepWorkspaceData, ResumeAnalysis, ResumeVersion } fr
 import type {
   AnalyticsSummary,
   ApplicationInput,
+  ApplicationAnalyzeResult,
   DashboardSummary,
   PrepCreateInput,
   PrepItem,
@@ -20,6 +21,7 @@ export interface ApplicationRepository {
   delete(id: string): Promise<void>;
   duplicate(id: string): Promise<Application>;
   reset(): Promise<Application[]>;
+  analyzeResume?(id: string, analysisRequestId?: string): Promise<ApplicationAnalyzeResult>;
 }
 
 export interface ResumeRepository {

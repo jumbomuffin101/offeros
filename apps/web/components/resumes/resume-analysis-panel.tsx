@@ -465,7 +465,7 @@ function AnalysisModal({ analysis, resume, onClose }: { analysis: ResumeAnalysis
   );
 }
 
-function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
+export function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -20,6 +20,16 @@ export type Application = {
   deadline: string;
   source: string;
   resumeUsed: string;
+  resumeVersionId?: string;
+  resumeAnalysisId?: string;
+  jobDescription?: string;
+  selectedResumeName?: string;
+  selectedResumeTargetRole?: string;
+  analysisStatus?: "completed" | "failed" | "pending" | "";
+  analysisOverallScore?: number;
+  analysisKeywordScore?: number;
+  analysisMissingKeywordCount?: number;
+  analysisLastAnalyzedAt?: string;
   jobUrl: string;
   recruiterName: string;
   recruiterEmail: string;

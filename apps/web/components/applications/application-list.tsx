@@ -51,6 +51,7 @@ export function ApplicationList({
               <th className="px-4 py-3">Applied</th>
               <th className="px-4 py-3">Source</th>
               <th className="px-4 py-3">Resume</th>
+              <th className="px-4 py-3">Resume match</th>
               <th className="px-4 py-3">Tags</th>
               <th className="px-4 py-3">Updated</th>
               <th className="px-4 py-3 text-right">Actions</th>
@@ -98,6 +99,9 @@ export function ApplicationList({
                 <td className="px-4 py-3 text-slate-400">{formatDate(application.dateApplied)}</td>
                 <td className="max-w-[130px] px-4 py-3 text-slate-400"><div className="truncate">{application.source || "Not set"}</div></td>
                 <td className="max-w-[150px] px-4 py-3 text-slate-400"><div className="truncate">{application.resumeUsed || "Not set"}</div></td>
+                <td className="px-4 py-3 text-xs text-slate-400">
+                  {application.analysisStatus === "completed" ? <div><span className="font-medium text-emerald-200">{application.analysisOverallScore ?? 0}% match</span><div className="mt-1 text-slate-500">{application.analysisMissingKeywordCount ?? 0} missing keywords</div></div> : <span className="text-slate-500">Not analyzed</span>}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex max-w-[170px] flex-wrap gap-1.5">
                     {application.tags.slice(0, 2).map((tag) => <Badge key={tag}>{tag}</Badge>)}
@@ -132,6 +136,7 @@ export function ApplicationList({
               <div>Applied: <span className="text-slate-300">{formatDate(application.dateApplied)}</span></div>
               <div>Priority: <span className="text-slate-300">{application.priority}</span></div>
               <div>Source: <span className="text-slate-300">{application.source || "Not set"}</span></div>
+              <div>Match: <span className="text-slate-300">{application.analysisStatus === "completed" ? `${application.analysisOverallScore ?? 0}%` : "Not analyzed"}</span></div>
             </div>
           </button>
         ))}

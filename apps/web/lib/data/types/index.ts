@@ -33,6 +33,10 @@ export type ResumeAnalyzeResult = {
   // contract is deployed. The repository normalizes that response here.
   resume: ResumeVersion | null;
 };
+export type ApplicationAnalyzeResult = {
+  application: Application;
+  analysis: ResumeAnalysis;
+};
 export type ResumeUploadResult = {
   resume: ResumeVersion;
   extraction: {

@@ -29,6 +29,16 @@ export type ApiApplication = {
   deadline: string | null;
   source: string;
   resume_used: string;
+  resume_version_id: string | null;
+  resume_analysis_id: string | null;
+  job_description: string;
+  selected_resume_name: string | null;
+  selected_resume_target_role: string | null;
+  analysis_status: "completed" | "failed" | "pending" | null;
+  analysis_overall_score: number | null;
+  analysis_keyword_score: number | null;
+  analysis_missing_keyword_count: number;
+  analysis_last_analyzed_at: string | null;
   job_url: string | null;
   recruiter_name: string;
   recruiter_email: string | null;
@@ -119,6 +129,11 @@ export type ApiResumeAnalysis = {
 export type ApiResumeAnalyzeResponse = {
   analysis: ApiResumeAnalysis;
   resume: ApiResume;
+};
+
+export type ApiApplicationAnalyzeResponse = {
+  application: ApiApplication;
+  analysis: ApiResumeAnalysis;
 };
 
 export type ApiPrepStatus = "not_started" | "in_progress" | "completed" | "skipped";

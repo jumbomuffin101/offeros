@@ -1,7 +1,7 @@
 import type { ApplicationRepository } from "@/lib/data/types/repositories";
-import type { ApiApplication, ApiDataResponse } from "@/lib/data/api/contracts";
+import type { ApiApplication, ApiApplicationAnalyzeResponse, ApiDataResponse } from "@/lib/data/api/contracts";
 import { apiClient } from "@/lib/data/api/apiClient";
-import { fromApiApplication, toApiApplication } from "@/lib/data/api/mappers";
+import { fromApiApplication, fromApiResumeAnalysis, toApiApplication } from "@/lib/data/api/mappers";
 import { resetApiWorkspace } from "@/lib/data/repositories/apiWorkspaceReset";
 
 export const apiApplicationRepository: ApplicationRepository = {
@@ -33,5 +33,16 @@ export const apiApplicationRepository: ApplicationRepository = {
   async reset() {
     await resetApiWorkspace("applications", "sample");
     return this.list();
+  },
+  async analyzeResume(id, analysisRequestId) {
+    const response = await apiClient.post<ApiApplicationAnalyzeResponse>(
+      `/applications/${id}/analyze-resume`,
+      { analysis_request_id: analysisRequestId },
+      { timeoutMs: 300000 },
+    );
+    return {
+      application: fromApiApplication(response.application),
+      analysis: fromApiResumeAnalysis(response.analysis),
+    };
   },
 };

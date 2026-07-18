@@ -17,6 +17,7 @@ import { Toast } from "@/components/ui/toast";
 import { WorkspaceSkeleton } from "@/components/ui/workspace-skeleton";
 import { useApplications } from "@/hooks/use-applications";
 import { useResumes } from "@/hooks/use-resumes";
+import { dataMode } from "@/lib/data/repositories/repositoryFactory";
 import { ESCAPE_EVENT } from "@/lib/action-events";
 import { recordRecentlyViewed } from "@/lib/recently-viewed";
 import { APPLICATION_STATUSES } from "@/lib/data/types/constants";
@@ -29,6 +30,7 @@ import {
   type ApplicationSortKey,
 } from "@/lib/application-utils";
 import type { Application, ApplicationPriority, ApplicationStatus } from "@/lib/types";
+import type { ApplicationAnalyzeResult, ApplicationInput } from "@/lib/data/types";
 
 const OPEN_ADD_EVENT = "offeros:add-application";
 const OPEN_ADD_STORAGE_KEY = "offeros:open-add-application";
@@ -161,6 +163,37 @@ export function ApplicationBoard() {
     } catch { /* Hook exposes the typed error state. */ }
   }
 
+  async function saveApplicationWorkspace(id: string, input: Partial<ApplicationInput>) {
+    const updated = await applicationData.update(id, input);
+    setToast("Application workspace saved");
+    return updated;
+  }
+
+  async function analyzeApplicationResume(application: Application): Promise<ApplicationAnalyzeResult> {
+    if (dataMode === "api") {
+      const result = await applicationData.analyzeResume(application.id, createRequestId());
+      setToast("Resume analysis completed");
+      return result;
+    }
+    const resume = resumeData.resumes.find((item) => item.id === application.resumeVersionId);
+    if (!resume) throw new Error("Select a saved resume before analyzing this application.");
+    const result = await resumeData.analyzeResume(resume.id, {
+      targetRole: application.role,
+      companyName: application.company,
+      jobDescription: application.jobDescription ?? "",
+    });
+    const updated = await applicationData.update(application.id, {
+      resumeAnalysisId: result.analysis.id,
+      analysisStatus: result.analysis.status,
+      analysisOverallScore: result.analysis.overallScore,
+      analysisKeywordScore: result.analysis.keywordScore,
+      analysisMissingKeywordCount: result.analysis.missingKeywords.length,
+      analysisLastAnalyzedAt: result.analysis.createdAt,
+    });
+    setToast("Resume analysis completed");
+    return { application: updated, analysis: result.analysis };
+  }
+
   function openApplication(application: Application) {
     setSelectedApplicationId(application.id);
     recordRecentlyViewed({ id: application.id, type: "Application", label: application.company, detail: application.role, href: "/applications" });
@@ -268,6 +301,7 @@ export function ApplicationBoard() {
 
       <ApplicationDetailDrawer
         application={selectedApplication}
+        resumes={resumeData.resumes}
         onClose={() => setSelectedApplicationId(null)}
         onDelete={(id) => setPendingDeleteId(id)}
         onEdit={(application) => {
@@ -275,6 +309,9 @@ export function ApplicationBoard() {
           setFormOpen(true);
         }}
         onStatusChange={moveApplication}
+        onSave={saveApplicationWorkspace}
+        onAnalyze={analyzeApplicationResume}
+        onGetAnalysis={resumeData.getResumeAnalysis}
       />
 
       {pendingDelete ? (
@@ -299,6 +336,11 @@ export function ApplicationBoard() {
       <Toast message={toast} />
     </div>
   );
+}
+
+function createRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `application-analysis-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function applyVolumeFilters(applications: Application[], filter: VolumeFilter, hideRejected: boolean) {

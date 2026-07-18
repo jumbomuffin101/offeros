@@ -82,6 +82,11 @@ export function ApplicationCard({
         </div>
       </div>
 
+      <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs">
+        <span className="text-slate-500">Resume match</span>
+        <span className={`ml-2 font-medium ${application.analysisStatus === "completed" ? "text-emerald-200" : "text-slate-300"}`}>{application.analysisStatus === "completed" ? `${application.analysisOverallScore ?? 0}%${application.analysisMissingKeywordCount ? ` - ${application.analysisMissingKeywordCount} missing` : ""}` : "Not analyzed"}</span>
+      </div>
+
       <p className="mt-4 line-clamp-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3 text-xs leading-5 text-slate-400">
         {application.notes || "No notes yet."}
       </p>

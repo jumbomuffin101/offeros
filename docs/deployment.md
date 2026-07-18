@@ -95,6 +95,12 @@ alembic upgrade head
 
 Resume Intelligence migrations add extracted text metadata, job-matching analysis fields, and latest-analysis summary fields on `resume_versions`. Always run `alembic upgrade head` after deploying backend code that includes resume upload or analysis schema changes.
 
+Application Resume Intelligence adds `applications.resume_version_id`,
+`applications.resume_analysis_id`, and `applications.job_description`. The migration
+links an application to a saved resume and its exact role-specific analysis without
+copying resume data into the application row. Run `alembic upgrade head` before
+deploying the corresponding API and frontend changes.
+
 For Neon, use a direct connection for migration jobs when available. The pooled connection is appropriate for API runtime traffic.
 
 ### Recover from a missing-column error
