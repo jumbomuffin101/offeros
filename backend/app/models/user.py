@@ -20,4 +20,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     coding_profile_connections = relationship("CodingProfileConnection", back_populates="user")
     coding_activities = relationship("CodingActivity", back_populates="user")
     coding_goal = relationship("CodingGoal", back_populates="user", uselist=False)
+    application_prep_plans = relationship("ApplicationPrepPlan", back_populates="user")
     settings = relationship("UserSettings", back_populates="user", uselist=False)

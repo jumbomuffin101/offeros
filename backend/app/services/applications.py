@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.errors import NotFoundError, ValidationError
 from app.models.application import Application
+from app.models.application_prep import ApplicationPrepPlan
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.repositories.applications import ApplicationRepository
 from app.schemas.application import ApplicationCreate, ApplicationResponse, ApplicationUpdate
@@ -66,6 +67,10 @@ class ApplicationService:
         )
         values = self._validated_values(user_id, values, application=application)
         self.repository.update(application, values)
+        if {"job_description", "resume_version_id", "resume_analysis_id"} & values.keys():
+            plan = self.db.scalar(select(ApplicationPrepPlan).where(ApplicationPrepPlan.application_id == application.id))
+            if plan is not None:
+                plan.status = "stale"
         self.db.commit()
         self.db.refresh(application)
         return self._response(application)

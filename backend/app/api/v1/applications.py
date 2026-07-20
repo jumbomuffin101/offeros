@@ -16,10 +16,22 @@ from app.schemas.application import (
 )
 from app.schemas.resume_analysis import ResumeAnalysisResponse
 from app.schemas.common import DataResponse
+from app.schemas.application_prep import ApplicationPrepCoverageResponse
+from app.services.application_prep import ApplicationPrepService
 from app.services.applications import ApplicationService
 
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+
+@router.get("/{application_id}/prep-plan", response_model=DataResponse[ApplicationPrepCoverageResponse | None])
+def get_prep_plan(application_id: UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> DataResponse[ApplicationPrepCoverageResponse | None]:
+    return DataResponse(data=ApplicationPrepService(db).get(user.id, application_id))
+
+
+@router.post("/{application_id}/prep-plan/generate", response_model=DataResponse[ApplicationPrepCoverageResponse])
+def generate_prep_plan(application_id: UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> DataResponse[ApplicationPrepCoverageResponse]:
+    return DataResponse(data=ApplicationPrepService(db).generate(user.id, application_id))
 
 
 @router.get("", response_model=DataResponse[list[ApplicationResponse]])
