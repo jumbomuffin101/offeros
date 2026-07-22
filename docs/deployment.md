@@ -265,6 +265,7 @@ Manual reset validation checklist:
 15. Paste resume text, run AI Resume Analysis, refresh, and confirm analysis history persists.
 16. Upload a PDF or DOCX resume, verify extraction reaches **Ready for analysis**, paste a target job description, run analysis, and reopen the previous result from history.
 17. Run `alembic upgrade head` after deploying coding practice intelligence, then connect a public LeetCode username, log a problem, and confirm `/api/v1/prep/coding-summary` reflects it. Automatic LeetCode sync is intentionally unavailable.
+18. Publish or load the MV3 extension, add its exact `chrome-extension://<id>` origin to backend `CORS_ORIGINS`, and verify Greenhouse, Lever, and Ashby capture plus duplicate handling.
 
 ## Rollback
 

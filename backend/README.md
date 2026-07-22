@@ -32,6 +32,12 @@ The coding practice API is user-scoped and intentionally does not scrape LeetCod
 
 Run `alembic upgrade head` to create `coding_profile_connections`, `coding_activities`, and `coding_goals`.
 
+## Job Capture API
+
+`POST /api/v1/applications/capture` creates a user-owned application from the active-page extension payload. It normalizes tracking parameters, rejects invalid/oversized input, verifies selected-resume ownership, and returns an existing application for duplicate normalized URLs or source/external IDs. Optional resume analysis and prep generation are separate follow-up calls so basic capture remains fast.
+
+`GET /api/v1/resumes/options` returns only resume ID, name, target role, and analysis status. Run `alembic upgrade head` for capture metadata and settings defaults. Production `CORS_ORIGINS` must include the exact published `chrome-extension://<id>` origin.
+
 ## Local Setup
 
 From `backend/`:

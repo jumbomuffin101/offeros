@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "OfferOS Job Capture",
+  "version": "0.1.0",
+  "description": "Save the job page you are actively viewing to OfferOS.",
+  "permissions": ["activeTab", "storage", "identity", "scripting"],
+  "host_permissions": ["https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.ashbyhq.com/*", "https://offeros.onrender.com/*", "https://offeros.vercel.app/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Save to OfferOS" },
+  "content_scripts": [{ "matches": ["https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.ashbyhq.com/*"], "js": ["content.js"], "run_at": "document_idle" }],
+  "web_accessible_resources": [{ "resources": ["adapters.js", "extract.js"], "matches": ["https://boards.greenhouse.io/*", "https://job-boards.greenhouse.io/*", "https://jobs.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.ashbyhq.com/*"] }]
+}

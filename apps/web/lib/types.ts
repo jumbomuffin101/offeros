@@ -19,6 +19,8 @@ export type Application = {
   dateApplied: string;
   deadline: string;
   source: string;
+  externalJobId?: string;
+  capturedAt?: string;
   resumeUsed: string;
   resumeVersionId?: string;
   resumeAnalysisId?: string;

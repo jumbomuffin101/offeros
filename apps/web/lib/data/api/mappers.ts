@@ -49,6 +49,8 @@ export function fromApiApplication(value: ApiApplication): Application {
     dateApplied: value.date_applied ?? "",
     deadline: value.deadline ?? "",
     source: value.source,
+    externalJobId: value.external_job_id ?? "",
+    capturedAt: value.captured_at ?? "",
     resumeUsed: value.resume_used,
     resumeVersionId: value.resume_version_id ?? "",
     resumeAnalysisId: value.resume_analysis_id ?? "",

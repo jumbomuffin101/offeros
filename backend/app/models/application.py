@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, Index, String, Text, Uuid
+from sqlalchemy import Date, DateTime, ForeignKey, Index, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import (
@@ -21,6 +21,7 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __table_args__ = (
         Index("ix_applications_user_status_updated", "user_id", "status", "updated_at"),
         Index("ix_applications_user_deadline", "user_id", "deadline"),
+        Index("ix_applications_user_external_job", "user_id", "source", "external_job_id"),
     )
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -33,6 +34,8 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     date_applied: Mapped[date | None] = mapped_column(Date, nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     source: Mapped[str] = mapped_column(String(120), default="")
+    external_job_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resume_used: Mapped[str] = mapped_column(String(200), default="")
     resume_version_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("resume_versions.id", ondelete="SET NULL"), nullable=True, index=True

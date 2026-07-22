@@ -9,12 +9,17 @@ from app.models.user import User
 from app.schemas.common import DataResponse
 from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeAnalysisResponse, ResumeAnalyzeResponse
 from app.core.config import Settings, get_settings
-from app.schemas.resume import ResumeCreate, ResumeExtractionSummary, ResumeResponse, ResumeUpdate, ResumeUploadResponse
+from app.schemas.resume import ResumeCreate, ResumeExtractionSummary, ResumeOptionResponse, ResumeResponse, ResumeUpdate, ResumeUploadResponse
 from app.services.resume_analysis import ResumeAnalysisService
 from app.services.resumes import ResumeService
 
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
+
+
+@router.get("/options", response_model=DataResponse[list[ResumeOptionResponse]])
+def resume_options(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> DataResponse[list[ResumeOptionResponse]]:
+    return DataResponse(data=[ResumeOptionResponse.model_validate(item) for item in ResumeService(db).list(user.id)])
 
 
 @router.get("", response_model=DataResponse[list[ResumeResponse]])

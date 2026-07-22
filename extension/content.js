@@ -1,0 +1,1 @@
+import(chrome.runtime.getURL("adapters.js")).then(({ extractJob }) => { chrome.runtime.onMessage.addListener((message, _sender, respond) => { if (message.type !== "EXTRACT_JOB") return; try { respond({ ok: true, job: extractJob(document, location.href) }); } catch { respond({ ok: false, error: "OfferOS could not read this job page." }); } }); });

@@ -26,6 +26,13 @@ const helpItems: Array<{ title: string; detail: string; icon: LucideIcon }> = [
 
 type ResetScope = "all" | "applications" | "resumes" | "prep";
 type AiStatus = { available: boolean; configured: boolean; mock_enabled: boolean; provider: string; model: string };
+type ResumeOption = { id: string; name: string; target_role: string; analysis_status: string | null };
+type CaptureSettings = {
+  default_resume_version_id: string | null;
+  default_run_resume_analysis: boolean;
+  default_generate_prep_plan: boolean;
+  default_application_status: "wishlist" | "applying" | "applied";
+};
 
 export function SettingsPanel() {
   const workspace = useWorkspaceActions();
@@ -37,6 +44,9 @@ export function SettingsPanel() {
   const [toastTone, setToastTone] = useState<"success" | "info">("success");
   const [pendingReset, setPendingReset] = useState<ResetScope | null>(null);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
+  const [captureSettings, setCaptureSettings] = useState<CaptureSettings | null>(null);
+  const [resumeOptions, setResumeOptions] = useState<ResumeOption[]>([]);
+  const [savingCaptureSettings, setSavingCaptureSettings] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -59,6 +69,21 @@ export function SettingsPanel() {
       .catch(() => { if (!cancelled) setAiStatus(null); });
     return () => { cancelled = true; };
   }, [dataMode]);
+  useEffect(() => {
+    if (dataMode !== "api") return;
+    let cancelled = false;
+    Promise.all([
+      apiClient.get<{ data: CaptureSettings }>("/settings"),
+      apiClient.get<{ data: ResumeOption[] }>("/resumes/options"),
+    ]).then(([settingsResponse, resumeResponse]) => {
+      if (cancelled) return;
+      setCaptureSettings(settingsResponse.data);
+      setResumeOptions(resumeResponse.data);
+    }).catch(() => {
+      if (!cancelled) setCaptureSettings(null);
+    });
+    return () => { cancelled = true; };
+  }, [dataMode]);
 
   function notify(message: string, tone: "success" | "info" = "success") { setToastTone(tone); setToast(message); }
   async function handleInstall() {
@@ -77,6 +102,19 @@ export function SettingsPanel() {
     if (!imported) { notify(workspace.error?.message ?? "Unable to import local data", "info"); return; }
     notify(importMessage(imported), totalImported(imported) > 0 ? "success" : "info");
   }
+  async function saveCaptureSettings() {
+    if (!captureSettings || savingCaptureSettings) return;
+    setSavingCaptureSettings(true);
+    try {
+      const response = await apiClient.patch<{ data: CaptureSettings }, CaptureSettings>("/settings", captureSettings);
+      setCaptureSettings(response.data);
+      notify("Job capture defaults saved");
+    } catch {
+      notify("Unable to save job capture defaults", "info");
+    } finally {
+      setSavingCaptureSettings(false);
+    }
+  }
 
   return <div className="space-y-6">
     <div className="grid gap-6 lg:grid-cols-2">
@@ -85,6 +123,8 @@ export function SettingsPanel() {
     </div>
 
     <Card><CardHeader><div className="flex items-center gap-3"><BrainCircuit className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">AI Resume Analysis</h2><p className="mt-1 text-sm text-slate-500">OpenRouter-powered resume feedback runs backend-side only. API mode supports PDF/DOCX text extraction.</p></div></div></CardHeader><CardContent><div className="flex flex-wrap items-center gap-2"><span className={`rounded-lg border px-3 py-2 text-sm font-medium ${aiStatusLabel(workspace.dataMode, aiStatus).className}`}>{aiStatusLabel(workspace.dataMode, aiStatus).label}</span><span className="text-sm text-slate-500">{aiStatusLabel(workspace.dataMode, aiStatus).detail}</span></div>{aiStatus?.model ? <p className="mt-3 text-xs text-slate-500">Model: {aiStatus.model}</p> : null}</CardContent></Card>
+
+    <Card><CardHeader><div className="flex items-center gap-3"><BriefcaseBusiness className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Job Capture</h2><p className="mt-1 text-sm text-slate-500">Defaults used by the OfferOS Chrome extension when saving an active job page.</p></div></div></CardHeader><CardContent>{dataMode !== "api" ? <p className="text-sm text-slate-500">The extension saves to an authenticated cloud workspace. Local mode remains browser-only.</p> : captureSettings ? <div className="grid gap-4 lg:grid-cols-2"><label className="block"><span className="mb-1.5 block text-xs font-medium text-slate-500">Default resume</span><select className="h-10 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 px-3 text-sm text-slate-200 outline-none focus:border-indigo-400/50" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_resume_version_id: event.target.value || null } : current)} value={captureSettings.default_resume_version_id ?? ""}><option value="">No resume</option>{resumeOptions.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} - {resume.target_role}</option>)}</select></label><label className="block"><span className="mb-1.5 block text-xs font-medium text-slate-500">New application status</span><select className="h-10 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 px-3 text-sm text-slate-200 outline-none focus:border-indigo-400/50" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_application_status: event.target.value as CaptureSettings["default_application_status"] } : current)} value={captureSettings.default_application_status}><option value="wishlist">Wishlist</option><option value="applying">Applying</option><option value="applied">Applied</option></select></label><label className="flex items-center gap-3 rounded-lg border border-slate-700/35 bg-slate-900/20 p-3 text-sm text-slate-300"><input checked={captureSettings.default_run_resume_analysis} className="size-4 accent-indigo-500" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_run_resume_analysis: event.target.checked } : current)} type="checkbox" />Analyze the selected resume after saving</label><label className="flex items-center gap-3 rounded-lg border border-slate-700/35 bg-slate-900/20 p-3 text-sm text-slate-300"><input checked={captureSettings.default_generate_prep_plan} className="size-4 accent-indigo-500" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_generate_prep_plan: event.target.checked } : current)} type="checkbox" />Generate an application prep plan</label><div className="lg:col-span-2"><Button disabled={savingCaptureSettings} onClick={() => void saveCaptureSettings()} variant="primary">{savingCaptureSettings ? "Saving..." : "Save capture defaults"}</Button></div></div> : <p className="text-sm text-slate-500">Capture settings are unavailable while the cloud workspace is starting.</p>}</CardContent></Card>
 
     <Card>
       <CardHeader>

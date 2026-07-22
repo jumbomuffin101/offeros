@@ -16,6 +16,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Responsive dark-mode-first shell with desktop sidebar and mobile navigation
 - Installable PWA with standalone display, iOS metadata, connection awareness, and basic offline asset caching
 - Clerk sign-in/sign-up, protected application routes, and account controls
+- Manifest V3 job capture extension for user-initiated Greenhouse, Lever, Ashby, and active-page fallback capture
 
 ## Tech Stack
 
@@ -140,6 +141,7 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 - Resume fit scores are heuristic guidance for technical recruiting; they are not ATS guarantees.
 - Prep goals remain local in API mode; completion sessions are derived from completed API tasks.
 - Offline support covers the app shell and previously cached assets; it is not a cloud synchronization system.
+- The Chrome extension targets API mode only. It does not crawl, access browser history, or synchronize into web-app localStorage.
 
 ## Planned Roadmap
 

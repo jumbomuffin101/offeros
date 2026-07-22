@@ -10,6 +10,8 @@ from app.models.user import User
 from app.schemas.application import (
     ApplicationAnalyzeResumeRequest,
     ApplicationAnalyzeResumeResponse,
+    ApplicationCaptureRequest,
+    ApplicationCaptureResponse,
     ApplicationCreate,
     ApplicationResponse,
     ApplicationUpdate,
@@ -19,9 +21,15 @@ from app.schemas.common import DataResponse
 from app.schemas.application_prep import ApplicationPrepCoverageResponse
 from app.services.application_prep import ApplicationPrepService
 from app.services.applications import ApplicationService
+from app.services.application_capture import ApplicationCaptureService
 
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+
+@router.post("/capture", response_model=ApplicationCaptureResponse)
+def capture_application(payload: ApplicationCaptureRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> ApplicationCaptureResponse:
+    return ApplicationCaptureService(db).capture(user.id, payload)
 
 
 @router.get("/{application_id}/prep-plan", response_model=DataResponse[ApplicationPrepCoverageResponse | None])

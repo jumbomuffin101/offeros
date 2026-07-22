@@ -62,6 +62,13 @@ class ResumeUpdate(ORMModel):
     analysis_status: str | None = Field(default=None, max_length=40)
 
 
+class ResumeOptionResponse(ORMModel):
+    id: UUID
+    name: str
+    target_role: str
+    analysis_status: str | None = None
+
+
 class ResumeResponse(ORMModel):
     id: UUID
     user_id: UUID

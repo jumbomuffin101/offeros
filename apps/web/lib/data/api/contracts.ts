@@ -28,6 +28,8 @@ export type ApiApplication = {
   date_applied: string | null;
   deadline: string | null;
   source: string;
+  external_job_id?: string | null;
+  captured_at?: string | null;
   resume_used: string;
   resume_version_id: string | null;
   resume_analysis_id: string | null;

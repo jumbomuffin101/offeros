@@ -60,6 +60,8 @@ class ApplicationResponse(ORMModel):
     date_applied: date | None
     deadline: date | None
     source: str
+    external_job_id: str | None = None
+    captured_at: datetime | None = None
     resume_used: str
     resume_version_id: UUID | None = None
     resume_analysis_id: UUID | None = None
@@ -89,3 +91,34 @@ class ApplicationAnalyzeResumeRequest(ORMModel):
 class ApplicationAnalyzeResumeResponse(ORMModel):
     application: ApplicationResponse
     analysis: ResumeAnalysisResponse
+
+
+class ApplicationCaptureRequest(ORMModel):
+    company: NonEmptyStr = Field(max_length=200)
+    role: NonEmptyStr = Field(max_length=200)
+    location: str | None = Field(default=None, max_length=200)
+    job_url: HttpUrl
+    job_description: str | None = Field(default=None, max_length=40_000)
+    source: str | None = Field(default=None, max_length=120)
+    external_job_id: str | None = Field(default=None, max_length=255)
+    resume_version_id: UUID | None = None
+    run_resume_analysis: bool = False
+    generate_prep_plan: bool = False
+
+
+class CaptureApplicationSummary(ORMModel):
+    id: UUID
+    company: str
+    role: str
+    location: str | None
+    job_url: str
+    status: str
+    resume_version_id: UUID | None
+    resume_match_score: int | None = None
+
+
+class ApplicationCaptureResponse(ORMModel):
+    status: str
+    application: CaptureApplicationSummary
+    analysis: dict[str, object] | None = None
+    prep_plan: dict[str, object] | None = None

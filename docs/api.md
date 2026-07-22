@@ -31,6 +31,10 @@ CSV imports use `rows` of the standard coding activity write shape. The web clie
 
 `coding-summary` is derived only from the authenticated user's non-deleted `CodingActivity` rows. `total_solved` and difficulty counts include `status=solved`; `solved_this_week` uses the current UTC calendar week (Monday through Sunday); `minutes_this_week` sums all logged coding activity in that week. A practice streak is consecutive UTC calendar days with at least one logged activity ending today, or yesterday when the user has not yet practiced today. Topic coverage aggregates all logged activities. URL imports deduplicate by normalized URL first, then by normalized title and practice date.
 
+## Job Capture
+
+`POST /applications/capture` accepts normalized active-page fields and returns `{status, application, analysis, prep_plan}`. Duplicate detection checks normalized URL first, then source plus external ID, then normalized company/role on the same host. A duplicate response never creates a row. AI analysis and prep generation are intentionally separate endpoint calls after capture. `GET /resumes/options` provides the extension-safe resume selector without resume text.
+
 ## Standards
 
 ### Authentication
