@@ -564,3 +564,15 @@ OpenAPI documentation should be disabled or protected in production unless an in
 - Deprecations include headers and a published removal date.
 - OpenAPI is checked into CI as an artifact; generated TypeScript clients fail CI on unreviewed breaking changes.
 - API examples in this document become contract-test fixtures during implementation.
+
+## Recruiting Events
+
+- `GET/POST /applications/{id}/events`
+- `PATCH/DELETE /application-events/{event_id}`
+- `POST /application-events/{event_id}/calendar`
+- `GET /dashboard/upcoming-events`
+- `GET /focus`
+
+Full timelines load only when an application opens. Application list responses expose only `next_action`, `next_action_due_at`, and `next_event_type`. Focus ranking is deterministic and prioritizes overdue events, imminent OA/interview/offer deadlines, then due follow-ups.
+
+Google Calendar uses `GET /integrations/google-calendar/connect`, public state-validated `GET /integrations/google-calendar/callback`, authenticated `GET /integrations/google-calendar/status`, and `DELETE /integrations/google-calendar`. Tokens are never returned by the API. Sync is explicit and one-way, not bidirectional.

@@ -12,6 +12,7 @@ import { RecruitingPlan } from "@/components/dashboard/recruiting-plan";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentlyViewedCard } from "@/components/dashboard/recently-viewed-card";
 import { DataErrorState } from "@/components/ui/data-error-state";
+import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
 
 export function DashboardContent() {
   const { summary, loading, error, refresh } = useDashboard();
@@ -38,6 +39,7 @@ export function DashboardContent() {
     </div>
     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><RecruitingPlan items={plan} /><PipelineSummary counts={counts} nextMove={plan[0]?.label ?? "Add an application to build your pipeline."} /></div>
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"><MomentumCard momentum={momentum} days={prep.weeklyDays} /><DeadlineList deadlines={deadlines} /></div>
+    <UpcomingEvents events={summary.upcomingEvents} />
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><ActivityFeed activities={activities} /><RecentlyViewedCard /></div>
   </div>;
 }

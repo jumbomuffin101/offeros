@@ -16,6 +16,7 @@ import {
 import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { UserAccount } from "@/components/auth/user-account";
 import { cn } from "@/lib/utils";
+import { FocusWidget } from "@/components/layout/focus-widget";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: Gauge },
@@ -85,15 +86,7 @@ export function Sidebar() {
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
           <UserAccount />
         </div>
-        <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
-        <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-          Focus
-        </div>
-        <div className="mt-3 text-sm font-semibold text-white">July internship push</div>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Keep applications, OAs, and prep sessions moving without losing context.
-        </p>
-        </div>
+        <FocusWidget />
       </div>
     </aside>
   );

@@ -62,6 +62,9 @@ class ApplicationResponse(ORMModel):
     source: str
     external_job_id: str | None = None
     captured_at: datetime | None = None
+    next_action: str | None = None
+    next_action_due_at: datetime | None = None
+    next_event_type: str | None = None
     resume_used: str
     resume_version_id: UUID | None = None
     resume_analysis_id: UUID | None = None

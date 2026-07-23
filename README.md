@@ -149,3 +149,7 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 - Optional account and cloud synchronization
 - Optional OCR and private resume file storage
 - Calendar and reminder integrations
+
+## Recruiting Timelines
+
+Applications support persistent interview, OA, offer, and follow-up events. These events drive application next actions, the Dashboard 14-day view, and the deterministic Focus widget. API mode can explicitly create or update selected events in Google Calendar; local mode retains timelines without external calendar sync.

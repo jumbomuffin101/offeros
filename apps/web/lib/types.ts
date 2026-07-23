@@ -21,6 +21,9 @@ export type Application = {
   source: string;
   externalJobId?: string;
   capturedAt?: string;
+  nextAction?: string;
+  nextActionDueAt?: string;
+  nextEventType?: string;
   resumeUsed: string;
   resumeVersionId?: string;
   resumeAnalysisId?: string;
@@ -43,6 +46,11 @@ export type Application = {
   updatedAt: string;
   category: "Big Tech" | "Finance" | "Fintech" | "Startup" | "Data";
 };
+
+export type ApplicationEventType = "applied" | "oa_received" | "oa_deadline" | "oa_completed" | "recruiter_screen" | "technical_interview" | "behavioral_interview" | "system_design_interview" | "final_round" | "follow_up" | "offer_received" | "offer_deadline" | "rejected" | "withdrawn" | "custom";
+export type ApplicationEvent = { id: string; applicationId: string; eventType: ApplicationEventType; title: string; description: string; scheduledAt: string; completedAt: string; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; externalCalendarEventId: string; createdAt: string; updatedAt: string };
+export type UpcomingRecruitingEvent = ApplicationEvent & { company: string; role: string };
+export type FocusItem = { type: string; applicationId: string; title: string; subtitle: string; dueAt: string; priority: number; prepReadiness?: number; prepNextAction?: string };
 
 export type ResumeVersion = {
   id: string;

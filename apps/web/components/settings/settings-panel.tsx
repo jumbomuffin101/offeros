@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, BookOpen, BrainCircuit, BriefcaseBusiness, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Monitor, Moon, RotateCcw, Smartphone, Sun, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { BarChart3, BookOpen, BrainCircuit, BriefcaseBusiness, CalendarClock, CheckCircle2, Command, Database, Download, FileText, GraduationCap, Info, Monitor, Moon, RotateCcw, Smartphone, Sun, Upload, Wifi, WifiOff, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,6 +33,7 @@ type CaptureSettings = {
   default_generate_prep_plan: boolean;
   default_application_status: "wishlist" | "applying" | "applied";
 };
+type CalendarStatus = { provider: string; connected: boolean; provider_account_email: string | null; connection_status: string; token_expires_at: string | null };
 
 export function SettingsPanel() {
   const workspace = useWorkspaceActions();
@@ -47,6 +48,8 @@ export function SettingsPanel() {
   const [captureSettings, setCaptureSettings] = useState<CaptureSettings | null>(null);
   const [resumeOptions, setResumeOptions] = useState<ResumeOption[]>([]);
   const [savingCaptureSettings, setSavingCaptureSettings] = useState(false);
+  const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null);
+  const [calendarBusy, setCalendarBusy] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -68,6 +71,12 @@ export function SettingsPanel() {
       .then((response) => { if (!cancelled) setAiStatus(response.data); })
       .catch(() => { if (!cancelled) setAiStatus(null); });
     return () => { cancelled = true; };
+  }, [dataMode]);
+  useEffect(() => {
+    if (dataMode !== "api") return;
+    let active = true;
+    apiClient.get<{ data: CalendarStatus }>("/integrations/google-calendar/status").then((response) => { if (active) setCalendarStatus(response.data); }).catch(() => { if (active) setCalendarStatus(null); });
+    return () => { active = false; };
   }, [dataMode]);
   useEffect(() => {
     if (dataMode !== "api") return;
@@ -115,6 +124,8 @@ export function SettingsPanel() {
       setSavingCaptureSettings(false);
     }
   }
+  async function connectCalendar() { setCalendarBusy(true); try { const response = await apiClient.get<{ data: { authorization_url: string } }>("/integrations/google-calendar/connect"); window.location.assign(response.data.authorization_url); } catch { notify("Google Calendar connection is unavailable. Check the integration configuration.", "info"); setCalendarBusy(false); } }
+  async function disconnectCalendar() { setCalendarBusy(true); try { await apiClient.delete("/integrations/google-calendar"); setCalendarStatus({ provider: "google", connected: false, provider_account_email: null, connection_status: "disconnected", token_expires_at: null }); notify("Google Calendar disconnected"); } catch { notify("Unable to disconnect Google Calendar", "info"); } finally { setCalendarBusy(false); } }
 
   return <div className="space-y-6">
     <div className="grid gap-6 lg:grid-cols-2">
@@ -125,6 +136,8 @@ export function SettingsPanel() {
     <Card><CardHeader><div className="flex items-center gap-3"><BrainCircuit className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">AI Resume Analysis</h2><p className="mt-1 text-sm text-slate-500">OpenRouter-powered resume feedback runs backend-side only. API mode supports PDF/DOCX text extraction.</p></div></div></CardHeader><CardContent><div className="flex flex-wrap items-center gap-2"><span className={`rounded-lg border px-3 py-2 text-sm font-medium ${aiStatusLabel(workspace.dataMode, aiStatus).className}`}>{aiStatusLabel(workspace.dataMode, aiStatus).label}</span><span className="text-sm text-slate-500">{aiStatusLabel(workspace.dataMode, aiStatus).detail}</span></div>{aiStatus?.model ? <p className="mt-3 text-xs text-slate-500">Model: {aiStatus.model}</p> : null}</CardContent></Card>
 
     <Card><CardHeader><div className="flex items-center gap-3"><BriefcaseBusiness className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Job Capture</h2><p className="mt-1 text-sm text-slate-500">Defaults used by the OfferOS Chrome extension when saving an active job page.</p></div></div></CardHeader><CardContent>{dataMode !== "api" ? <p className="text-sm text-slate-500">The extension saves to an authenticated cloud workspace. Local mode remains browser-only.</p> : captureSettings ? <div className="grid gap-4 lg:grid-cols-2"><label className="block"><span className="mb-1.5 block text-xs font-medium text-slate-500">Default resume</span><select className="h-10 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 px-3 text-sm text-slate-200 outline-none focus:border-indigo-400/50" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_resume_version_id: event.target.value || null } : current)} value={captureSettings.default_resume_version_id ?? ""}><option value="">No resume</option>{resumeOptions.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} - {resume.target_role}</option>)}</select></label><label className="block"><span className="mb-1.5 block text-xs font-medium text-slate-500">New application status</span><select className="h-10 w-full rounded-lg border border-slate-700/50 bg-slate-900/50 px-3 text-sm text-slate-200 outline-none focus:border-indigo-400/50" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_application_status: event.target.value as CaptureSettings["default_application_status"] } : current)} value={captureSettings.default_application_status}><option value="wishlist">Wishlist</option><option value="applying">Applying</option><option value="applied">Applied</option></select></label><label className="flex items-center gap-3 rounded-lg border border-slate-700/35 bg-slate-900/20 p-3 text-sm text-slate-300"><input checked={captureSettings.default_run_resume_analysis} className="size-4 accent-indigo-500" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_run_resume_analysis: event.target.checked } : current)} type="checkbox" />Analyze the selected resume after saving</label><label className="flex items-center gap-3 rounded-lg border border-slate-700/35 bg-slate-900/20 p-3 text-sm text-slate-300"><input checked={captureSettings.default_generate_prep_plan} className="size-4 accent-indigo-500" onChange={(event) => setCaptureSettings((current) => current ? { ...current, default_generate_prep_plan: event.target.checked } : current)} type="checkbox" />Generate an application prep plan</label><div className="lg:col-span-2"><Button disabled={savingCaptureSettings} onClick={() => void saveCaptureSettings()} variant="primary">{savingCaptureSettings ? "Saving..." : "Save capture defaults"}</Button></div></div> : <p className="text-sm text-slate-500">Capture settings are unavailable while the cloud workspace is starting.</p>}</CardContent></Card>
+
+    <Card><CardHeader><div className="flex items-center gap-3"><CalendarClock className="size-5 text-indigo-300" /><div><h2 className="text-lg font-semibold text-white">Google Calendar</h2><p className="mt-1 text-sm text-slate-500">OfferOS can add interview, OA, follow-up, and recruiting deadline events to your calendar.</p></div></div></CardHeader><CardContent>{dataMode !== "api" ? <div><p className="text-sm text-slate-500">Google Calendar requires an authenticated cloud workspace and is unavailable in local mode.</p></div> : calendarStatus?.connected ? <div className="flex flex-wrap items-center justify-between gap-4"><div><div className="flex items-center gap-2 text-sm font-medium text-emerald-200"><CheckCircle2 className="size-4" />Connected</div><p className="mt-1 text-sm text-slate-400">{calendarStatus.provider_account_email || "Google account"}</p><p className="mt-2 text-xs text-slate-500">OfferOS only creates or explicitly updates events you choose. It does not perform bidirectional calendar sync.</p></div><Button disabled={calendarBusy} onClick={() => void disconnectCalendar()} variant="secondary">{calendarBusy ? "Disconnecting..." : "Disconnect"}</Button></div> : <div className="flex flex-wrap items-center justify-between gap-4"><div><div className="text-sm font-medium text-white">Not connected</div><p className="mt-1 text-xs leading-5 text-slate-500">Uses Google&apos;s OAuth consent flow with calendar-event-only access.</p></div><Button disabled={calendarBusy} onClick={() => void connectCalendar()} variant="primary">{calendarBusy ? "Connecting..." : "Connect Google Calendar"}</Button></div>}</CardContent></Card>
 
     <Card>
       <CardHeader>

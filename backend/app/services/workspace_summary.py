@@ -10,6 +10,8 @@ from app.models.application import Application
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeVersion
 from app.schemas.workspace_summary import WorkspaceSummaryResponse
+from app.services.application_events import ApplicationEventService
+from app.services.applications import ApplicationService
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,9 @@ class WorkspaceSummaryService:
         behavioral_questions = self._list(BehavioralQuestion, user_id)
         system_design_prompts = self._list(SystemDesignPrompt, user_id)
         as_of = datetime.now(UTC)
+        event_service = ApplicationEventService(self.db)
         summary = WorkspaceSummaryResponse(
-            applications=applications,
+            applications=ApplicationService(self.db).list(user_id),
             resumes=resumes,
             coding_problems=coding_problems,
             behavioral_questions=behavioral_questions,
@@ -39,6 +42,8 @@ class WorkspaceSummaryService:
             analytics=self._analytics(
                 applications, resumes, coding_problems, behavioral_questions, system_design_prompts
             ),
+            upcoming_events=event_service.upcoming(user_id),
+            focus=event_service.focus(user_id),
             as_of=as_of,
         )
         logger.info(

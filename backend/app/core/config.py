@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     ai_timeout_seconds: int = 240
     ai_connect_timeout_seconds: int = 15
     ai_max_tokens: int = 1800
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_calendar_redirect_uri: str | None = None
+    token_encryption_key: str | None = None
+    frontend_app_url: str = "http://localhost:3000"
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(

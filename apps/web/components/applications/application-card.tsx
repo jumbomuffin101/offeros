@@ -86,6 +86,7 @@ export function ApplicationCard({
         <span className="text-slate-500">Resume match</span>
         <span className={`ml-2 font-medium ${application.analysisStatus === "completed" ? "text-emerald-200" : "text-slate-300"}`}>{application.analysisStatus === "completed" ? `${application.analysisOverallScore ?? 0}%${application.analysisMissingKeywordCount ? ` - ${application.analysisMissingKeywordCount} missing` : ""}` : "Not analyzed"}</span>
       </div>
+      {application.nextAction ? <div className="mt-2 rounded-xl border border-indigo-400/15 bg-indigo-400/[0.05] px-3 py-2 text-xs"><span className="text-slate-500">Next action</span><div className="mt-1 font-medium text-indigo-100">{application.nextAction}</div>{application.nextActionDueAt ? <div className="mt-1 text-slate-500">{formatDate(application.nextActionDueAt)}</div> : null}</div> : null}
 
       <p className="mt-4 line-clamp-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3 text-xs leading-5 text-slate-400">
         {application.notes || "No notes yet."}

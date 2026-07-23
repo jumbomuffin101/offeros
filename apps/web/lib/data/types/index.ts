@@ -2,6 +2,7 @@ import type {
   Application,
   Activity,
   ApplicationStatus,
+  FocusItem,
   BehavioralQuestion,
   CodingProblem,
   PrepGoal,
@@ -10,6 +11,7 @@ import type {
   ResumeVersion,
   ResumeAnalysis,
   SystemDesignPrompt,
+  UpcomingRecruitingEvent,
 } from "@/lib/types";
 import type { AnalyticsModel } from "@/lib/analytics-utils";
 import type {
@@ -78,6 +80,8 @@ export type DashboardSummary = {
   deadlines: DashboardDeadline[];
   activities: Activity[];
   empty: boolean;
+  upcomingEvents: UpcomingRecruitingEvent[];
+  focus: FocusItem | null;
 };
 
 export type AnalyticsSummary = {

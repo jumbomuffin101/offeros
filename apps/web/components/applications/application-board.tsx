@@ -100,6 +100,12 @@ export function ApplicationBoard() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  useEffect(() => {
+    if (selectedApplicationId || !applications.length) return;
+    const requestedId = new URLSearchParams(window.location.search).get("open");
+    if (requestedId && applications.some((application) => application.id === requestedId)) window.queueMicrotask(() => setSelectedApplicationId(requestedId));
+  }, [applications, selectedApplicationId]);
+
   const visibleApplications = useMemo(
     () => sortApplications(applyVolumeFilters(filterApplications(applications, search, filters), volumeFilter, hideRejected), sortKey),
     [applications, filters, hideRejected, search, sortKey, volumeFilter],
@@ -312,6 +318,7 @@ export function ApplicationBoard() {
         onSave={saveApplicationWorkspace}
         onAnalyze={analyzeApplicationResume}
         onGetAnalysis={resumeData.getResumeAnalysis}
+        onEventsChanged={() => void applicationData.refresh()}
       />
 
       {pendingDelete ? (

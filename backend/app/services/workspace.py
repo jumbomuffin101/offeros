@@ -5,6 +5,7 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
+from app.models.application_event import ApplicationEvent
 from app.models.base import ApplicationStatus, Difficulty, PrepStatus, Priority, ResumeStatus
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeAnalysis, ResumeVersion
@@ -27,6 +28,7 @@ class WorkspaceService:
         )
         try:
             if payload.scope in {"all", "applications"}:
+                self._delete(ApplicationEvent, user_id)
                 summary.deleted["applications"] = self._delete(Application, user_id)
                 applications = _reset_records(payload.mode, payload.applications, _demo_applications)
                 for application in applications:

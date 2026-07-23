@@ -1,4 +1,4 @@
-import type { Application, PrepWorkspaceData, ResumeVersion } from "@/lib/types";
+import type { Application, FocusItem, PrepWorkspaceData, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type { AnalyticsSummary, DashboardSummary } from "@/lib/data/types";
 import { buildAnalytics } from "@/lib/analytics-utils";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/dashboard-utils";
 import { calculateStreak } from "@/lib/prep-utils";
 
-export function buildDashboardSummary(applications: Application[], resumes: ResumeVersion[], prep: PrepWorkspaceData): DashboardSummary {
+export function buildDashboardSummary(applications: Application[], resumes: ResumeVersion[], prep: PrepWorkspaceData, upcomingEvents: UpcomingRecruitingEvent[] = [], focus: FocusItem | null = null): DashboardSummary {
   const asOf = new Date().toISOString();
   return {
     applications, resumes, prep, asOf,
@@ -27,6 +27,8 @@ export function buildDashboardSummary(applications: Application[], resumes: Resu
     deadlines: upcomingDeadlines(applications, asOf),
     activities: recentActivity(applications, resumes, prep, asOf),
     empty: !applications.length && !resumes.length && !prep.sessions.length && !prep.codingProblems.length && !prep.behavioralQuestions.length && !prep.systemDesignPrompts.length,
+    upcomingEvents,
+    focus,
   };
 }
 

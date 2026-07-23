@@ -311,3 +311,9 @@ Notifications, sessions, imports, audit events, outbox events, and AI requests a
 - Use database constraints for invariants that must survive every code path; use services for cross-row workflow policy.
 - `coding_profile_connections` stores only public provider metadata; it must never contain credentials, session values, or scraped profile payloads.
 - `coding_activities` is user-scoped, soft-deletable manual/imported history with indexes for user, solved date, and status. `coding_goals` contains one weekly target record per user.
+
+## Recruiting Timeline and Calendar Connections
+
+`application_events` stores user/application ownership, type, title, description, scheduled/completed timestamps, status, source, optional external calendar ID, timestamps, and `deleted_at`. Composite user/application scheduled indexes support Dashboard and timeline queries.
+
+`calendar_connections` stores one provider row per user. OAuth tokens are Fernet encrypted, and only a SHA-256 hash of the short-lived state is persisted. Disconnect removes credentials while preserving OfferOS events.

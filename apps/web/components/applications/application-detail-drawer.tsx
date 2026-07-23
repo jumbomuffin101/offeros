@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { apiClient } from "@/lib/data/api/apiClient";
 import { dataMode } from "@/lib/data/repositories/repositoryFactory";
+import { ApplicationTimeline } from "@/components/applications/application-timeline";
 
 type PrepPlan = { plan: { status: string; coding: { priority_topics?: Array<{ topic: string; priority: string; reason: string }> }; behavioral: { focus_areas?: Array<{ category: string }> }; system_design: { focus_areas?: Array<{ topic: string }> }; overall_preparation_summary: string; next_best_action: string }; coding_readiness: number; behavioral_readiness: number; system_design_readiness: number; overall_readiness: number; coding_coverage: Array<{ topic: string; practiced: number; status: string }> };
 
@@ -25,6 +26,7 @@ export function ApplicationDetailDrawer({
   onSave,
   onAnalyze,
   onGetAnalysis,
+  onEventsChanged,
 }: {
   application: Application | null;
   resumes: ResumeVersion[];
@@ -35,9 +37,10 @@ export function ApplicationDetailDrawer({
   onSave: (id: string, input: Partial<ApplicationInput>) => Promise<Application>;
   onAnalyze: (application: Application) => Promise<ApplicationAnalyzeResult>;
   onGetAnalysis: (id: string) => Promise<ResumeAnalysis | null>;
+  onEventsChanged: () => void;
 }) {
   if (!application) return null;
-  return <ApplicationWorkspace key={`${application.id}-${application.updatedAt}`} application={application} resumes={resumes} onClose={onClose} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onSave={onSave} onAnalyze={onAnalyze} onGetAnalysis={onGetAnalysis} />;
+  return <ApplicationWorkspace key={`${application.id}-${application.updatedAt}`} application={application} resumes={resumes} onClose={onClose} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onSave={onSave} onAnalyze={onAnalyze} onGetAnalysis={onGetAnalysis} onEventsChanged={onEventsChanged} />;
 }
 
 function ApplicationWorkspace({
@@ -50,6 +53,7 @@ function ApplicationWorkspace({
   onSave,
   onAnalyze,
   onGetAnalysis,
+  onEventsChanged,
 }: {
   application: Application;
   resumes: ResumeVersion[];
@@ -60,6 +64,7 @@ function ApplicationWorkspace({
   onSave: (id: string, input: Partial<ApplicationInput>) => Promise<Application>;
   onAnalyze: (application: Application) => Promise<ApplicationAnalyzeResult>;
   onGetAnalysis: (id: string) => Promise<ResumeAnalysis | null>;
+  onEventsChanged: () => void;
 }) {
   const [jobDescription, setJobDescription] = useState(application.jobDescription ?? "");
   const [resumeId, setResumeId] = useState(application.resumeVersionId ?? "");
@@ -133,6 +138,7 @@ function ApplicationWorkspace({
         <main className="flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)]">
             <div className="space-y-5">
+              <section className="rounded-xl border border-indigo-300/15 bg-indigo-300/[0.045] p-4"><div className="text-xs font-medium uppercase text-indigo-200/70">Next action</div><div className="mt-2 text-lg font-semibold text-white">{application.nextAction || "No upcoming action"}</div>{application.nextActionDueAt ? <p className="mt-1 text-sm text-slate-400">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(application.nextActionDueAt))}</p> : <p className="mt-1 text-sm text-slate-500">Add an event to define the next recruiting commitment.</p>}</section>
               <section className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold text-white">Application overview</h3><select className="h-9 rounded-lg border border-slate-700/60 bg-slate-950/55 px-2.5 text-sm text-slate-100" onChange={(event) => onStatusChange(application.id, event.target.value as ApplicationStatus)} value={application.status}>{APPLICATION_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></div>
                 <div className="grid gap-3 text-sm sm:grid-cols-2"><Detail label="Applied" value={formatDate(application.dateApplied)} /><Detail label="Deadline" value={formatDate(application.deadline)} /><Detail label="Source" value={application.source || "Not set"} /><Detail label="Recruiter" value={application.recruiterName || "Not set"} /><Detail label="Salary" value={application.salaryRange || "Not set"} /><Detail label="Resume" value={selectedResume?.name || application.resumeUsed || "Not selected"} /></div>
@@ -148,6 +154,7 @@ function ApplicationWorkspace({
               </section>
 
               <section className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4"><h3 className="font-semibold text-white">Notes</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">{application.notes || "No notes yet."}</p><Button className="mt-3" onClick={() => onEdit(application)} variant="ghost">Edit application details</Button></section>
+              <ApplicationTimeline application={application} onChanged={onEventsChanged} />
             </div>
 
             <aside className="space-y-5">

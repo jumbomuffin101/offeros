@@ -1,4 +1,6 @@
-import type { AnalyticsRepository, ApplicationRepository, DashboardRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
+import type { AnalyticsRepository, ApplicationEventRepository, ApplicationRepository, DashboardRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
+import { applicationEventRepository as localApplicationEventRepository } from "@/lib/data/repositories/applicationEventRepository";
+import { apiApplicationEventRepository } from "@/lib/data/repositories/apiApplicationEventRepository";
 import { applicationRepository as localApplicationRepository } from "@/lib/data/repositories/applicationRepository";
 import { resumeRepository as localResumeRepository } from "@/lib/data/repositories/resumeRepository";
 import { prepRepository as localPrepRepository } from "@/lib/data/repositories/prepRepository";
@@ -16,6 +18,7 @@ export type DataMode = "local" | "api";
 export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? "api" : "local";
 
 export const applicationRepository: ApplicationRepository = dataMode === "api" ? apiApplicationRepository : localApplicationRepository;
+export const applicationEventRepository: ApplicationEventRepository = dataMode === "api" ? apiApplicationEventRepository : localApplicationEventRepository;
 export const resumeRepository: ResumeRepository = dataMode === "api" ? apiResumeRepository : localResumeRepository;
 export const prepRepository: PrepRepository = dataMode === "api" ? apiPrepRepository : localPrepRepository;
 export const dashboardRepository: DashboardRepository = dataMode === "api" ? apiDashboardRepository : localDashboardRepository;

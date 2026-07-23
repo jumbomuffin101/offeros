@@ -58,3 +58,4 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     selected_resume = relationship("ResumeVersion", foreign_keys=[resume_version_id])
     resume_analysis = relationship("ResumeAnalysis", foreign_keys=[resume_analysis_id])
     prep_plan = relationship("ApplicationPrepPlan", back_populates="application", uselist=False)
+    events = relationship("ApplicationEvent", back_populates="application", cascade="all, delete-orphan")

@@ -10,6 +10,7 @@ from app.schemas.prep import (
     SystemDesignPromptResponse,
 )
 from app.schemas.resume import ResumeResponse
+from app.schemas.application_event import FocusResponse, UpcomingEventResponse
 
 
 class WorkspaceSummaryResponse(ORMModel):
@@ -20,4 +21,6 @@ class WorkspaceSummaryResponse(ORMModel):
     system_design_prompts: list[SystemDesignPromptResponse] = Field(default_factory=list)
     dashboard: dict[str, object] = Field(default_factory=dict)
     analytics: dict[str, object] = Field(default_factory=dict)
+    upcoming_events: list[UpcomingEventResponse] = Field(default_factory=list)
+    focus: FocusResponse | None = None
     as_of: datetime

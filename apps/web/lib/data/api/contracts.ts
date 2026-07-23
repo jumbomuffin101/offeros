@@ -15,6 +15,8 @@ export type ApiWorkspaceSummary = {
   coding_problems: ApiCodingProblem[];
   behavioral_questions: ApiBehavioralQuestion[];
   system_design_prompts: ApiSystemDesignPrompt[];
+  upcoming_events?: ApiUpcomingEvent[];
+  focus?: ApiFocus | null;
   as_of: string;
 };
 
@@ -30,6 +32,9 @@ export type ApiApplication = {
   source: string;
   external_job_id?: string | null;
   captured_at?: string | null;
+  next_action?: string | null;
+  next_action_due_at?: string | null;
+  next_event_type?: string | null;
   resume_used: string;
   resume_version_id: string | null;
   resume_analysis_id: string | null;
@@ -51,6 +56,10 @@ export type ApiApplication = {
   created_at: string;
   updated_at: string;
 };
+
+export type ApiApplicationEvent = { id: string; application_id: string; event_type: string; title: string; description: string; scheduled_at: string; completed_at: string | null; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; external_calendar_event_id: string | null; created_at: string; updated_at: string };
+export type ApiUpcomingEvent = ApiApplicationEvent & { company: string; role: string };
+export type ApiFocus = { type: string; application_id: string; title: string; subtitle: string; due_at: string | null; priority: number; prep_readiness: number | null; prep_next_action: string | null };
 
 export type ApiResume = {
   id: string;

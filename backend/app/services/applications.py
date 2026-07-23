@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from app.schemas.resume_analysis import ResumeAnalysisCreate
 from app.schemas.common import persistence_values
 from app.services.resume_analysis import ResumeAnalysisService
 from app.services.validation import reject_null_fields
+from app.services.application_events import ApplicationEventService
 
 
 class ApplicationService:
@@ -25,7 +27,8 @@ class ApplicationService:
     def list(self, user_id: UUID) -> list[ApplicationResponse]:
         applications = self.repository.list(user_id)
         resumes, analyses = self._related_records(user_id, applications)
-        return [self._response(application, resumes, analyses) for application in applications]
+        next_events = ApplicationEventService(self.db).next_by_application(user_id, [item.id for item in applications])
+        return [self._response(application, resumes, analyses, next_events.get(application.id)) for application in applications]
 
     def get(self, user_id: UUID, application_id: UUID) -> Application:
         application = self.repository.get(user_id, application_id)
@@ -34,14 +37,16 @@ class ApplicationService:
         return application
 
     def get_response(self, user_id: UUID, application_id: UUID) -> ApplicationResponse:
-        return self._response(self.get(user_id, application_id))
+        application = self.get(user_id, application_id)
+        next_event = ApplicationEventService(self.db).next_by_application(user_id, [application.id]).get(application.id)
+        return self._response(application, next_event=next_event)
 
     def create(self, user_id: UUID, payload: ApplicationCreate) -> ApplicationResponse:
         values = self._validated_values(user_id, persistence_values(payload))
         application = self.repository.create(user_id, values)
         self.db.commit()
         self.db.refresh(application)
-        return self._response(application)
+        return self.get_response(user_id, application.id)
 
     def update(
         self, user_id: UUID, application_id: UUID, payload: ApplicationUpdate
@@ -73,7 +78,7 @@ class ApplicationService:
                 plan.status = "stale"
         self.db.commit()
         self.db.refresh(application)
-        return self._response(application)
+        return self.get_response(user_id, application.id)
 
     def analyze_resume(
         self, user_id: UUID, application_id: UUID, analysis_request_id: UUID | None
@@ -96,10 +101,13 @@ class ApplicationService:
             ),
             application=application,
         )
-        return self._response(application), analysis
+        return self.get_response(user_id, application.id), analysis
 
     def delete(self, user_id: UUID, application_id: UUID) -> None:
         application = self.get(user_id, application_id)
+        deleted_at = datetime.now(UTC)
+        for event in ApplicationEventService(self.db).list(user_id, application_id):
+            event.deleted_at = deleted_at
         self.repository.soft_delete(application)
         self.db.commit()
 
@@ -161,6 +169,7 @@ class ApplicationService:
         application: Application,
         resumes: dict[UUID, ResumeVersion] | None = None,
         analyses: dict[UUID, ResumeAnalysis] | None = None,
+        next_event: object | None = None,
     ) -> ApplicationResponse:
         if resumes is None or analyses is None:
             resumes, analyses = self._related_records(application.user_id, [application])
@@ -175,5 +184,8 @@ class ApplicationService:
             "analysis_keyword_score": analysis.keyword_score if analysis else None,
             "analysis_missing_keyword_count": len(analysis.missing_keywords or []) if analysis and isinstance(analysis.missing_keywords, list) else 0,
             "analysis_last_analyzed_at": analysis.created_at if analysis else None,
+            "next_action": getattr(next_event, "title", None),
+            "next_action_due_at": getattr(next_event, "scheduled_at", None),
+            "next_event_type": getattr(next_event, "event_type", None),
         })
         return ApplicationResponse.model_validate(values)

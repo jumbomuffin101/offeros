@@ -1,0 +1,10 @@
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+import type { UpcomingRecruitingEvent } from "@/lib/types";
+
+export function UpcomingEvents({ events }: { events: UpcomingRecruitingEvent[] }) {
+  return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div className="flex items-center gap-3"><CalendarDays className="size-5 text-indigo-300" /><div><h2 className="font-semibold text-white">Upcoming recruiting events</h2><p className="mt-1 text-xs text-slate-500">The next 14 days, ordered by urgency.</p></div></div><div className="mt-4 space-y-2">{events.length ? events.map((event) => <Link className="flex items-center justify-between gap-4 rounded-lg border border-slate-700/35 bg-slate-900/25 p-3 transition hover:border-indigo-400/25" href={`/applications?open=${event.applicationId}`} key={event.id}><div className="min-w-0"><div className="truncate text-sm font-medium text-white">{event.company} · {event.role}</div><div className="mt-1 truncate text-xs text-slate-500">{event.title}</div></div><div className="shrink-0 text-right"><div className="text-xs font-medium text-indigo-100">{formatDate(event.scheduledAt)}</div><div className={`mt-1 text-[11px] ${urgencyColor(event.scheduledAt)}`}>{urgencyLabel(event.scheduledAt)}</div></div></Link>) : <div className="rounded-lg border border-dashed border-slate-700/40 px-4 py-8 text-center text-sm text-slate-500">No recruiting events in the next 14 days.</div>}</div></section>;
+}
+function formatDate(value: string) { return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)); }
+function urgencyLabel(value: string) { const hours = (new Date(value).getTime() - Date.now()) / 3_600_000; return hours < 0 ? "Overdue" : hours <= 24 ? "Due today" : hours <= 72 ? "Within 3 days" : "Upcoming"; }
+function urgencyColor(value: string) { const label = urgencyLabel(value); return label === "Overdue" ? "text-rose-200" : label === "Due today" ? "text-amber-200" : label === "Within 3 days" ? "text-indigo-200" : "text-slate-500"; }

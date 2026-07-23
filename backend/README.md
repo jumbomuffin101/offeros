@@ -273,3 +273,9 @@ CLERK_JWKS_URL=https://your-clerk-domain/.well-known/jwks.json
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=http://localhost:3000,https://your-offeros-app.vercel.app
 ```
+
+## Recruiting Events and Google Calendar
+
+Application timelines are stored in `application_events`. Calendar credentials are stored in `calendar_connections`; OAuth state is single-use and hashed, and access/refresh tokens are Fernet encrypted with `TOKEN_ENCRYPTION_KEY`.
+
+Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL`, then run `alembic upgrade head`. OfferOS requests calendar-event-only access and performs explicit one-way create/update operations. Disconnecting Google never deletes OfferOS timeline events.

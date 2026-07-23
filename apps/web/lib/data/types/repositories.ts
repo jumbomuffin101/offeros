@@ -1,4 +1,4 @@
-import type { Application, PrepWorkspaceData, ResumeAnalysis, ResumeVersion } from "@/lib/types";
+import type { Application, ApplicationEvent, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -22,6 +22,16 @@ export interface ApplicationRepository {
   duplicate(id: string): Promise<Application>;
   reset(): Promise<Application[]>;
   analyzeResume?(id: string, analysisRequestId?: string): Promise<ApplicationAnalyzeResult>;
+}
+
+export interface ApplicationEventRepository {
+  list(applicationId: string): Promise<ApplicationEvent[]>;
+  create(applicationId: string, input: Omit<ApplicationEvent, "id" | "applicationId" | "completedAt" | "externalCalendarEventId" | "createdAt" | "updatedAt">): Promise<ApplicationEvent>;
+  update(id: string, input: Partial<ApplicationEvent>): Promise<ApplicationEvent>;
+  delete(id: string): Promise<void>;
+  addToCalendar(id: string): Promise<ApplicationEvent>;
+  upcoming(): Promise<UpcomingRecruitingEvent[]>;
+  focus(): Promise<FocusItem | null>;
 }
 
 export interface ResumeRepository {

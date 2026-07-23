@@ -266,6 +266,10 @@ Manual reset validation checklist:
 16. Upload a PDF or DOCX resume, verify extraction reaches **Ready for analysis**, paste a target job description, run analysis, and reopen the previous result from history.
 17. Run `alembic upgrade head` after deploying coding practice intelligence, then connect a public LeetCode username, log a problem, and confirm `/api/v1/prep/coding-summary` reflects it. Automatic LeetCode sync is intentionally unavailable.
 18. Publish or load the MV3 extension, add its exact `chrome-extension://<id>` origin to backend `CORS_ORIGINS`, and verify Greenhouse, Lever, and Ashby capture plus duplicate handling.
+19. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL` on Render.
+20. Enable Google Calendar API, register the exact backend callback URL, run `alembic upgrade head`, and verify explicit event creation from an application timeline.
+
+Generate the stable encryption key once with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing or rotating it requires users to reconnect. OfferOS requests OpenID email identity and `calendar.events`; it does not read the full calendar or perform bidirectional synchronization.
 
 ## Rollback
 

@@ -76,7 +76,7 @@ export function ApplicationList({
                   <div className="truncate font-semibold text-white">{application.company}</div>
                   <div className="truncate text-xs text-slate-500">{application.location || "Location not set"}</div>
                 </td>
-                <td className="max-w-[220px] px-4 py-3 text-slate-300"><div className="truncate">{application.role}</div></td>
+                <td className="max-w-[220px] px-4 py-3 text-slate-300"><div className="truncate">{application.role}</div>{application.nextAction ? <div className="mt-1 truncate text-xs text-indigo-200/80">Next: {application.nextAction}</div> : null}</td>
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                   <InlineSelect
                     label={`${application.company} status`}
