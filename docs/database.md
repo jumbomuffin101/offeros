@@ -317,3 +317,10 @@ Notifications, sessions, imports, audit events, outbox events, and AI requests a
 `application_events` stores user/application ownership, type, title, description, scheduled/completed timestamps, status, source, optional external calendar ID, timestamps, and `deleted_at`. Composite user/application scheduled indexes support Dashboard and timeline queries.
 
 `calendar_connections` stores one provider row per user. OAuth tokens are Fernet encrypted, and only a SHA-256 hash of the short-lived state is persisted. Disconnect removes credentials while preserving OfferOS events.
+
+## Application Recruiter Copilot
+
+`application_copilot_conversations` scopes each thread to one user and application.
+`application_copilot_messages` stores only user and assistant content, provider/model metadata, and
+creation time. Messages cascade with their conversation and application. Chain-of-thought, auth
+claims, provider credentials, and unrelated workspace context are never stored.

@@ -23,4 +23,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     application_prep_plans = relationship("ApplicationPrepPlan", back_populates="user")
     application_events = relationship("ApplicationEvent", back_populates="user")
     calendar_connections = relationship("CalendarConnection", back_populates="user")
+    application_copilot_conversations = relationship(
+        "ApplicationCopilotConversation",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     settings = relationship("UserSettings", back_populates="user", uselist=False)

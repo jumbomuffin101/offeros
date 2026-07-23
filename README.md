@@ -17,6 +17,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Installable PWA with standalone display, iOS metadata, connection awareness, and basic offline asset caching
 - Clerk sign-in/sign-up, protected application routes, and account controls
 - Manifest V3 job capture extension for user-initiated Greenhouse, Lever, Ashby, and active-page fallback capture
+- Application-specific AI Recruiter Copilot with persistent conversations, quick prompts, and follow-up drafting
 
 ## Tech Stack
 

@@ -5,6 +5,7 @@ import { DataError, toDataError } from "@/lib/data/errors";
 import { applications as demoApplications } from "@/lib/mock-data";
 import { clearApplications, readApplications, writeApplications } from "@/lib/data/storage/local/applicationStorage";
 import { readApplicationEvents, writeApplicationEvents } from "@/lib/data/storage/local/applicationEventStorage";
+import { clearApplicationCopilot } from "@/lib/data/storage/local/applicationCopilotStorage";
 
 export const applicationRepository: ApplicationRepository = {
   async list() {
@@ -43,6 +44,7 @@ export const applicationRepository: ApplicationRepository = {
     if (!items.some((item) => item.id === id)) throw new DataError("NOT_FOUND", "Application not found.");
     write(items.filter((item) => item.id !== id), "Unable to delete the application.");
     writeApplicationEvents(readApplicationEvents().filter((event) => event.applicationId !== id));
+    clearApplicationCopilot(id);
   },
   async duplicate(id) {
     const source = read("Unable to duplicate the application.").find((item) => item.id === id);

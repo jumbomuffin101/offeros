@@ -8,6 +8,7 @@ import { removePreference } from "@/lib/data/storage/local/preferencesStorage";
 import { writeResumeAnalyses } from "@/lib/data/storage/local/resumeAnalysisStorage";
 import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/lib/data/types/repositories";
 import { clearApplicationEvents } from "@/lib/data/storage/local/applicationEventStorage";
+import { clearAllApplicationCopilot } from "@/lib/data/storage/local/applicationCopilotStorage";
 
 const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
@@ -15,7 +16,7 @@ export const workspaceRepository: WorkspaceRepository = {
   async reset(scope, mode) {
     if (mode === "sample") {
       try {
-        if (scope === "all" || scope === "applications") { writeApplications(applications); clearApplicationEvents(); }
+        if (scope === "all" || scope === "applications") { writeApplications(applications); clearApplicationEvents(); clearAllApplicationCopilot(); }
         if (scope === "all" || scope === "resumes") { writeResumes(resumes); writeResumeAnalyses([]); }
         if (scope === "all" || scope === "prep") writePrep(prepWorkspaceData);
         return;
@@ -32,6 +33,7 @@ export const workspaceRepository: WorkspaceRepository = {
       if (scope === "all") {
         writeApplications([]);
         clearApplicationEvents();
+        clearAllApplicationCopilot();
         writeResumes([]);
         writeResumeAnalyses([]);
         writePrep(emptyPrepWorkspace());
@@ -39,7 +41,7 @@ export const workspaceRepository: WorkspaceRepository = {
         removePreference("offeros:recent-commands");
         return;
       }
-      if (scope === "applications") { writeApplications([]); clearApplicationEvents(); }
+      if (scope === "applications") { writeApplications([]); clearApplicationEvents(); clearAllApplicationCopilot(); }
       if (scope === "resumes") { writeResumes([]); writeResumeAnalyses([]); }
       if (scope === "prep") writePrep(emptyPrepWorkspace());
       removePreference(RECENTLY_VIEWED_KEY);
@@ -47,7 +49,7 @@ export const workspaceRepository: WorkspaceRepository = {
   },
   async clearWorkspace() {
     try {
-      writeApplications([]); clearApplicationEvents(); writeResumes([]); writeResumeAnalyses([]); writePrep(emptyPrepWorkspace());
+      writeApplications([]); clearApplicationEvents(); clearAllApplicationCopilot(); writeResumes([]); writeResumeAnalyses([]); writePrep(emptyPrepWorkspace());
       removePreference(RECENTLY_VIEWED_KEY);
       removePreference("offeros:recent-commands");
     } catch (error) { throw toDataError(error, "Unable to prepare a fresh workspace."); }

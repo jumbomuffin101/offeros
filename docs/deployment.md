@@ -268,8 +268,13 @@ Manual reset validation checklist:
 18. Publish or load the MV3 extension, add its exact `chrome-extension://<id>` origin to backend `CORS_ORIGINS`, and verify Greenhouse, Lever, and Ashby capture plus duplicate handling.
 19. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL` on Render.
 20. Enable Google Calendar API, register the exact backend callback URL, run `alembic upgrade head`, and verify explicit event creation from an application timeline.
+21. Run `alembic upgrade head` for Recruiter Copilot, open an application, send a grounded question, refresh, and confirm the conversation persists.
 
 Generate the stable encryption key once with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing or rotating it requires users to reconnect. OfferOS requests OpenID email identity and `calendar.events`; it does not read the full calendar or perform bidirectional synchronization.
+
+Recruiter Copilot requires no additional provider variables. It reuses the configured OpenRouter
+model and key. After deployment, change the selected resume or job description, save, and verify
+that the next Copilot message uses the updated context while earlier messages remain unchanged.
 
 ## Rollback
 

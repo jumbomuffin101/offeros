@@ -51,6 +51,18 @@ export type ApplicationEventType = "applied" | "oa_received" | "oa_deadline" | "
 export type ApplicationEvent = { id: string; applicationId: string; eventType: ApplicationEventType; title: string; description: string; scheduledAt: string; completedAt: string; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; externalCalendarEventId: string; createdAt: string; updatedAt: string };
 export type UpcomingRecruitingEvent = ApplicationEvent & { company: string; role: string };
 export type FocusItem = { type: string; applicationId: string; title: string; subtitle: string; dueAt: string; priority: number; prepReadiness?: number; prepNextAction?: string };
+export type ApplicationCopilotMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+export type ApplicationCopilotConversation = {
+  conversationId?: string;
+  messages: ApplicationCopilotMessage[];
+  contextSources: string[];
+  hasMore: boolean;
+};
 
 export type ResumeVersion = {
   id: string;

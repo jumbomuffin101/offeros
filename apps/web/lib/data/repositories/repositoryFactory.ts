@@ -13,12 +13,15 @@ import { apiDashboardRepository } from "@/lib/data/repositories/apiDashboardRepo
 import { apiAnalyticsRepository } from "@/lib/data/repositories/apiAnalyticsRepository";
 import { workspaceRepository as localWorkspaceRepository } from "@/lib/data/repositories/workspaceRepository";
 import { apiWorkspaceRepository } from "@/lib/data/repositories/apiWorkspaceRepository";
+import { applicationCopilotRepository as localApplicationCopilotRepository } from "@/lib/data/repositories/applicationCopilotRepository";
+import { apiApplicationCopilotRepository } from "@/lib/data/repositories/apiApplicationCopilotRepository";
 
 export type DataMode = "local" | "api";
 export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? "api" : "local";
 
 export const applicationRepository: ApplicationRepository = dataMode === "api" ? apiApplicationRepository : localApplicationRepository;
 export const applicationEventRepository: ApplicationEventRepository = dataMode === "api" ? apiApplicationEventRepository : localApplicationEventRepository;
+export const applicationCopilotRepository = dataMode === "api" ? apiApplicationCopilotRepository : localApplicationCopilotRepository;
 export const resumeRepository: ResumeRepository = dataMode === "api" ? apiResumeRepository : localResumeRepository;
 export const prepRepository: PrepRepository = dataMode === "api" ? apiPrepRepository : localPrepRepository;
 export const dashboardRepository: DashboardRepository = dataMode === "api" ? apiDashboardRepository : localDashboardRepository;

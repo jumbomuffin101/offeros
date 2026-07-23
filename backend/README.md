@@ -279,3 +279,14 @@ CORS_ORIGINS=http://localhost:3000,https://your-offeros-app.vercel.app
 Application timelines are stored in `application_events`. Calendar credentials are stored in `calendar_connections`; OAuth state is single-use and hashed, and access/refresh tokens are Fernet encrypted with `TOKEN_ENCRYPTION_KEY`.
 
 Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL`, then run `alembic upgrade head`. OfferOS requests calendar-event-only access and performs explicit one-way create/update operations. Disconnecting Google never deletes OfferOS timeline events.
+
+## Recruiter Copilot
+
+`POST /api/v1/applications/{application_id}/copilot` uses the existing AI provider with current,
+user-scoped application context. Context can include the selected resume, application-specific
+analysis, prep plan, recruiting timeline, and aggregate prep history. It excludes unrelated
+applications, authentication data, and provider tokens.
+
+Conversation history loads only when the Copilot panel is opened. Run `alembic upgrade head` after
+deployment to create `application_copilot_conversations` and `application_copilot_messages`.
+Copilot reuses `AI_PROVIDER`, `OPENROUTER_API_KEY`, `AI_MODEL`, and the existing mock-mode settings.

@@ -1,4 +1,4 @@
-import type { Application, ApplicationEvent, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
+import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -32,6 +32,12 @@ export interface ApplicationEventRepository {
   addToCalendar(id: string): Promise<ApplicationEvent>;
   upcoming(): Promise<UpcomingRecruitingEvent[]>;
   focus(): Promise<FocusItem | null>;
+}
+
+export interface ApplicationCopilotRepository {
+  history(applicationId: string): Promise<ApplicationCopilotConversation>;
+  send(applicationId: string, input: { message: string; conversationId?: string }): Promise<{ conversationId: string; message: ApplicationCopilotMessage }>;
+  clear(applicationId: string, conversationId: string): Promise<void>;
 }
 
 export interface ResumeRepository {

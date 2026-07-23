@@ -310,11 +310,6 @@ export function ApplicationBoard() {
         resumes={resumeData.resumes}
         onClose={() => setSelectedApplicationId(null)}
         onDelete={(id) => setPendingDeleteId(id)}
-        onEdit={(application) => {
-          setEditingApplication(application);
-          setFormOpen(true);
-        }}
-        onStatusChange={moveApplication}
         onSave={saveApplicationWorkspace}
         onAnalyze={analyzeApplicationResume}
         onGetAnalysis={resumeData.getResumeAnalysis}

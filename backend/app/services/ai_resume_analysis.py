@@ -114,6 +114,14 @@ class AIProvider(Protocol):
         ...
 
 
+class CopilotProvider(Protocol):
+    provider: str
+    model: str
+
+    def chat(self, messages: list[dict[str, str]]) -> str:
+        ...
+
+
 class MockResumeAnalysisProvider:
     provider = "mock"
     model = "local-mock"
@@ -200,6 +208,22 @@ class MockResumeAnalysisProvider:
             summary="Local mock analysis generated because AI_MOCK_ENABLED is true. Use it for UX testing, not final resume decisions.",
         )
 
+    def chat(self, messages: list[dict[str, str]]) -> str:
+        question = messages[-1]["content"].lower() if messages else ""
+        if "follow-up" in question or "follow up" in question:
+            return (
+                "Subject: Following up on the software engineering opportunity\n\n"
+                "Hi there,\n\nThank you again for your time. I remain interested in the role and "
+                "would appreciate any update you can share on next steps. Please let me know if "
+                "I can provide anything else.\n\nBest,\nCandidate"
+            )
+        return (
+            "Based on the available application context, focus first on the role's explicit "
+            "technical requirements, then prepare one concise example that demonstrates relevant "
+            "ownership and impact. This is a simulated local response; verify recommendations "
+            "against the saved job description and your actual experience."
+        )
+
 
 class OpenRouterProvider:
     provider = "openrouter"
@@ -244,23 +268,51 @@ class OpenRouterProvider:
             ])
             return parse_analysis_result(repair)
 
-    def _complete_with_retry(self, messages: list[dict[str, str]]) -> str:
+    def chat(self, messages: list[dict[str, str]]) -> str:
+        return self._complete_with_retry(
+            messages,
+            json_response=False,
+            max_tokens=min(self.max_tokens, 1_000),
+        ).strip()
+
+    def _complete_with_retry(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        json_response: bool = True,
+        max_tokens: int | None = None,
+    ) -> str:
         try:
-            return self._complete(messages)
+            return self._complete(
+                messages,
+                json_response=json_response,
+                max_tokens=max_tokens,
+            )
         except AppError as exc:
             # Retry one fast provider failure, but never multiply a long provider timeout.
             if exc.code == "ai_provider_timeout" or exc.status_code not in {502, 503}:
                 raise
-            return self._complete(messages)
+            return self._complete(
+                messages,
+                json_response=json_response,
+                max_tokens=max_tokens,
+            )
 
-    def _complete(self, messages: list[dict[str, str]]) -> str:
+    def _complete(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        json_response: bool = True,
+        max_tokens: int | None = None,
+    ) -> str:
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": 0.2,
-            "max_tokens": self.max_tokens,
-            "response_format": {"type": "json_object"},
+            "max_tokens": max_tokens or self.max_tokens,
         }
+        if json_response:
+            payload["response_format"] = {"type": "json_object"}
         try:
             with httpx.Client(
                 timeout=httpx.Timeout(self.timeout_seconds, connect=self.connect_timeout_seconds)
@@ -329,6 +381,10 @@ def provider_from_settings(settings: Settings) -> AIProvider:
     else:
         message = f"AI provider '{settings.ai_provider}' is not supported. Use AI_PROVIDER=openrouter."
     raise AppError("ai_not_configured", message, 503)
+
+
+def copilot_provider_from_settings(settings: Settings) -> CopilotProvider:
+    return provider_from_settings(settings)  # type: ignore[return-value]
 
 
 def ai_status(settings: Settings) -> dict[str, object]:

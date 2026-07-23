@@ -576,3 +576,14 @@ OpenAPI documentation should be disabled or protected in production unless an in
 Full timelines load only when an application opens. Application list responses expose only `next_action`, `next_action_due_at`, and `next_event_type`. Focus ranking is deterministic and prioritizes overdue events, imminent OA/interview/offer deadlines, then due follow-ups.
 
 Google Calendar uses `GET /integrations/google-calendar/connect`, public state-validated `GET /integrations/google-calendar/callback`, authenticated `GET /integrations/google-calendar/status`, and `DELETE /integrations/google-calendar`. Tokens are never returned by the API. Sync is explicit and one-way, not bidirectional.
+
+## Application Recruiter Copilot
+
+- `GET /applications/{application_id}/copilot?limit=50`
+- `POST /applications/{application_id}/copilot`
+- `DELETE /applications/{application_id}/copilot/{conversation_id}`
+
+Send `{ "message": "...", "conversation_id": null }` to begin a conversation. The response
+contains the conversation ID and assistant message. Every new message rebuilds context from the
+currently saved application, resume, analysis, prep plan, timeline, and prep history. Existing
+messages are never rewritten when context changes.
