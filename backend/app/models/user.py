@@ -33,4 +33,15 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    mock_interview_sessions = relationship(
+        "MockInterviewSession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    notifications = relationship(
+        "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
+    ai_usage_events = relationship(
+        "AIUsageEvent", back_populates="user", cascade="all, delete-orphan"
+    )
     settings = relationship("UserSettings", back_populates="user", uselist=False)

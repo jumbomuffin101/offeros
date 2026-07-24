@@ -9,6 +9,7 @@ from app.models.application_copilot import ApplicationCopilotConversation
 from app.models.application_attention import ApplicationAttentionOverride
 from app.models.application_event import ApplicationEvent
 from app.models.base import ApplicationStatus, Difficulty, PrepStatus, Priority, ResumeStatus
+from app.models.mock_interview import MockInterviewSession
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.settings import UserSettings
@@ -48,6 +49,7 @@ class WorkspaceService:
                 summary.created["resumes"] = len(resumes)
 
             if payload.scope in {"all", "prep"}:
+                self._delete(MockInterviewSession, user_id)
                 summary.deleted["coding"] = self._delete(CodingProblem, user_id)
                 summary.deleted["behavioral"] = self._delete(BehavioralQuestion, user_id)
                 summary.deleted["systemDesign"] = self._delete(SystemDesignPrompt, user_id)

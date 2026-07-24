@@ -468,6 +468,7 @@ function AnalysisModal({ analysis, resume, onClose }: { analysis: ResumeAnalysis
 export function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
   return (
     <div className="space-y-5">
+      <p className="text-xs leading-5 text-slate-500">AI-generated feedback may be incomplete or inaccurate. Scores are heuristic guidance, not hiring or ATS predictions.</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Score label="Overall" value={analysis.overallScore} />
         <Score label="Keywords" value={analysis.keywordScore} />

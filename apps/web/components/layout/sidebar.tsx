@@ -18,6 +18,7 @@ import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { UserAccount } from "@/components/auth/user-account";
 import { cn } from "@/lib/utils";
 import { FocusWidget } from "@/components/layout/focus-widget";
+import { NotificationBell } from "@/components/notifications/notification-center";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: Gauge },
@@ -84,6 +85,7 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto space-y-3">
+        <div className="flex justify-end"><NotificationBell /></div>
         <ConnectionStatus />
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
           <UserAccount />
@@ -107,6 +109,7 @@ export function MobileNav() {
           OfferOS
         </Link>
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <ConnectionStatus compact />
           <UserAccount compact />
           <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">

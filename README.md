@@ -167,3 +167,34 @@ Dismissed and snoozed signals persist per user in API mode and in localStorage i
 dismissed signal becomes eligible again only when its underlying application state meaningfully
 changes. Recruiter follow-up drafts reuse the existing Recruiter Copilot and are never sent
 automatically.
+
+## AI Mock Interviews
+
+Prep includes resumable behavioral, resume deep-dive, technical concept, system design, and mixed
+mock interviews. Sessions ask one question at a time, evaluate each answer, can ask up to two
+grounded follow-ups per main question, and persist a final practice scorecard.
+
+API mode reuses the backend OpenRouter provider configuration. Local mode uses clearly labeled
+deterministic questions and simplified scoring in localStorage. Assessments are practice guidance,
+not hiring predictions, and OfferOS does not claim private company interview knowledge. Voice and
+code execution are not included.
+
+## Launch readiness
+
+New accounts use a resumable guided setup: welcome, resume, first application, optional fit
+analysis, optional prep plan, and the personalized Today view. Existing accounts with meaningful
+workspace data are inferred as complete and are not interrupted. API mode persists onboarding in
+`user_settings`; local mode persists the same lifecycle in browser storage.
+
+Today is backed by one `/api/v1/dashboard/today` request. It reuses Smart Inbox ranking for one
+primary action and the next five attention items, then adds upcoming recruiting events, weekly
+goals, a compact pipeline, meaningful activity, and resume performance. Notifications are
+user-scoped, deduplicated, and available from the navigation bell and `/notifications`.
+
+Settings now includes weekly goals, onboarding restart, monthly AI usage, JSON export, and
+typed-confirmation account deletion. Public `/privacy` and `/terms` pages describe data processing
+and AI limitations. AI feedback is heuristic guidance, not a hiring or ATS prediction.
+
+Production reliability includes request IDs, structured request-duration logs, safe GET retries,
+operation-specific timeouts, backend rate limits, monthly AI usage limits, `/health` and `/ready`,
+recoverable Next.js error states, and optional privacy-scrubbed Sentry reporting.

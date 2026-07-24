@@ -14,6 +14,7 @@ from app.schemas.application_copilot import (
 )
 from app.schemas.common import DataResponse
 from app.services.application_copilot import ApplicationCopilotService
+from app.services.usage import AIUsageService
 
 
 router = APIRouter(prefix="/applications", tags=["application-copilot"])
@@ -48,9 +49,16 @@ def send_application_copilot_message(
     user: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
 ) -> ApplicationCopilotSendResponse:
-    return ApplicationCopilotService(db, settings).send(
-        user.id, application_id, payload
-    )
+    with AIUsageService(db, settings).track(
+        user.id,
+        "recruiter_copilot",
+        provider=settings.ai_provider,
+        model=settings.ai_model,
+        resource_id=application_id,
+    ):
+        return ApplicationCopilotService(db, settings).send(
+            user.id, application_id, payload
+        )
 
 
 @router.delete(

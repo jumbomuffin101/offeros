@@ -271,6 +271,22 @@ Manual reset validation checklist:
 21. Run `alembic upgrade head` for Recruiter Copilot, open an application, send a grounded question, refresh, and confirm the conversation persists.
 22. Run `alembic upgrade head` for Smart Application Inbox, create an application with an old applied date, and verify `/api/v1/inbox`, Dashboard **Needs attention**, and Focus agree on the top signal.
 23. Snooze a follow-up, refresh, and confirm it stays hidden. Change the application's recruiting status and confirm the changed signal can appear again.
+24. Run `alembic upgrade head` for migration `20260724_0015_mock_interviews`.
+25. Open Prep, start a three-question mock interview, submit answers, refresh during the active session, and confirm the session resumes.
+26. Complete the session, reopen its scorecard, verify application context prefill, and explicitly save one recommended action to Prep.
+
+Mock Interviews reuse the existing OpenRouter configuration. No new provider secret is required.
+Production must keep `AI_MOCK_ENABLED=false`; local/test environments may enable it for deterministic
+practice and automated tests. Scores are heuristic practice feedback, not hiring predictions.
+
+27. Deploy migration `20260724_0016_launch_readiness`.
+28. Configure the `AI_LIMIT_*` launch-tier variables and keep values aligned with product policy.
+29. Optionally set `SENTRY_DSN`; verify a test exception is captured without request bodies or auth headers.
+30. Verify `/health` stays fast during database disruption and `/ready` reports database reachability.
+31. Create a new account, resume onboarding after refresh, and confirm an existing populated account is not interrupted.
+32. Verify Today and Smart Inbox agree on the highest-priority application signal.
+33. Trigger the same deadline notification reconciliation twice and confirm only one notification exists.
+34. Export account JSON, then test typed-confirmation deletion on a disposable account.
 
 Generate the stable encryption key once with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing or rotating it requires users to reconnect. OfferOS requests OpenID email identity and `calendar.events`; it does not read the full calendar or perform bidirectional synchronization.
 

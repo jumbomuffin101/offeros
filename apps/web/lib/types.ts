@@ -85,6 +85,161 @@ export type ApplicationInbox = {
   items: ApplicationAttentionItem[];
   summary: { critical: number; high: number; medium: number; total: number };
 };
+export type MockInterviewType = "behavioral" | "resume" | "technical" | "system_design" | "mixed";
+export type MockInterviewDifficulty = "introductory" | "standard" | "challenging";
+export type MockInterviewStatus = "created" | "active" | "completed" | "abandoned" | "failed";
+export type MockInterviewScores = {
+  accuracy: number;
+  relevance: number;
+  clarity: number;
+  depth: number;
+  structure: number;
+  ownership?: number;
+  impact?: number;
+  reflection?: number;
+  collaboration?: number;
+  requirements?: number;
+  decomposition?: number;
+  scalability?: number;
+  reliability?: number;
+  tradeoffs?: number;
+};
+export type MockInterviewEvaluation = {
+  scores: MockInterviewScores;
+  strengths: string[];
+  weaknesses: string[];
+  missedPoints: string[];
+  followUpNeeded: boolean;
+  followUpReason?: string;
+  followUpQuestion?: string;
+  summary: string;
+};
+export type MockInterviewTurn = {
+  id: string;
+  sessionId: string;
+  turnIndex: number;
+  speaker: "interviewer" | "candidate";
+  content: string;
+  questionType?: MockInterviewType;
+  evaluation?: MockInterviewEvaluation;
+  createdAt: string;
+};
+export type MockInterviewScorecard = {
+  id: string;
+  sessionId: string;
+  communicationScore: number;
+  technicalAccuracyScore: number;
+  structureScore: number;
+  depthScore: number;
+  relevanceScore: number;
+  behavioralScore?: number;
+  resumeFluencyScore?: number;
+  systemDesignScore?: number;
+  technicalReasoningScore?: number;
+  strengths: string[];
+  weaknesses: string[];
+  missedPoints: string[];
+  strongestAnswer: string;
+  weakestAnswer: string;
+  recommendedActions: string[];
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type MockInterviewSession = {
+  id: string;
+  applicationId?: string;
+  resumeVersionId?: string;
+  interviewType: MockInterviewType;
+  status: MockInterviewStatus;
+  difficulty: MockInterviewDifficulty;
+  title: string;
+  targetRole: string;
+  companyName: string;
+  questionCount: number;
+  currentQuestionIndex: number;
+  contextSources: string[];
+  startedAt: string;
+  completedAt?: string;
+  provider: string;
+  model: string;
+  overallScore?: number;
+  createdAt: string;
+  updatedAt: string;
+  turns?: MockInterviewTurn[];
+  scorecard?: MockInterviewScorecard;
+};
+
+export type OnboardingStatus = "not_started" | "in_progress" | "completed" | "skipped";
+export type OfferOSSettings = {
+  theme: "dark" | "light" | "system";
+  notificationsEnabled: boolean;
+  onboardingStatus: OnboardingStatus;
+  onboardingStep: number;
+  onboardingCompletedAt?: string;
+  onboardingSkippedAt?: string;
+  firstResumeUploadedAt?: string;
+  firstApplicationCreatedAt?: string;
+  firstAnalysisCompletedAt?: string;
+  firstPrepPlanCreatedAt?: string;
+  weeklyApplicationGoal: number;
+  weeklyCodingGoal: number;
+  weeklyMockInterviewGoal: number;
+  weeklyFollowUpGoal: number;
+  defaultInterviewDifficulty: MockInterviewDifficulty;
+  defaultMockInterviewLength: number;
+};
+export type OfferOSNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  applicationId?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  readAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+};
+export type TodayTopAction = {
+  type: string;
+  title: string;
+  description: string;
+  applicationId?: string;
+  priority: number;
+  actionLabel: string;
+  actionUrl: string;
+};
+export type TodaySummary = {
+  date: string;
+  topAction?: TodayTopAction;
+  attentionItems: ApplicationAttentionItem[];
+  upcomingEvents: UpcomingRecruitingEvent[];
+  weeklyProgress: {
+    applicationsAdded: number;
+    codingProblems: number;
+    mockInterviews: number;
+    followUpsCompleted: number;
+    prepTasks: number;
+    goals: Record<string, number>;
+  };
+  pipeline: Record<string, number>;
+  recentActivity: Activity[];
+  resumePerformance: {
+    analyzed: number;
+    total: number;
+    bestResume?: string;
+    bestScore?: number;
+  };
+};
+export type AIUsageSummary = {
+  operations: Array<{
+    operation: string;
+    used: number;
+    limit: number;
+    resetsAt: string;
+  }>;
+};
 export type ApplicationCopilotMessage = {
   id: string;
   role: "user" | "assistant";

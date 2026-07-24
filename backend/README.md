@@ -71,6 +71,30 @@ Apply migrations:
 alembic upgrade head
 ```
 
+## Launch readiness API
+
+Migration `20260724_0016_launch_readiness` adds onboarding/goal settings, notifications, and the AI
+usage ledger. Run `alembic upgrade head` before deploying the matching frontend.
+
+- `GET /api/v1/dashboard/today`: one user-scoped Today aggregation using Smart Inbox priority.
+- `GET /api/v1/notifications`: latest notifications and unread count.
+- `PATCH /api/v1/notifications/{id}/read` and `POST /api/v1/notifications/read-all`.
+- `GET /api/v1/account/export`: JSON export of user-owned workspace records.
+- `GET /api/v1/account/usage`: current monthly completed AI operations.
+- `POST /api/v1/account/delete`: typed-confirmation database and Clerk-account deletion flow.
+- `GET /health` and `/api/v1/health`: process liveness without a database query.
+- `GET /ready` and `/api/v1/ready`: database/config readiness without third-party provider calls.
+
+Every response includes `X-Request-ID`. Structured request logs contain route, method, status,
+duration, environment, request ID, and user ID when authentication resolved. They never contain
+request bodies, authorization headers, resume text, job descriptions, interview answers, prompts,
+or provider keys.
+
+Monthly limits are configured with `AI_LIMIT_*` variables. Failed provider operations are recorded
+as failed and do not count toward completed usage. Technical per-minute limits are separate and
+return HTTP 429 with stable `rate_limit_reached` errors. Configure `SENTRY_DSN` to enable backend
+error monitoring; privacy filtering removes request data and sensitive headers.
+
 Run the API:
 
 ```bash
@@ -308,3 +332,23 @@ applications, authentication data, and provider tokens.
 Conversation history loads only when the Copilot panel is opened. Run `alembic upgrade head` after
 deployment to create `application_copilot_conversations` and `application_copilot_messages`.
 Copilot reuses `AI_PROVIDER`, `OPENROUTER_API_KEY`, `AI_MODEL`, and the existing mock-mode settings.
+
+## AI Mock Interviews
+
+Mock interview routes are user-scoped under `/api/v1/mock-interviews`:
+
+- `GET /mock-interviews` returns lightweight recent session summaries.
+- `POST /mock-interviews` validates optional application/resume ownership and creates the first question.
+- `GET /mock-interviews/{id}` loads turns and the final scorecard after refresh.
+- `POST /mock-interviews/{id}/answer` evaluates one answer and advances or follows up.
+- `POST /mock-interviews/{id}/abandon` safely ends an active session.
+
+The feature reuses `AI_PROVIDER`, `OPENROUTER_API_KEY`, and `AI_MODEL`. In local/test environments,
+`AI_MOCK_ENABLED=true` enables the deterministic provider. Answer request UUIDs provide idempotency,
+and follow-ups are capped at two per main question.
+
+Apply migration `20260724_0015_mock_interviews` before enabling the feature:
+
+```bash
+alembic upgrade head
+```

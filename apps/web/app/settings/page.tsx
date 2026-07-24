@@ -7,7 +7,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Settings"
         title="Workspace settings"
-        subtitle="Manage your local technical recruiting workspace, app preferences, roadmap, and help."
+        subtitle="Manage account data, weekly goals, app preferences, integrations, privacy, and workspace controls."
       />
       <SettingsPanel />
     </>

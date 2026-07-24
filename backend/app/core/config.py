@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     ai_timeout_seconds: int = 240
     ai_connect_timeout_seconds: int = 15
     ai_max_tokens: int = 1800
+    ai_limit_resume_analyses: int = 10
+    ai_limit_application_analyses: int = 20
+    ai_limit_prep_plans: int = 10
+    ai_limit_mock_interviews: int = 5
+    ai_limit_mock_interview_turns: int = 50
+    ai_limit_copilot_messages: int = 50
+    ai_limit_default: int = 20
+    sentry_dsn: str | None = None
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_calendar_redirect_uri: str | None = None

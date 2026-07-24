@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError, PyJWKClient, PyJWKClientError
 from sqlalchemy import select
@@ -80,19 +80,24 @@ def get_clerk_identity(
 
 
 def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> User:
     if not settings.auth_required:
-        return _get_or_create_demo_user(db)
+        user = _get_or_create_demo_user(db)
+        request.state.user_id = user.id
+        return user
 
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _unauthorized("A Clerk bearer token is required.")
 
     identity = verify_clerk_jwt(credentials.credentials, settings)
     user = db.scalar(select(User).where(User.clerk_user_id == identity.clerk_user_id))
-    return user or _create_clerk_user(db, identity)
+    user = user or _create_clerk_user(db, identity)
+    request.state.user_id = user.id
+    return user
 
 
 def _get_or_create_demo_user(db: Session) -> User:

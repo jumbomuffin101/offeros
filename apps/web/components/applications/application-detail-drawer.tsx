@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BrainCircuit, ExternalLink, Loader2, Save, X } from "lucide-react";
+import Link from "next/link";
+import { BrainCircuit, ExternalLink, Loader2, MessagesSquare, Save, X } from "lucide-react";
 import type { Application, ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ApplicationAnalyzeResult, ApplicationInput } from "@/lib/data/types";
 import { formatDate, parseTags } from "@/lib/application-utils";
@@ -260,6 +261,10 @@ function ApplicationWorkspace({
                   {analyzing ? <Loader2 className="size-4 animate-spin" /> : <BrainCircuit className="size-4" />}
                   {analyzing ? "Analyzing resume..." : "Analyze resume for this role"}
                 </Button>
+                <Link className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-600/50 bg-slate-800/60 px-4 text-sm font-medium text-slate-100 transition hover:border-slate-500/60 hover:bg-slate-700/65" href={`/prep?tab=mock-interviews&application=${application.id}${selectedResume ? `&resume=${selectedResume.id}` : ""}`}>
+                  <MessagesSquare className="size-4" />
+                  Practice for this role
+                </Link>
                 {draft.jobUrl ? <a className="inline-flex items-center gap-2 px-2 text-sm text-indigo-200 hover:text-indigo-100" href={draft.jobUrl} rel="noreferrer" target="_blank"><ExternalLink className="size-4" />Open job posting</a> : null}
               </div>
               {error ? <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{error}</div> : null}

@@ -432,12 +432,9 @@ Parameters include `from`, `to`, and timezone. The service reads authoritative r
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/notifications` | List in-app notifications |
-| PATCH | `/notifications/{id}` | Mark read/unread |
-| POST | `/notifications/read-all` | Mark visible set read |
-| DELETE | `/notifications/{id}` | Dismiss notification |
-| GET | `/notification-preferences` | Read preferences |
-| PATCH | `/notification-preferences` | Update channels/quiet hours |
+| GET | `/notifications` | List active in-app notifications and unread count |
+| PATCH | `/notifications/{id}/read` | Mark an owned notification read |
+| POST | `/notifications/read-all` | Mark all owned notifications read |
 
 Clients cannot create arbitrary provider notifications. Product services emit domain events and the notification subsystem decides delivery.
 
@@ -613,3 +610,41 @@ Override request:
 `duration` is required only for `snooze` and accepts `tomorrow`, `3_days`, or `1_week`. Dismissals
 and snoozes are user-scoped. The Focus endpoint and Dashboard summary use the same highest-ranked
 attention result.
+
+## AI Mock Interviews
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/mock-interviews` | List up to 30 lightweight user-owned session summaries |
+| POST | `/mock-interviews` | Create a session and generate its first question |
+| GET | `/mock-interviews/{session_id}` | Load one owned session, turns, and scorecard |
+| POST | `/mock-interviews/{session_id}/answer` | Submit and evaluate one idempotent answer |
+| POST | `/mock-interviews/{session_id}/abandon` | Mark an active session abandoned |
+
+Creation accepts optional `application_id` and `resume_version_id`, interview type, difficulty, and
+three to ten main questions. Missing optional context does not prevent practice. Answer submission
+accepts `answer` and optional `answer_request_id`; repeating an existing request ID returns the
+persisted result without adding turns.
+
+Per-turn evaluations contain 1-5 accuracy, relevance, clarity, depth, and structure scores plus
+concise strengths, weaknesses, missed points, and a bounded follow-up decision. Completed sessions
+return a 0-100 practice scorecard. Hidden reasoning and system prompts are never returned.
+
+## Launch readiness endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/dashboard/today` | Smart-Inbox-backed top action, attention, events, goals, pipeline, activity, and resume summary |
+| GET | `/notifications` | List up to 50 active notifications and unread count |
+| PATCH | `/notifications/{id}/read` | Mark one owned notification read |
+| POST | `/notifications/read-all` | Mark all owned notifications read |
+| GET | `/account/export` | Export user-owned JSON data |
+| GET | `/account/usage` | Return completed monthly AI usage and limits |
+| POST | `/account/delete` | Permanently delete OfferOS data after `{"confirmation":"DELETE"}` |
+| GET | `/health` | Process liveness; database-free |
+| GET | `/ready` | Database and critical configuration readiness |
+
+Notifications use deterministic per-user dedupe keys. Dashboard reconciliation may create only
+deadline/follow-up notifications whose signal key has changed; repeated reads do not create spam.
+All API responses include `X-Request-ID`. Usage-limit errors use code `usage_limit_reached`;
+technical request limits use `rate_limit_reached` and a retry interval.

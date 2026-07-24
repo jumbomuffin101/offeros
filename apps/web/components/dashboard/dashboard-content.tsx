@@ -1,78 +1,90 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BriefcaseBusiness, CalendarClock, Code2, FileText, Flame, Handshake, MessageSquareMore, Target } from "lucide-react";
-import { useDashboard } from "@/hooks/use-dashboard";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
+  FileSearch,
+  Target,
+} from "lucide-react";
+import { useToday } from "@/hooks/use-launch";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { DeadlineList } from "@/components/dashboard/deadline-list";
-import { KpiCard } from "@/components/dashboard/kpi-card";
-import { MomentumCard } from "@/components/dashboard/momentum-card";
-import { PipelineSummary } from "@/components/dashboard/pipeline-summary";
-import { RecruitingPlan } from "@/components/dashboard/recruiting-plan";
-import { QuickActions } from "@/components/dashboard/quick-actions";
-import { RecentlyViewedCard } from "@/components/dashboard/recently-viewed-card";
-import { DataErrorState } from "@/components/ui/data-error-state";
-import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
 import { NeedsAttention } from "@/components/dashboard/needs-attention";
+import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
+import { DataErrorState } from "@/components/ui/data-error-state";
+import { Progress } from "@/components/ui/progress";
 
 export function DashboardContent() {
-  const { summary, loading, error, refresh } = useDashboard();
+  const { summary, loading, error, refresh } = useToday();
 
   if (error) return <DataErrorState error={error} onRetry={() => void refresh()} />;
-  if (loading || !summary) return <DashboardLoadingState />;
+  if (loading || !summary) return <TodayLoadingState />;
 
-  const { applications, resumes, prep, counts, plan, momentum, prepValues, applicationValues, deadlines, activities } = summary;
+  const attentionItems = summary.topAction
+    ? summary.attentionItems.filter((item) => item.category !== summary.topAction?.type).slice(0, 5)
+    : summary.attentionItems;
 
-  if (summary.empty) return <div className="space-y-6"><section className="rounded-2xl border border-slate-700/40 bg-[#1b1d2b] px-6 py-14 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200"><Target className="size-6" /></div><h2 className="mt-5 text-2xl font-semibold text-white">Build your technical recruiting workspace.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Start with one SWE application, one targeted resume, or one interview prep task. OfferOS turns those actions into a focused daily plan.</p><div className="mx-auto mt-6 max-w-3xl"><QuickActions compact /></div></section><RecentlyViewedCard /></div>;
+  return (
+    <div className="space-y-6">
+      {summary.topAction ? (
+        <section className="overflow-hidden rounded-2xl border border-indigo-300/20 bg-indigo-300/[0.06] p-5 sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-xs font-semibold uppercase text-indigo-200/75">Recommended next action</div>
+              <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{summary.topAction.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{summary.topAction.description}</p>
+            </div>
+            <Link className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 text-sm font-semibold text-white transition hover:bg-indigo-400" href={summary.topAction.actionUrl}>
+              {summary.topAction.actionLabel}<ArrowRight className="size-4" />
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
-  return <div className="space-y-6">
-    <div className="flex justify-end"><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-100">Local workspace synced</span></div>
-    <NeedsAttention items={summary.attentionItems} />
-    <QuickActions />
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <KpiCard label="Total Applications" value={String(applications.length)} helper="All locally tracked opportunities" trend={`${momentum.applicationsThisWeek} added this week`} sparkline={applicationValues} icon={<BriefcaseBusiness className="size-5" />} />
-      <KpiCard label="Active Interviews" value={String(counts.Interview + counts["Final Round"])} helper="Interview and final-round loops" trend={counts["Final Round"] ? `${counts["Final Round"]} in final rounds` : "No final rounds yet"} sparkline={[18, 24, 34, 42, 54, 62, Math.max(20, (counts.Interview + counts["Final Round"]) * 28)]} tone="purple" icon={<MessageSquareMore className="size-5" />} />
-      <KpiCard label="OAs Pending" value={String(counts.OA)} helper="Assessments needing attention" trend={counts.OA ? "Prioritize timed coding prep" : "Assessment queue clear"} sparkline={[28, 38, 32, 54, 48, 62, Math.max(18, counts.OA * 32)]} tone="amber" icon={<Code2 className="size-5" />} />
-      <KpiCard label="Offers" value={String(counts.Offer)} helper="Current successful outcomes" trend={counts.Offer ? `${counts.Offer} decision window${counts.Offer === 1 ? "" : "s"}` : "Keep the pipeline moving"} sparkline={[12, 18, 18, 26, 34, 48, Math.max(18, counts.Offer * 52)]} tone="green" icon={<Handshake className="size-5" />} />
-      <KpiCard label="Response Rate" value={`${summary.responseRate}%`} helper="Responses across submitted roles" trend="OAs through closed outcomes" sparkline={[22, 28, 34, 42, 38, 46, Math.max(18, summary.responseRate)]} icon={<CalendarClock className="size-5" />} />
-      <KpiCard label="Prep Streak" value={String(summary.prepStreak)} helper="Consecutive active prep days" trend={`${momentum.prepThisWeek} sessions this week`} sparkline={prepValues} tone="green" icon={<Flame className="size-5" />} />
-      <KpiCard label="Resume Versions" value={String(resumes.length)} helper={`${resumes.filter((resume) => resume.status === "Active").length} active versions`} trend={resumes.length ? "Targeted library ready" : "Upload a resume to begin"} sparkline={resumes.map((resume) => resume.keywordMatchScore).slice(0, 7)} tone="purple" icon={<FileText className="size-5" />} />
-      <KpiCard label="Weekly Prep" value={`${summary.weeklyPrepCompletion}%`} helper="Coding, behavioral, and design goals" trend="Progress against weekly targets" sparkline={prepValues} tone="amber" icon={<Target className="size-5" />} />
+      {attentionItems.length ? <NeedsAttention items={attentionItems} /> : null}
+
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+        <div className="space-y-6">
+          <UpcomingEvents events={summary.upcomingEvents} />
+          <WeeklyProgress progress={summary.weeklyProgress} />
+          <ActivityFeed activities={summary.recentActivity} />
+        </div>
+        <div className="space-y-6">
+          <PipelineSnapshot pipeline={summary.pipeline} />
+          <ResumePerformance value={summary.resumePerformance} />
+        </div>
+      </div>
     </div>
-    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><RecruitingPlan items={plan} /><PipelineSummary counts={counts} nextMove={plan[0]?.label ?? "Add an application to build your pipeline."} /></div>
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"><MomentumCard momentum={momentum} days={prep.weeklyDays} /><DeadlineList deadlines={deadlines} /></div>
-    <UpcomingEvents events={summary.upcomingEvents} />
-    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><ActivityFeed activities={activities} /><RecentlyViewedCard /></div>
-  </div>;
+  );
 }
 
-function DashboardLoadingState() {
-  const [showWakeMessage, setShowWakeMessage] = useState(false);
+function WeeklyProgress({ progress }: { progress: NonNullable<ReturnType<typeof useToday>["summary"]>["weeklyProgress"] }) {
+  const rows = [
+    ["Applications", progress.applicationsAdded, progress.goals.applications ?? 5],
+    ["Coding", progress.codingProblems, progress.goals.coding ?? 5],
+    ["Mock interviews", progress.mockInterviews, progress.goals.mock_interviews ?? 2],
+    ["Follow-ups", progress.followUpsCompleted, progress.goals.follow_ups ?? 3],
+  ] as const;
+  return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div><h2 className="font-semibold text-white">Weekly progress</h2><p className="mt-1 text-xs text-slate-500">Progress against your current recruiting goals.</p></div><div className="mt-5 grid gap-4 sm:grid-cols-2">{rows.map(([label, value, goal]) => <div key={label}><div className="mb-2 flex items-center justify-between text-sm"><span className="text-slate-300">{label}</span><span className="text-slate-500">{value} / {goal}</span></div><Progress value={goal ? Math.min(100, Math.round(value / goal * 100)) : 100} /></div>)}</div></section>;
+}
 
+function PipelineSnapshot({ pipeline }: { pipeline: Record<string, number> }) {
+  const stages = [["Saved", "saved"], ["Applied", "applied"], ["OA", "oa"], ["Interview", "interview"], ["Offer", "offer"]] as const;
+  const max = Math.max(1, ...stages.map(([, key]) => pipeline[key] ?? 0));
+  return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div className="flex items-center gap-2"><BriefcaseBusiness className="size-4 text-indigo-300" /><h2 className="font-semibold text-white">Pipeline snapshot</h2></div><p className="mt-1 text-xs text-slate-500">Active recruiting stages at a glance.</p><div className="mt-5 space-y-3">{stages.map(([label, key]) => <Link className="group block" href={`/applications?stage=${key}`} key={key}><div className="mb-1.5 flex justify-between text-sm"><span className="text-slate-400 group-hover:text-slate-200">{label}</span><span className="font-medium text-white">{pipeline[key] ?? 0}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-indigo-400/75" style={{ width: `${Math.max((pipeline[key] ?? 0) ? 8 : 0, ((pipeline[key] ?? 0) / max) * 100)}%` }} /></div></Link>)}</div></section>;
+}
+
+function ResumePerformance({ value }: { value: NonNullable<ReturnType<typeof useToday>["summary"]>["resumePerformance"] }) {
+  return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div className="flex items-center gap-2"><FileSearch className="size-4 text-indigo-300" /><h2 className="font-semibold text-white">Resume performance</h2></div>{value.analyzed ? <div className="mt-5"><div className="text-3xl font-semibold text-white">{value.bestScore ?? 0}%</div><p className="mt-1 text-sm text-slate-400">Best overall fit{value.bestResume ? ` - ${value.bestResume}` : ""}</p><p className="mt-4 text-xs text-slate-500">{value.analyzed} of {value.total} resume versions analyzed. Scores are heuristic AI guidance.</p><Link className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-indigo-200" href="/resumes">Review resumes<ArrowRight className="size-4" /></Link></div> : <div className="mt-5 rounded-lg border border-dashed border-slate-700/45 px-4 py-7 text-center"><Target className="mx-auto size-5 text-indigo-300" /><p className="mt-2 text-sm font-medium text-slate-200">No analyzed resume yet</p><p className="mt-1 text-xs leading-5 text-slate-500">Analyze a resume against a real job description to surface role-specific gaps.</p><Link className="mt-3 inline-flex text-sm font-medium text-indigo-200" href="/resumes">Open Resume Manager</Link></div>}</section>;
+}
+
+function TodayLoadingState() {
+  const [showWakeMessage, setShowWakeMessage] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => setShowWakeMessage(true), 1_200);
     return () => window.clearTimeout(timer);
   }, []);
-
-  return <div className="space-y-6" aria-label="Loading dashboard summary">
-    <div className="flex justify-end">
-      <span className="rounded-full border border-slate-700/50 bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
-        {showWakeMessage ? "Starting cloud workspace..." : "Loading workspace..."}
-      </span>
-    </div>
-    <div className="grid gap-4 md:grid-cols-3">
-      {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="h-24 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
-      ))}
-    </div>
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 8 }, (_, index) => (
-        <div key={index} className="h-36 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
-      ))}
-    </div>
-    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <div className="h-72 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
-      <div className="h-72 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
-    </div>
-  </div>;
+  return <div className="space-y-6" aria-label="Loading Today"><div className="h-40 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" /><p className="text-center text-xs text-slate-500">{showWakeMessage ? "Preparing your cloud workspace..." : "Loading today's priorities..."}</p><div className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]"><div className="h-80 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)]" /><div className="h-64 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)]" /></div></div>;
 }

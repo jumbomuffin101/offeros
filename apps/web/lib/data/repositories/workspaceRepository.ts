@@ -10,6 +10,7 @@ import type { LocalImportStatus, WorkspaceRepository, WorkspaceScope } from "@/l
 import { clearApplicationEvents } from "@/lib/data/storage/local/applicationEventStorage";
 import { clearAllApplicationCopilot } from "@/lib/data/storage/local/applicationCopilotStorage";
 import { clearAttentionOverrides } from "@/lib/data/storage/local/applicationAttentionStorage";
+import { clearMockInterviews } from "@/lib/data/storage/local/mockInterviewStorage";
 
 const RECENTLY_VIEWED_KEY = "offeros:recently-viewed";
 
@@ -19,14 +20,14 @@ export const workspaceRepository: WorkspaceRepository = {
       try {
         if (scope === "all" || scope === "applications") { writeApplications(applications); clearApplicationEvents(); clearAllApplicationCopilot(); clearAttentionOverrides(); }
         if (scope === "all" || scope === "resumes") { writeResumes(resumes); writeResumeAnalyses([]); }
-        if (scope === "all" || scope === "prep") writePrep(prepWorkspaceData);
+        if (scope === "all" || scope === "prep") { writePrep(prepWorkspaceData); clearMockInterviews(); }
         return;
       } catch (error) { throw toDataError(error, `Unable to reset ${scope} data.`); }
     }
     return this.clear(scope);
   },
   async populateDemo() {
-    try { writeApplications(applications); writeResumes(resumes); writePrep(prepWorkspaceData); }
+    try { writeApplications(applications); writeResumes(resumes); writePrep(prepWorkspaceData); clearMockInterviews(); }
     catch (error) { throw toDataError(error, "Unable to prepare the sample workspace."); }
   },
   async clear(scope: WorkspaceScope) {
@@ -39,19 +40,20 @@ export const workspaceRepository: WorkspaceRepository = {
         writeResumes([]);
         writeResumeAnalyses([]);
         writePrep(emptyPrepWorkspace());
+        clearMockInterviews();
         removePreference(RECENTLY_VIEWED_KEY);
         removePreference("offeros:recent-commands");
         return;
       }
       if (scope === "applications") { writeApplications([]); clearApplicationEvents(); clearAllApplicationCopilot(); clearAttentionOverrides(); }
       if (scope === "resumes") { writeResumes([]); writeResumeAnalyses([]); }
-      if (scope === "prep") writePrep(emptyPrepWorkspace());
+      if (scope === "prep") { writePrep(emptyPrepWorkspace()); clearMockInterviews(); }
       removePreference(RECENTLY_VIEWED_KEY);
     } catch (error) { throw toDataError(error, `Unable to clear ${scope} data.`); }
   },
   async clearWorkspace() {
     try {
-      writeApplications([]); clearApplicationEvents(); clearAllApplicationCopilot(); clearAttentionOverrides(); writeResumes([]); writeResumeAnalyses([]); writePrep(emptyPrepWorkspace());
+      writeApplications([]); clearApplicationEvents(); clearAllApplicationCopilot(); clearAttentionOverrides(); writeResumes([]); writeResumeAnalyses([]); writePrep(emptyPrepWorkspace()); clearMockInterviews();
       removePreference(RECENTLY_VIEWED_KEY);
       removePreference("offeros:recent-commands");
     } catch (error) { throw toDataError(error, "Unable to prepare a fresh workspace."); }

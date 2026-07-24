@@ -1,4 +1,4 @@
-import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, AttentionCategory, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
+import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, AttentionCategory, FocusItem, MockInterviewSession, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -11,6 +11,9 @@ import type {
   ResumeAnalysisInput,
   ResumeAnalyzeResult,
   ResumeUploadResult,
+  MockInterviewAnswerResult,
+  MockInterviewCreateInput,
+  MockInterviewCreateResult,
 } from "@/lib/data/types";
 
 export interface ApplicationRepository {
@@ -48,6 +51,18 @@ export interface InboxRepository {
     action: "dismiss" | "snooze";
     duration?: "tomorrow" | "3_days" | "1_week";
   }): Promise<ApplicationInbox>;
+}
+
+export interface MockInterviewRepository {
+  list(): Promise<MockInterviewSession[]>;
+  get(id: string): Promise<MockInterviewSession | null>;
+  create(input: MockInterviewCreateInput): Promise<MockInterviewCreateResult>;
+  answer(
+    id: string,
+    answer: string,
+    answerRequestId: string,
+  ): Promise<MockInterviewAnswerResult>;
+  abandon(id: string): Promise<MockInterviewSession>;
 }
 
 export interface ResumeRepository {

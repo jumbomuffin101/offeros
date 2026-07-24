@@ -9,6 +9,9 @@ export function DataErrorState({ error, onRetry }: { error: DataError; onRetry: 
       <AlertTriangle className="mx-auto size-6 text-rose-200" />
       <h2 className="mt-4 text-lg font-semibold text-white">Workspace data unavailable</h2>
       <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-400">{error.message}</p>
+      {error.requestId ? (
+        <p className="mt-2 text-xs text-slate-600">Support reference: {error.requestId}</p>
+      ) : null}
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         <Button onClick={onRetry} variant="secondary">
           <RefreshCw className="size-4" /> Retry

@@ -5,9 +5,9 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Dashboard"
-        title="Welcome back, Aryan"
-        subtitle="SWE applications, OAs, interviews, targeted resumes, and prep in one operating view."
+        eyebrow="Today"
+        title="What should you do today?"
+        subtitle="One focused view of urgent recruiting work, upcoming deadlines, and weekly progress."
       />
       <DashboardContent />
     </>

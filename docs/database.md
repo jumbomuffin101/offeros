@@ -335,3 +335,36 @@ owning user or application is deleted.
 Attention items themselves remain derived rather than persisted. `applications.meaningful_updated_at`
 records recruiting progress independently from generic `updated_at`, preventing note or metadata
 edits from incorrectly resetting stale and follow-up timers.
+
+## Mock Interview Persistence
+
+`mock_interview_sessions` owns configuration, optional application/resume references, provider/model
+metadata, progress counters, context-source labels, lifecycle timestamps, and the final overall
+score. Application and resume foreign keys use `SET NULL`; user deletion cascades.
+
+`mock_interview_turns` stores ordered interviewer/candidate text and validated evaluation JSON. A
+unique `(session_id, turn_index)` constraint preserves ordering, while
+`(session_id, answer_request_id)` prevents duplicate answer processing. It does not store hidden
+chain-of-thought or system prompts.
+
+`mock_interview_scorecards` is one-to-one with a session and stores dimension scores, strengths,
+weaknesses, missed points, answer excerpts, recommended actions, and a concise practice summary.
+Workspace Prep reset deletes mock interview sessions and their cascading turns/scorecards.
+
+## Launch readiness persistence
+
+`user_settings` stores onboarding lifecycle, inferred first-milestone timestamps, weekly goals, and
+default mock-interview preferences. New columns have safe server defaults so existing production
+rows migrate without a forced onboarding experience.
+
+`notifications` stores user-scoped in-app notices. A partial unique index on
+`(user_id, dedupe_key)` prevents repeated event notifications while allowing notices without a
+dedupe key. Indexes support recent and unread queries.
+
+`ai_usage_events` is an append-oriented ledger with operation, provider, model, status, optional
+token/cost metadata, resource ID, and timestamp. Only `completed` rows count toward monthly limits;
+failed attempts remain available for operational diagnosis.
+
+Account deletion explicitly removes dependent user-owned rows in child-first order before deleting
+the OfferOS user. PostgreSQL foreign-key cascades remain a second safeguard. Temporary resume upload
+bytes are not persisted by this schema.

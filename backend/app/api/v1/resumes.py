@@ -1,16 +1,21 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Header, Response, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
+from app.models.resume import ResumeAnalysis
 from app.schemas.common import DataResponse
 from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeAnalysisResponse, ResumeAnalyzeResponse
 from app.core.config import Settings, get_settings
 from app.schemas.resume import ResumeCreate, ResumeExtractionSummary, ResumeOptionResponse, ResumeResponse, ResumeUpdate, ResumeUploadResponse
 from app.services.resume_analysis import ResumeAnalysisService
+from app.services.usage import AIUsageService
+from app.services.notifications import NotificationService
+from app.schemas.launch import NotificationCreate
 from app.services.resumes import ResumeService
 
 
@@ -116,7 +121,34 @@ def analyze_resume(
 ) -> ResumeAnalyzeResponse:
     if payload.analysis_request_id is None:
         payload.analysis_request_id = idempotency_key
-    analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
+    duplicate = payload.analysis_request_id and db.scalar(
+        select(ResumeAnalysis.id).where(
+            ResumeAnalysis.user_id == user.id,
+            ResumeAnalysis.analysis_request_id == payload.analysis_request_id,
+        )
+    )
+    if duplicate:
+        analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
+    else:
+        with AIUsageService(db, settings).track(
+            user.id,
+            "resume_analysis",
+            provider=settings.ai_provider,
+            model=settings.ai_model,
+            resource_id=resume_id,
+        ):
+            analysis, resume = ResumeAnalysisService(db, settings).analyze(user.id, resume_id, payload)
+    NotificationService(db).create(
+        user.id,
+        NotificationCreate(
+            type="analysis_completed",
+            title="Resume analysis completed",
+            message=f"{resume.name} has new role-specific feedback.",
+            action_url=f"/resumes?open={resume_id}",
+            action_label="Review analysis",
+            dedupe_key=f"resume-analysis:{analysis.id}:completed",
+        ),
+    )
     return ResumeAnalyzeResponse(
         analysis=ResumeAnalysisResponse.model_validate(analysis),
         resume=ResumeResponse.model_validate(resume),

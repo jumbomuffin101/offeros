@@ -13,6 +13,11 @@ import type {
   SystemDesignPrompt,
   UpcomingRecruitingEvent,
   ApplicationAttentionItem,
+  MockInterviewDifficulty,
+  MockInterviewEvaluation,
+  MockInterviewSession,
+  MockInterviewTurn,
+  MockInterviewType,
 } from "@/lib/types";
 import type { AnalyticsModel } from "@/lib/analytics-utils";
 import type {
@@ -39,6 +44,27 @@ export type ResumeAnalyzeResult = {
 export type ApplicationAnalyzeResult = {
   application: Application;
   analysis: ResumeAnalysis;
+};
+export type MockInterviewCreateInput = {
+  applicationId?: string;
+  resumeVersionId?: string;
+  interviewType: MockInterviewType;
+  difficulty: MockInterviewDifficulty;
+  questionCount: number;
+};
+export type MockInterviewCreateResult = {
+  session: MockInterviewSession;
+  firstTurn: MockInterviewTurn;
+};
+export type MockInterviewAnswerResult = {
+  session: MockInterviewSession;
+  evaluation: MockInterviewEvaluation;
+  nextQuestion?: MockInterviewTurn;
+  progress: {
+    completedQuestions: number;
+    totalQuestions: number;
+    followUpCount: number;
+  };
 };
 export type ResumeUploadResult = {
   resume: ResumeVersion;

@@ -12,3 +12,4 @@ httpx>=0.28,<1.0
 python-multipart>=0.0.20,<1.0
 PyMuPDF>=1.25,<2.0
 python-docx>=1.1,<2.0
+sentry-sdk[fastapi]>=2.20,<3.0

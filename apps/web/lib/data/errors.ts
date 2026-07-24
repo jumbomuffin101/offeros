@@ -7,18 +7,23 @@ export type DataErrorCode =
   | "NETWORK_ERROR"
   | "API_ERROR"
   | "CONFIGURATION_ERROR"
+  | "RATE_LIMITED"
   | "NOT_IMPLEMENTED"
   | "UNKNOWN";
 
 export class DataError extends Error {
   readonly code: DataErrorCode;
   readonly cause?: unknown;
+  readonly requestId?: string;
+  readonly details?: Record<string, unknown>;
 
-  constructor(code: DataErrorCode, message: string, options?: { cause?: unknown }) {
+  constructor(code: DataErrorCode, message: string, options?: { cause?: unknown; requestId?: string; details?: Record<string, unknown> }) {
     super(message);
     this.name = "DataError";
     this.code = code;
     this.cause = options?.cause;
+    this.requestId = options?.requestId;
+    this.details = options?.details;
   }
 }
 

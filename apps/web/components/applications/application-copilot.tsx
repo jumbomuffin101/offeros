@@ -132,6 +132,7 @@ export function ApplicationCopilot({
               ))}
             </div>
           </div>
+          <p className="mt-2 text-[11px] leading-5 text-slate-600">AI-generated drafts may be inaccurate. Review names, dates, and claims before sending.</p>
 
           <div className="mt-3 max-h-96 space-y-3 overflow-y-auto pr-1" ref={scrollRef}>
             {copilot.loading ? (

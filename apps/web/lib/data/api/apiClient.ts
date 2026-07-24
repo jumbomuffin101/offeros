@@ -98,6 +98,7 @@ class ApiClient {
   ): Promise<T> {
     if (!init.skipAuth && !init.skipWakeup) await ensureBackendAwake(baseUrl);
     const headers = new Headers(init.headers);
+    if (!headers.has("X-Request-ID")) headers.set("X-Request-ID", requestId());
     if (!init.skipAuth) {
       for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
     }
@@ -169,7 +170,11 @@ class ApiClient {
     const payload = await parseResponse(response);
     logDebugRequest((init as RequestOptions).debugLabel, "response status", { status: response.status });
     logTiming(`api.${method}.${new URL(url).pathname}.${response.status}`, startedAt, { attempt });
-    if (!response.ok) throw apiResponseError(response.status, payload, { method, url });
+    if (!response.ok) throw apiResponseError(response.status, payload, {
+      method,
+      url,
+      requestId: response.headers.get("X-Request-ID") ?? undefined,
+    });
     return payload as T;
   }
 }
@@ -188,20 +193,22 @@ async function parseResponse(response: Response): Promise<unknown> {
   }
 }
 
-function apiResponseError(status: number, payload: unknown, request: { method: string; url: string }) {
+function apiResponseError(status: number, payload: unknown, request: { method: string; url: string; requestId?: string }) {
   const serverMessage = extractMessage(payload);
-  if (status === 401) return new DataError("UNAUTHORIZED", "Your session needs to be refreshed.");
-  if (status === 403) return new DataError("FORBIDDEN", "Your session needs to be refreshed.");
+  const options = { requestId: request.requestId, details: extractDetails(payload) };
+  if (status === 401) return new DataError("UNAUTHORIZED", "Your session needs to be refreshed.", options);
+  if (status === 403) return new DataError("FORBIDDEN", "Your session needs to be refreshed.", options);
+  if (status === 429) return new DataError("RATE_LIMITED", serverMessage || "OfferOS received too many requests. Try again shortly.", options);
   if (status === 404) {
     const notFoundMessage = "The workspace endpoint is unavailable.";
     const diagnostic = DEV_API_DIAGNOSTICS ? ` (${request.method} ${request.url})` : "";
-    return new DataError("NOT_FOUND", `${serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage}${diagnostic}`);
+    return new DataError("NOT_FOUND", `${serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage}${diagnostic}`, options);
   }
-  if (status === 413) return new DataError("VALIDATION_ERROR", serverMessage || "The uploaded file is too large.");
-  if (status === 415) return new DataError("VALIDATION_ERROR", serverMessage || "This file type is not supported.");
-  if (status === 422) return new DataError("VALIDATION_ERROR", serverMessage || "Some submitted fields are invalid.");
-  if (status >= 500) return new DataError("API_ERROR", serverMessage || "The workspace encountered a server error.");
-  return new DataError("API_ERROR", serverMessage || "The OfferOS API could not complete this request.");
+  if (status === 413) return new DataError("VALIDATION_ERROR", serverMessage || "The uploaded file is too large.", options);
+  if (status === 415) return new DataError("VALIDATION_ERROR", serverMessage || "This file type is not supported.", options);
+  if (status === 422) return new DataError("VALIDATION_ERROR", serverMessage || "Some submitted fields are invalid.", options);
+  if (status >= 500) return new DataError("API_ERROR", serverMessage || "The workspace encountered a server error.", options);
+  return new DataError("API_ERROR", serverMessage || "The OfferOS API could not complete this request.", options);
 }
 
 function extractMessage(payload: unknown): string | null {
@@ -218,6 +225,14 @@ function extractMessage(payload: unknown): string | null {
     if (typeof message === "string") return message;
   }
   return null;
+}
+
+function extractDetails(payload: unknown): Record<string, unknown> | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const error = (payload as Record<string, unknown>).error;
+  if (!error || typeof error !== "object") return undefined;
+  const details = (error as Record<string, unknown>).details;
+  return details && typeof details === "object" ? details as Record<string, unknown> : undefined;
 }
 
 function now() {
@@ -300,4 +315,8 @@ function isAbsoluteUrl(value: string) {
 
 function requestBody(body: unknown): BodyInit | undefined {
   return body instanceof FormData ? body : JSON.stringify(body);
+}
+
+function requestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `offeros-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

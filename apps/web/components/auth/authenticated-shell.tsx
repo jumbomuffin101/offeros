@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 
-const publicAuthRoutes = ["/sign-in", "/sign-up"];
+const publicAuthRoutes = ["/sign-in", "/sign-up", "/privacy", "/terms"];
 
 export function AuthenticatedShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

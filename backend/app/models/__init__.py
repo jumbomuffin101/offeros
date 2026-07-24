@@ -1,11 +1,17 @@
 from app.models.analytics import AnalyticsSnapshot
 from app.models.application import Application
 from app.models.application_attention import ApplicationAttentionOverride
+from app.models.mock_interview import (
+    MockInterviewScorecard,
+    MockInterviewSession,
+    MockInterviewTurn,
+)
 from app.models.application_copilot import (
     ApplicationCopilotConversation,
     ApplicationCopilotMessage,
 )
 from app.models.application_event import ApplicationEvent
+from app.models.launch import AIUsageEvent, Notification
 from app.models.calendar import CalendarConnection
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
@@ -18,9 +24,14 @@ __all__ = [
     "AnalyticsSnapshot",
     "Application",
     "ApplicationAttentionOverride",
+    "MockInterviewSession",
+    "MockInterviewTurn",
+    "MockInterviewScorecard",
     "ApplicationCopilotConversation",
     "ApplicationCopilotMessage",
     "ApplicationEvent",
+    "Notification",
+    "AIUsageEvent",
     "CalendarConnection",
     "ApplicationPrepPlan",
     "CodingActivity",

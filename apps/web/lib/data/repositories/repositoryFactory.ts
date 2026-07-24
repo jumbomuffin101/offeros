@@ -1,4 +1,4 @@
-import type { AnalyticsRepository, ApplicationEventRepository, ApplicationRepository, DashboardRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
+import type { AnalyticsRepository, ApplicationEventRepository, ApplicationRepository, DashboardRepository, MockInterviewRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
 import { applicationEventRepository as localApplicationEventRepository } from "@/lib/data/repositories/applicationEventRepository";
 import { apiApplicationEventRepository } from "@/lib/data/repositories/apiApplicationEventRepository";
 import { applicationRepository as localApplicationRepository } from "@/lib/data/repositories/applicationRepository";
@@ -17,6 +17,8 @@ import { applicationCopilotRepository as localApplicationCopilotRepository } fro
 import { apiApplicationCopilotRepository } from "@/lib/data/repositories/apiApplicationCopilotRepository";
 import { inboxRepository as localInboxRepository } from "@/lib/data/repositories/inboxRepository";
 import { apiInboxRepository } from "@/lib/data/repositories/apiInboxRepository";
+import { mockInterviewRepository as localMockInterviewRepository } from "@/lib/data/repositories/mockInterviewRepository";
+import { apiMockInterviewRepository } from "@/lib/data/repositories/apiMockInterviewRepository";
 
 export type DataMode = "local" | "api";
 export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? "api" : "local";
@@ -25,6 +27,7 @@ export const applicationRepository: ApplicationRepository = dataMode === "api" ?
 export const applicationEventRepository: ApplicationEventRepository = dataMode === "api" ? apiApplicationEventRepository : localApplicationEventRepository;
 export const applicationCopilotRepository = dataMode === "api" ? apiApplicationCopilotRepository : localApplicationCopilotRepository;
 export const inboxRepository = dataMode === "api" ? apiInboxRepository : localInboxRepository;
+export const mockInterviewRepository: MockInterviewRepository = dataMode === "api" ? apiMockInterviewRepository : localMockInterviewRepository;
 export const resumeRepository: ResumeRepository = dataMode === "api" ? apiResumeRepository : localResumeRepository;
 export const prepRepository: PrepRepository = dataMode === "api" ? apiPrepRepository : localPrepRepository;
 export const dashboardRepository: DashboardRepository = dataMode === "api" ? apiDashboardRepository : localDashboardRepository;
