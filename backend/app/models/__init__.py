@@ -1,5 +1,6 @@
 from app.models.analytics import AnalyticsSnapshot
 from app.models.application import Application
+from app.models.application_attention import ApplicationAttentionOverride
 from app.models.application_copilot import (
     ApplicationCopilotConversation,
     ApplicationCopilotMessage,
@@ -16,6 +17,7 @@ from app.models.user import User
 __all__ = [
     "AnalyticsSnapshot",
     "Application",
+    "ApplicationAttentionOverride",
     "ApplicationCopilotConversation",
     "ApplicationCopilotMessage",
     "ApplicationEvent",

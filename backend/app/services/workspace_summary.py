@@ -11,6 +11,7 @@ from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPromp
 from app.models.resume import ResumeVersion
 from app.schemas.workspace_summary import WorkspaceSummaryResponse
 from app.services.application_events import ApplicationEventService
+from app.services.application_attention import ApplicationAttentionService
 from app.services.applications import ApplicationService
 
 
@@ -30,6 +31,8 @@ class WorkspaceSummaryService:
         system_design_prompts = self._list(SystemDesignPrompt, user_id)
         as_of = datetime.now(UTC)
         event_service = ApplicationEventService(self.db)
+        attention_service = ApplicationAttentionService(self.db, as_of)
+        attention_items = attention_service.build(user_id, applications=applications)
         summary = WorkspaceSummaryResponse(
             applications=ApplicationService(self.db).list(user_id),
             resumes=resumes,
@@ -43,7 +46,8 @@ class WorkspaceSummaryService:
                 applications, resumes, coding_problems, behavioral_questions, system_design_prompts
             ),
             upcoming_events=event_service.upcoming(user_id),
-            focus=event_service.focus(user_id),
+            focus=attention_service.focus(user_id, attention_items),
+            attention_items=attention_items[:5],
             as_of=as_of,
         )
         logger.info(

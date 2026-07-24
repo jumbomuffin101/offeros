@@ -28,4 +28,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    application_attention_overrides = relationship(
+        "ApplicationAttentionOverride",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     settings = relationship("UserSettings", back_populates="user", uselist=False)

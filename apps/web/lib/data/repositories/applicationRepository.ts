@@ -22,6 +22,7 @@ export const applicationRepository: ApplicationRepository = {
       category: inferCategory(input),
       createdAt: now,
       updatedAt: now,
+      meaningfulUpdatedAt: now,
     };
     write([application, ...read("Unable to create the application.")], "Unable to create the application.");
     return application;
@@ -35,6 +36,10 @@ export const applicationRepository: ApplicationRepository = {
       ...input,
       category: inferCategory({ ...existing, ...input }),
       updatedAt: new Date().toISOString(),
+      meaningfulUpdatedAt:
+        input.status !== undefined && input.status !== existing.status
+          ? new Date().toISOString()
+          : existing.meaningfulUpdatedAt ?? existing.createdAt,
     };
     write(items.map((item) => item.id === id ? updated : item), "Unable to update the application.");
     return updated;

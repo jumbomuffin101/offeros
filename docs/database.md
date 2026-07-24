@@ -324,3 +324,14 @@ Notifications, sessions, imports, audit events, outbox events, and AI requests a
 `application_copilot_messages` stores only user and assistant content, provider/model metadata, and
 creation time. Messages cascade with their conversation and application. Chain-of-thought, auth
 claims, provider credentials, and unrelated workspace context are never stored.
+
+## Application Attention Overrides
+
+`application_attention_overrides` stores one user/application/category override with a deterministic
+signal fingerprint, dismissal timestamp, and optional snooze expiry. The unique constraint on
+`(user_id, application_id, category)` prevents duplicate overrides. Foreign keys cascade when the
+owning user or application is deleted.
+
+Attention items themselves remain derived rather than persisted. `applications.meaningful_updated_at`
+records recruiting progress independently from generic `updated_at`, preventing note or metadata
+edits from incorrectly resetting stale and follow-up timers.

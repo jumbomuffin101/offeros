@@ -278,6 +278,24 @@ CORS_ORIGINS=http://localhost:3000,https://your-offeros-app.vercel.app
 
 Application timelines are stored in `application_events`. Calendar credentials are stored in `calendar_connections`; OAuth state is single-use and hashed, and access/refresh tokens are Fernet encrypted with `TOKEN_ENCRYPTION_KEY`.
 
+## Application Attention
+
+`GET /api/v1/inbox` returns the authenticated user's deterministic, priority-sorted application
+signals. `POST /api/v1/inbox/overrides` dismisses or snoozes one signal. Attention generation
+batches applications, events, prep plans, and overrides; it does not load full AI analysis
+payloads or issue per-application queries.
+
+`applications.meaningful_updated_at` advances for recruiting progress such as a status change, not
+for incidental note edits. `application_attention_overrides` stores a signal fingerprint so a
+dismissal stops applying when the underlying status, deadline, selected resume, analysis, job
+description, or meaningful activity changes.
+
+Deploy migration `20260723_0014_application_attention` with:
+
+```bash
+alembic upgrade head
+```
+
 Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL`, then run `alembic upgrade head`. OfferOS requests calendar-event-only access and performs explicit one-way create/update operations. Disconnecting Google never deletes OfferOS timeline events.
 
 ## Recruiter Copilot

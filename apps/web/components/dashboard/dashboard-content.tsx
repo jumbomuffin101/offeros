@@ -13,6 +13,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentlyViewedCard } from "@/components/dashboard/recently-viewed-card";
 import { DataErrorState } from "@/components/ui/data-error-state";
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
+import { NeedsAttention } from "@/components/dashboard/needs-attention";
 
 export function DashboardContent() {
   const { summary, loading, error, refresh } = useDashboard();
@@ -26,6 +27,7 @@ export function DashboardContent() {
 
   return <div className="space-y-6">
     <div className="flex justify-end"><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-100">Local workspace synced</span></div>
+    <NeedsAttention items={summary.attentionItems} />
     <QuickActions />
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <KpiCard label="Total Applications" value={String(applications.length)} helper="All locally tracked opportunities" trend={`${momentum.applicationsThisWeek} added this week`} sparkline={applicationValues} icon={<BriefcaseBusiness className="size-5" />} />

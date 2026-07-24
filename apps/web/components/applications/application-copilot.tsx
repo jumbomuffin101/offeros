@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bot,
   ChevronDown,
@@ -27,23 +27,31 @@ export function ApplicationCopilot({
   applicationId,
   defaultContextSources,
   onBeforeSend,
+  initialPrompt,
+  initialPromptKey,
+  onSaveAsNote,
 }: {
   applicationId: string;
   defaultContextSources: string[];
   onBeforeSend?: () => Promise<unknown>;
+  initialPrompt?: string;
+  initialPromptKey?: string;
+  onSaveAsNote?: (content: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(Boolean(initialPrompt));
   const [input, setInput] = useState("");
   const [copiedId, setCopiedId] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentInitialPrompt = useRef("");
   const copilot = useApplicationCopilot(applicationId, expanded);
+  const promptKey = initialPromptKey || initialPrompt || "";
 
   useEffect(() => {
     if (!expanded) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [copilot.messages, copilot.sending, expanded]);
 
-  async function send(content = input) {
+  const send = useCallback(async (content = input) => {
     if (!content.trim() || copilot.sending || copilot.loading) return;
     setInput("");
     try {
@@ -52,7 +60,18 @@ export function ApplicationCopilot({
     } catch {
       setInput(content);
     }
-  }
+  }, [copilot, input, onBeforeSend]);
+
+  useEffect(() => {
+    if (!initialPrompt || sentInitialPrompt.current === promptKey) return;
+    window.queueMicrotask(() => setExpanded(true));
+  }, [initialPrompt, promptKey]);
+
+  useEffect(() => {
+    if (!initialPrompt || !expanded || copilot.loading || copilot.sending || sentInitialPrompt.current === promptKey) return;
+    sentInitialPrompt.current = promptKey;
+    window.queueMicrotask(() => void send(initialPrompt));
+  }, [copilot.loading, copilot.sending, expanded, initialPrompt, promptKey, send]);
 
   async function copyMessage(id: string, content: string) {
     try {
@@ -124,13 +143,10 @@ export function ApplicationCopilot({
               >
                 <div className="whitespace-pre-wrap">{message.content}</div>
                 {message.role === "assistant" ? (
-                  <button
-                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200"
-                    onClick={() => void copyMessage(message.id, message.content)}
-                    type="button"
-                  >
-                    <Clipboard className="size-3.5" />{copiedId === message.id ? "Copied" : "Copy"}
-                  </button>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <button className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200" onClick={() => void copyMessage(message.id, message.content)} type="button"><Clipboard className="size-3.5" />{copiedId === message.id ? "Copied" : "Copy"}</button>
+                    {onSaveAsNote ? <button className="text-xs text-slate-500 hover:text-slate-200" onClick={() => onSaveAsNote(message.content)} type="button">Save as note</button> : null}
+                  </div>
                 ) : null}
               </div>
             )) : (

@@ -269,6 +269,8 @@ Manual reset validation checklist:
 19. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY`, and `FRONTEND_APP_URL` on Render.
 20. Enable Google Calendar API, register the exact backend callback URL, run `alembic upgrade head`, and verify explicit event creation from an application timeline.
 21. Run `alembic upgrade head` for Recruiter Copilot, open an application, send a grounded question, refresh, and confirm the conversation persists.
+22. Run `alembic upgrade head` for Smart Application Inbox, create an application with an old applied date, and verify `/api/v1/inbox`, Dashboard **Needs attention**, and Focus agree on the top signal.
+23. Snooze a follow-up, refresh, and confirm it stays hidden. Change the application's recruiting status and confirm the changed signal can appear again.
 
 Generate the stable encryption key once with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing or rotating it requires users to reconnect. OfferOS requests OpenID email identity and `calendar.events`; it does not read the full calendar or perform bidirectional synchronization.
 

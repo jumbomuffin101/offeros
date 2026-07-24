@@ -85,6 +85,7 @@ class ApplicationResponse(ORMModel):
     tags: list[str]
     created_at: datetime
     updated_at: datetime
+    meaningful_updated_at: datetime | None = None
 
 
 class ApplicationAnalyzeResumeRequest(ORMModel):

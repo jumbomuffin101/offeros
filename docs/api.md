@@ -587,3 +587,29 @@ Send `{ "message": "...", "conversation_id": null }` to begin a conversation. Th
 contains the conversation ID and assistant message. Every new message rebuilds context from the
 currently saved application, resume, analysis, prep plan, timeline, and prep history. Existing
 messages are never rewritten when context changes.
+
+## Smart Application Inbox
+
+- `GET /inbox`
+- `POST /inbox/overrides`
+
+The inbox response contains priority-sorted application signals and critical/high/medium counts.
+Signals are derived from user-owned applications, timeline events, selected resume and analysis
+summary IDs, application prep plans, and prep readiness. Categories include follow-up due, stale
+application, missing resume or job description, missing analysis or prep plan, imminent OA,
+interview or offer deadlines, and low prep readiness.
+
+Override request:
+
+```json
+{
+  "application_id": "uuid",
+  "category": "follow_up_due",
+  "action": "snooze",
+  "duration": "3_days"
+}
+```
+
+`duration` is required only for `snooze` and accepts `tomorrow`, `3_days`, or `1_week`. Dismissals
+and snoozes are user-scoped. The Focus endpoint and Dashboard summary use the same highest-ranked
+attention result.

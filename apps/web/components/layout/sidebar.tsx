@@ -12,6 +12,7 @@ import {
   Search,
   Settings,
   Layers3,
+  Inbox,
 } from "lucide-react";
 import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { UserAccount } from "@/components/auth/user-account";
@@ -21,6 +22,7 @@ import { FocusWidget } from "@/components/layout/focus-widget";
 const navItems = [
   { label: "Dashboard", href: "/", icon: Gauge },
   { label: "Applications", href: "/applications", icon: BriefcaseBusiness },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
   { label: "Resumes", href: "/resumes", icon: FileText },
   { label: "Prep", href: "/prep", icon: GraduationCap },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },

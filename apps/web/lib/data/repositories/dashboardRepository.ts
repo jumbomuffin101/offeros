@@ -4,12 +4,15 @@ import { prepRepository } from "@/lib/data/repositories/prepRepository";
 import { resumeRepository } from "@/lib/data/repositories/resumeRepository";
 import { buildDashboardSummary } from "@/lib/data/repositories/summaryBuilders";
 import { applicationEventRepository } from "@/lib/data/repositories/applicationEventRepository";
+import { inboxRepository } from "@/lib/data/repositories/inboxRepository";
 
 export const dashboardRepository: DashboardRepository = {
   async summary() {
-    const [applications, resumes, prep, upcomingEvents, focus] = await Promise.all([
-      applicationRepository.list(), resumeRepository.list(), prepRepository.list(), applicationEventRepository.upcoming(), applicationEventRepository.focus(),
+    const [applications, resumes, prep, upcomingEvents, inbox] = await Promise.all([
+      applicationRepository.list(), resumeRepository.list(), prepRepository.list(), applicationEventRepository.upcoming(), inboxRepository.list(),
     ]);
-    return buildDashboardSummary(applications, resumes, prep, upcomingEvents, focus);
+    const top = inbox.items[0];
+    const focus = top ? { type: top.category, applicationId: top.applicationId, title: `${top.company} - ${top.role}`, subtitle: top.description, dueAt: top.dueAt, priority: top.priority } : null;
+    return buildDashboardSummary(applications, resumes, prep, upcomingEvents, focus, inbox.items.slice(0, 5));
   },
 };

@@ -17,7 +17,27 @@ export type ApiWorkspaceSummary = {
   system_design_prompts: ApiSystemDesignPrompt[];
   upcoming_events?: ApiUpcomingEvent[];
   focus?: ApiFocus | null;
+  attention_items?: ApiAttentionItem[];
   as_of: string;
+};
+
+export type ApiAttentionItem = {
+  id: string;
+  application_id: string;
+  company: string;
+  role: string;
+  category: import("@/lib/types").ApplicationAttentionItem["category"];
+  priority: number;
+  title: string;
+  description: string;
+  due_at: string | null;
+  created_at: string;
+  suggested_action: string;
+  last_meaningful_activity: string | null;
+  days_since_update: number;
+  follow_up_count: number;
+  days_to_first_response?: number | null;
+  days_from_interview_to_outcome?: number | null;
 };
 
 export type ApiApplication = {
@@ -55,6 +75,7 @@ export type ApiApplication = {
   tags: string[];
   created_at: string;
   updated_at: string;
+  meaningful_updated_at?: string | null;
 };
 
 export type ApiApplicationEvent = { id: string; application_id: string; event_type: string; title: string; description: string; scheduled_at: string; completed_at: string | null; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; external_calendar_event_id: string | null; created_at: string; updated_at: string };

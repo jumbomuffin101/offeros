@@ -60,6 +60,8 @@ export function ApplicationBoard() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [workspaceAction, setWorkspaceAction] = useState("");
+  const [workspaceCopilotPrompt, setWorkspaceCopilotPrompt] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
@@ -103,7 +105,14 @@ export function ApplicationBoard() {
   useEffect(() => {
     if (selectedApplicationId || !applications.length) return;
     const requestedId = new URLSearchParams(window.location.search).get("open");
-    if (requestedId && applications.some((application) => application.id === requestedId)) window.queueMicrotask(() => setSelectedApplicationId(requestedId));
+    if (requestedId && applications.some((application) => application.id === requestedId)) {
+      const params = new URLSearchParams(window.location.search);
+      window.queueMicrotask(() => {
+        setSelectedApplicationId(requestedId);
+        setWorkspaceAction(params.get("action") ?? "");
+        setWorkspaceCopilotPrompt(params.get("copilot") === "follow-up" ? "Draft a concise recruiter follow-up appropriate for my current application stage and most recent recruiting event." : "");
+      });
+    }
   }, [applications, selectedApplicationId]);
 
   const visibleApplications = useMemo(
@@ -202,6 +211,8 @@ export function ApplicationBoard() {
 
   function openApplication(application: Application) {
     setSelectedApplicationId(application.id);
+    setWorkspaceAction("");
+    setWorkspaceCopilotPrompt("");
     recordRecentlyViewed({ id: application.id, type: "Application", label: application.company, detail: application.role, href: "/applications" });
   }
 
@@ -307,8 +318,10 @@ export function ApplicationBoard() {
 
       <ApplicationDetailDrawer
         application={selectedApplication}
+        initialAction={workspaceAction}
+        initialCopilotPrompt={workspaceCopilotPrompt}
         resumes={resumeData.resumes}
-        onClose={() => setSelectedApplicationId(null)}
+        onClose={() => { setSelectedApplicationId(null); setWorkspaceAction(""); setWorkspaceCopilotPrompt(""); }}
         onDelete={(id) => setPendingDeleteId(id)}
         onSave={saveApplicationWorkspace}
         onAnalyze={analyzeApplicationResume}

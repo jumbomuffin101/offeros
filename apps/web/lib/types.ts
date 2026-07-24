@@ -44,6 +44,7 @@ export type Application = {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  meaningfulUpdatedAt?: string;
   category: "Big Tech" | "Finance" | "Fintech" | "Startup" | "Data";
 };
 
@@ -51,6 +52,39 @@ export type ApplicationEventType = "applied" | "oa_received" | "oa_deadline" | "
 export type ApplicationEvent = { id: string; applicationId: string; eventType: ApplicationEventType; title: string; description: string; scheduledAt: string; completedAt: string; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; externalCalendarEventId: string; createdAt: string; updatedAt: string };
 export type UpcomingRecruitingEvent = ApplicationEvent & { company: string; role: string };
 export type FocusItem = { type: string; applicationId: string; title: string; subtitle: string; dueAt: string; priority: number; prepReadiness?: number; prepNextAction?: string };
+export type AttentionCategory =
+  | "follow_up_due"
+  | "stale_application"
+  | "missing_resume"
+  | "missing_job_description"
+  | "needs_resume_analysis"
+  | "needs_prep_plan"
+  | "oa_deadline_soon"
+  | "interview_soon"
+  | "offer_deadline_soon"
+  | "low_prep_readiness";
+export type ApplicationAttentionItem = {
+  id: string;
+  applicationId: string;
+  company: string;
+  role: string;
+  category: AttentionCategory;
+  priority: number;
+  title: string;
+  description: string;
+  dueAt: string;
+  createdAt: string;
+  suggestedAction: string;
+  lastMeaningfulActivity: string;
+  daysSinceUpdate: number;
+  followUpCount: number;
+  daysToFirstResponse?: number;
+  daysFromInterviewToOutcome?: number;
+};
+export type ApplicationInbox = {
+  items: ApplicationAttentionItem[];
+  summary: { critical: number; high: number; medium: number; total: number };
+};
 export type ApplicationCopilotMessage = {
   id: string;
   role: "user" | "assistant";

@@ -74,6 +74,7 @@ export function fromApiApplication(value: ApiApplication): Application {
     tags: value.tags,
     createdAt: value.created_at,
     updatedAt: value.updated_at,
+    meaningfulUpdatedAt: value.meaningful_updated_at ?? value.updated_at,
     category: "Startup",
   };
   return { ...application, category: inferCategory(application) };

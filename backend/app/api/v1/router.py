@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import ai, analytics, application_copilot, application_events, applications, coding_intelligence, dashboard, focus, health, integrations, prep, resume_analyses, resumes, settings, workspace
+from app.api.v1 import ai, analytics, application_copilot, application_events, applications, coding_intelligence, dashboard, focus, health, inbox, integrations, prep, resume_analyses, resumes, settings, workspace
 
 
 api_router = APIRouter()
@@ -11,6 +11,7 @@ api_router.include_router(application_copilot.router)
 api_router.include_router(application_events.router)
 api_router.include_router(integrations.router)
 api_router.include_router(focus.router)
+api_router.include_router(inbox.router)
 api_router.include_router(resumes.router)
 api_router.include_router(resume_analyses.router)
 api_router.include_router(prep.router)

@@ -71,6 +71,8 @@ class ApplicationService:
             },
         )
         values = self._validated_values(user_id, values, application=application)
+        if "status" in values and values["status"] != application.status:
+            values["meaningful_updated_at"] = datetime.now(UTC)
         self.repository.update(application, values)
         if {"job_description", "resume_version_id", "resume_analysis_id"} & values.keys():
             plan = self.db.scalar(select(ApplicationPrepPlan).where(ApplicationPrepPlan.application_id == application.id))

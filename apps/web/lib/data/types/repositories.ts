@@ -1,4 +1,4 @@
-import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
+import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, AttentionCategory, FocusItem, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -38,6 +38,16 @@ export interface ApplicationCopilotRepository {
   history(applicationId: string): Promise<ApplicationCopilotConversation>;
   send(applicationId: string, input: { message: string; conversationId?: string }): Promise<{ conversationId: string; message: ApplicationCopilotMessage }>;
   clear(applicationId: string, conversationId: string): Promise<void>;
+}
+
+export interface InboxRepository {
+  list(): Promise<ApplicationInbox>;
+  override(input: {
+    applicationId: string;
+    category: AttentionCategory;
+    action: "dismiss" | "snooze";
+    duration?: "tomorrow" | "3_days" | "1_week";
+  }): Promise<ApplicationInbox>;
 }
 
 export interface ResumeRepository {

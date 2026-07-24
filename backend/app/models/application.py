@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from sqlalchemy import Date, DateTime, ForeignKey, Index, String, Text, Uuid
@@ -36,6 +36,12 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     source: Mapped[str] = mapped_column(String(120), default="")
     external_job_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    meaningful_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        default=lambda: datetime.now(UTC),
+    )
     resume_used: Mapped[str] = mapped_column(String(200), default="")
     resume_version_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("resume_versions.id", ondelete="SET NULL"), nullable=True, index=True
@@ -61,6 +67,11 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     events = relationship("ApplicationEvent", back_populates="application", cascade="all, delete-orphan")
     copilot_conversations = relationship(
         "ApplicationCopilotConversation",
+        back_populates="application",
+        cascade="all, delete-orphan",
+    )
+    attention_overrides = relationship(
+        "ApplicationAttentionOverride",
         back_populates="application",
         cascade="all, delete-orphan",
     )

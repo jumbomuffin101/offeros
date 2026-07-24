@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.application import Application
 from app.models.application_copilot import ApplicationCopilotConversation
+from app.models.application_attention import ApplicationAttentionOverride
 from app.models.application_event import ApplicationEvent
 from app.models.base import ApplicationStatus, Difficulty, PrepStatus, Priority, ResumeStatus
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
@@ -29,6 +30,7 @@ class WorkspaceService:
         )
         try:
             if payload.scope in {"all", "applications"}:
+                self._delete(ApplicationAttentionOverride, user_id)
                 self._delete(ApplicationCopilotConversation, user_id)
                 self._delete(ApplicationEvent, user_id)
                 summary.deleted["applications"] = self._delete(Application, user_id)

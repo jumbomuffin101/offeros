@@ -12,6 +12,7 @@ import type {
   ResumeAnalysis,
   SystemDesignPrompt,
   UpcomingRecruitingEvent,
+  ApplicationAttentionItem,
 } from "@/lib/types";
 import type { AnalyticsModel } from "@/lib/analytics-utils";
 import type {
@@ -82,6 +83,7 @@ export type DashboardSummary = {
   empty: boolean;
   upcomingEvents: UpcomingRecruitingEvent[];
   focus: FocusItem | null;
+  attentionItems: ApplicationAttentionItem[];
 };
 
 export type AnalyticsSummary = {

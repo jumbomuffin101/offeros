@@ -15,6 +15,8 @@ import { workspaceRepository as localWorkspaceRepository } from "@/lib/data/repo
 import { apiWorkspaceRepository } from "@/lib/data/repositories/apiWorkspaceRepository";
 import { applicationCopilotRepository as localApplicationCopilotRepository } from "@/lib/data/repositories/applicationCopilotRepository";
 import { apiApplicationCopilotRepository } from "@/lib/data/repositories/apiApplicationCopilotRepository";
+import { inboxRepository as localInboxRepository } from "@/lib/data/repositories/inboxRepository";
+import { apiInboxRepository } from "@/lib/data/repositories/apiInboxRepository";
 
 export type DataMode = "local" | "api";
 export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? "api" : "local";
@@ -22,6 +24,7 @@ export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? 
 export const applicationRepository: ApplicationRepository = dataMode === "api" ? apiApplicationRepository : localApplicationRepository;
 export const applicationEventRepository: ApplicationEventRepository = dataMode === "api" ? apiApplicationEventRepository : localApplicationEventRepository;
 export const applicationCopilotRepository = dataMode === "api" ? apiApplicationCopilotRepository : localApplicationCopilotRepository;
+export const inboxRepository = dataMode === "api" ? apiInboxRepository : localInboxRepository;
 export const resumeRepository: ResumeRepository = dataMode === "api" ? apiResumeRepository : localResumeRepository;
 export const prepRepository: PrepRepository = dataMode === "api" ? apiPrepRepository : localPrepRepository;
 export const dashboardRepository: DashboardRepository = dataMode === "api" ? apiDashboardRepository : localDashboardRepository;

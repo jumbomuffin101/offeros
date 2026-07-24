@@ -18,6 +18,7 @@ import {
   draftFromApplication,
   type ApplicationWorkspaceDraft,
 } from "@/components/applications/application-workspace-form";
+import { useInbox } from "@/hooks/use-inbox";
 
 type PrepPlan = { plan: { status: string; coding: { priority_topics?: Array<{ topic: string; priority: string; reason: string }> }; behavioral: { focus_areas?: Array<{ category: string }> }; system_design: { focus_areas?: Array<{ topic: string }> }; overall_preparation_summary: string; next_best_action: string }; coding_readiness: number; behavioral_readiness: number; system_design_readiness: number; overall_readiness: number; coding_coverage: Array<{ topic: string; practiced: number; status: string }> };
 
@@ -30,6 +31,8 @@ export function ApplicationDetailDrawer({
   onAnalyze,
   onGetAnalysis,
   onEventsChanged,
+  initialAction,
+  initialCopilotPrompt,
 }: {
   application: Application | null;
   resumes: ResumeVersion[];
@@ -39,6 +42,8 @@ export function ApplicationDetailDrawer({
   onAnalyze: (application: Application) => Promise<ApplicationAnalyzeResult>;
   onGetAnalysis: (id: string) => Promise<ResumeAnalysis | null>;
   onEventsChanged: () => void;
+  initialAction?: string;
+  initialCopilotPrompt?: string;
 }) {
   if (!application) return null;
   return (
@@ -52,6 +57,8 @@ export function ApplicationDetailDrawer({
       onGetAnalysis={onGetAnalysis}
       onSave={onSave}
       resumes={resumes}
+      initialAction={initialAction}
+      initialCopilotPrompt={initialCopilotPrompt}
     />
   );
 }
@@ -65,6 +72,8 @@ function ApplicationWorkspace({
   onAnalyze,
   onGetAnalysis,
   onEventsChanged,
+  initialAction,
+  initialCopilotPrompt,
 }: {
   application: Application;
   resumes: ResumeVersion[];
@@ -74,6 +83,8 @@ function ApplicationWorkspace({
   onAnalyze: (application: Application) => Promise<ApplicationAnalyzeResult>;
   onGetAnalysis: (id: string) => Promise<ResumeAnalysis | null>;
   onEventsChanged: () => void;
+  initialAction?: string;
+  initialCopilotPrompt?: string;
 }) {
   const [draft, setDraft] = useState(() => draftFromApplication(application));
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
@@ -85,6 +96,11 @@ function ApplicationWorkspace({
   const [message, setMessage] = useState("");
   const [prepPlan, setPrepPlan] = useState<PrepPlan | null>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [copilotRequest, setCopilotRequest] = useState(() => ({
+    key: initialCopilotPrompt ? "route-follow-up" : "",
+    prompt: initialCopilotPrompt ?? "",
+  }));
+  const attention = useInbox();
 
   useEffect(() => {
     if (!application.resumeAnalysisId) return;
@@ -106,8 +122,17 @@ function ApplicationWorkspace({
     return () => { active = false; };
   }, [application.id]);
 
+  useEffect(() => {
+    if (!initialAction) return;
+    const targetId = initialAction === "prep" ? "application-prep" : "application-details";
+    window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+  }, [initialAction]);
+
   const selectedResume = resumes.find((resume) => resume.id === draft.resumeVersionId) ?? null;
   const analyzed = application.analysisStatus === "completed" && Boolean(application.resumeAnalysisId);
+  const attentionItems = attention.inbox?.items.filter((item) => item.applicationId === application.id) ?? [];
+  const followUpItem = attentionItems.find((item) => item.category === "follow_up_due");
+  const attentionItem = followUpItem ?? attentionItems[0];
 
   function updateDraft<K extends keyof ApplicationWorkspaceDraft>(
     key: K,
@@ -225,7 +250,7 @@ function ApplicationWorkspace({
         <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
           <div className="mx-auto grid w-full gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
             <div className="min-w-0 space-y-5">
-              <ApplicationWorkspaceForm draft={draft} onChange={updateDraft} resumes={resumes} />
+              <div id="application-details"><ApplicationWorkspaceForm draft={draft} onChange={updateDraft} resumes={resumes} /></div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={saving || analyzing} onClick={() => void saveWorkspace()} variant="primary">
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
@@ -250,7 +275,20 @@ function ApplicationWorkspace({
                 {application.nextActionDueAt ? <p className="mt-1 text-sm text-slate-400">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(application.nextActionDueAt))}</p> : <p className="mt-1 text-sm text-slate-500">Add an event to define the next recruiting commitment.</p>}
               </section>
 
-              <section className="rounded-xl border border-indigo-300/15 bg-indigo-300/[0.045] p-4">
+              <section className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4">
+                <div className="text-xs font-medium uppercase text-slate-500">Follow-up intelligence</div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <FollowUpDetail label="Last meaningful activity" value={attentionItem?.lastMeaningfulActivity ? `${formatDate(attentionItem.lastMeaningfulActivity)} - ${attentionItem.daysSinceUpdate} days ago` : formatDate(application.meaningfulUpdatedAt ?? application.createdAt)} />
+                  <FollowUpDetail label="Follow-up status" value={followUpItem ? "Follow-up due" : attentionItem?.category === "stale_application" ? "Review recommended" : "No follow-up due"} />
+                </div>
+                <div className="mt-3 rounded-lg border border-slate-700/35 bg-slate-950/20 p-3">
+                  <div className="text-xs text-slate-500">Recommended next action</div>
+                  <div className="mt-1 text-sm font-medium text-slate-200">{attentionItem?.suggestedAction ?? application.nextAction ?? "Keep the application timeline current."}</div>
+                </div>
+                {followUpItem ? <Button className="mt-3" onClick={() => setCopilotRequest({ key: `follow-up-${Date.now()}`, prompt: "Draft a concise recruiter follow-up appropriate for my current application stage and most recent recruiting event." })} variant="secondary">Draft follow-up</Button> : null}
+              </section>
+
+              <section className="rounded-xl border border-indigo-300/15 bg-indigo-300/[0.045] p-4" id="application-prep">
                 <div className="text-xs font-medium uppercase text-indigo-200/70">Resume intelligence</div>
                 {analyzed ? <>
                   <div className="mt-2 text-3xl font-semibold text-white">{application.analysisOverallScore ?? 0}%</div>
@@ -276,7 +314,13 @@ function ApplicationWorkspace({
               <ApplicationCopilot
                 applicationId={application.id}
                 defaultContextSources={contextSources}
+                initialPrompt={copilotRequest.prompt}
+                initialPromptKey={copilotRequest.key}
                 onBeforeSend={dirty ? saveWorkspace : undefined}
+                onSaveAsNote={(content) => {
+                  updateDraft("notes", [draft.notes.trim(), content.trim()].filter(Boolean).join("\n\n"));
+                  setMessage("Copilot response added to notes. Save changes to keep it.");
+                }}
               />
             </aside>
           </div>
@@ -299,4 +343,8 @@ function ApplicationWorkspace({
 
 function Metric({ label, value }: { label: string; value: number }) {
   return <div><div className="mb-1 flex justify-between text-xs"><span className="text-slate-400">{label}</span><span className="text-slate-100">{value}%</span></div><Progress value={value} tone={value >= 75 ? "green" : value >= 50 ? "cyan" : "amber"} /></div>;
+}
+
+function FollowUpDetail({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-xs text-slate-500">{label}</div><div className="mt-1 text-sm text-slate-200">{value}</div></div>;
 }
