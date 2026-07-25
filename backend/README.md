@@ -46,7 +46,7 @@ From `backend/`:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 ```
 
@@ -55,7 +55,7 @@ macOS/Linux activation:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
@@ -81,7 +81,8 @@ usage ledger. Run `alembic upgrade head` before deploying the matching frontend.
 - `PATCH /api/v1/notifications/{id}/read` and `POST /api/v1/notifications/read-all`.
 - `GET /api/v1/account/export`: JSON export of user-owned workspace records.
 - `GET /api/v1/account/usage`: current monthly completed AI operations.
-- `POST /api/v1/account/delete`: typed-confirmation database and Clerk-account deletion flow.
+- `POST /api/v1/account/delete`: typed-confirmation deletion of OfferOS database records. The
+  frontend separately requests deletion of the active Clerk identity.
 - `GET /health` and `/api/v1/health`: process liveness without a database query.
 - `GET /ready` and `/api/v1/ready`: database/config readiness without third-party provider calls.
 
@@ -141,10 +142,12 @@ CLERK_ISSUER=
 CLERK_JWKS_URL=
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=https://your-vercel-url.vercel.app
+TRUSTED_HOSTS=your-backend-host.onrender.com
+FRONTEND_APP_URL=https://your-vercel-url.vercel.app
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=
 AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
-AI_TIMEOUT_SECONDS=60
+AI_TIMEOUT_SECONDS=240
 AI_MOCK_ENABLED=false
 LOG_LEVEL=INFO
 ```
@@ -159,7 +162,9 @@ Tests use an isolated in-memory SQLite database through FastAPI dependency overr
 pytest
 ```
 
-The suite verifies app startup, health, application create/list, and workspace reset replacement behavior.
+The complete suite covers auth boundaries, ownership, launch flows, account lifecycle, AI failures,
+and workspace behavior. Runtime-only deployments install `requirements.txt`; development and CI
+install `requirements-dev.txt`.
 
 After deployment, run the dependency-free smoke test:
 

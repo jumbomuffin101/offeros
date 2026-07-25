@@ -67,7 +67,9 @@ Indexes and constraints:
 - Partial unique index on normalized `primary_email` where not null and not deleted.
 - Index on `(status, created_at)` for operations.
 
-Delete behavior: account deletion is a scheduled workflow. User-owned content is soft-deleted first and hard-deleted after the retention window. Clerk webhook deletion does not immediately cascade physical deletion.
+Current delete behavior: typed-confirmation account deletion hard-deletes the user's OfferOS
+database records in one transaction. The frontend then separately requests deletion of the active
+Clerk identity. A retention/anonymization workflow is not implemented.
 
 ### `profiles`
 

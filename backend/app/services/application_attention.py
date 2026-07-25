@@ -54,6 +54,7 @@ MEANINGFUL_EVENT_TYPES = {
     "withdrawn",
 }
 ACTIVE_STATUSES = {"applying", "applied", "oa", "interview", "final_round"}
+EVENT_RELEVANT_STATUSES = ACTIVE_STATUSES | {"wishlist"}
 
 
 class ApplicationAttentionService:
@@ -276,7 +277,7 @@ class ApplicationAttentionService:
             OFFER_WINDOW_HOURS,
         )
 
-        if oa_deadline is not None and status in ACTIVE_STATUSES:
+        if oa_deadline is not None and status in EVENT_RELEVANT_STATUSES:
             hours = _hours_until(oa_deadline.scheduled_at, self.now)
             priority = 100 if hours < 0 else 90 if hours <= 24 else 75
             items.append(self._item(
@@ -291,7 +292,7 @@ class ApplicationAttentionService:
                 follow_up_count,
                 event=oa_deadline,
             ))
-        if interview is not None and status in ACTIVE_STATUSES:
+        if interview is not None and status in EVENT_RELEVANT_STATUSES:
             hours = _hours_until(interview.scheduled_at, self.now)
             priority = 100 if hours < 0 else 85 if hours <= 24 else 80
             items.append(self._item(

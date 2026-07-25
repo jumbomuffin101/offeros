@@ -29,13 +29,13 @@ from app.services.mock_interviews import MockInterviewService
 def test_mock_interview_routes_are_registered() -> None:
     from app.main import app
 
-    routes = {
-        getattr(route, "path", ""): {
-            method.lower() for method in getattr(route, "methods", set())
-        }
-        for route in app.routes
-        if getattr(route, "path", None)
-    }
+    routes: dict[str, set[str]] = {}
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        if path:
+            routes.setdefault(path, set()).update(
+                method.lower() for method in getattr(route, "methods", set())
+            )
 
     assert "get" in routes["/api/v1/mock-interviews"]
     assert "post" in routes["/api/v1/mock-interviews"]

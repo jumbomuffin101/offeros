@@ -252,11 +252,17 @@ def test_listing_resumes_uses_latest_non_deleted_completed_analysis(client: Test
     ).json()["data"]
     first = client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
-        json={"target_role": "Backend Engineer", "job_description": "FastAPI, PostgreSQL, Docker, and API testing."},
+        json={
+            "target_role": "Backend Engineer",
+            "job_description": "Build reliable backend services with FastAPI, PostgreSQL, Docker, automated API testing, and production ownership.",
+        },
     ).json()["analysis"]
     second = client.post(
         f"/api/v1/resumes/{resume['id']}/analyze",
-        json={"target_role": "Platform Engineer", "job_description": "Platform engineering with Docker, PostgreSQL, and API ownership."},
+        json={
+            "target_role": "Platform Engineer",
+            "job_description": "Own platform engineering systems using Docker, PostgreSQL, observability, reliable APIs, automation, and infrastructure tooling.",
+        },
     ).json()["analysis"]
 
     assert client.delete(f"/api/v1/resume-analyses/{second['id']}").status_code == 204

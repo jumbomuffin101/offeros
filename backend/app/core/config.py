@@ -2,7 +2,7 @@ from functools import lru_cache
 import json
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://offeros:offeros@localhost:5432/offeros"
     cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"]
+    )
+    trusted_hosts: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["localhost", "127.0.0.1", "testserver"]
     )
     clerk_issuer: str | None = None
     clerk_jwks_url: str | None = None
@@ -46,7 +49,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", "trusted_hosts", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> object:
         if not isinstance(value, str):
@@ -68,6 +71,48 @@ class Settings(BaseSettings):
         if value.startswith("postgresql://"):
             return value.replace("postgresql://", "postgresql+psycopg://", 1)
         return value
+
+    @model_validator(mode="after")
+    def validate_production_configuration(self) -> "Settings":
+        if self.app_env != "production":
+            return self
+        missing: list[str] = []
+        if "localhost" in self.database_url or "offeros:offeros@" in self.database_url:
+            missing.append("DATABASE_URL")
+        if not self.auth_required:
+            missing.append("AUTH_REQUIRED=true")
+        for name, value in (
+            ("CLERK_ISSUER", self.clerk_issuer),
+            ("CLERK_JWKS_URL", self.clerk_jwks_url),
+            ("CLERK_AUDIENCE", self.clerk_audience),
+        ):
+            if not value:
+                missing.append(name)
+        if not self.cors_origins or any("localhost" in origin for origin in self.cors_origins):
+            missing.append("CORS_ORIGINS")
+        if (
+            not self.trusted_hosts
+            or "*" in self.trusted_hosts
+            or any(host in {"localhost", "127.0.0.1", "testserver"} for host in self.trusted_hosts)
+        ):
+            missing.append("TRUSTED_HOSTS")
+        if "localhost" in self.frontend_app_url:
+            missing.append("FRONTEND_APP_URL")
+        if self.ai_provider == "openrouter" and not self.openrouter_api_key:
+            missing.append("OPENROUTER_API_KEY")
+        google_values = (
+            self.google_client_id,
+            self.google_client_secret,
+            self.google_calendar_redirect_uri,
+            self.token_encryption_key,
+        )
+        if any(google_values) and not all(google_values):
+            missing.append("complete Google Calendar OAuth configuration")
+        if missing:
+            raise ValueError(
+                "Production configuration is incomplete: " + ", ".join(sorted(set(missing)))
+            )
+        return self
 
 
 @lru_cache

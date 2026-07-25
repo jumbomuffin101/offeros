@@ -1,10 +1,10 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.core.errors import NotFoundError
 from app.models.application import Application
 from app.models.analytics import AnalyticsSnapshot
 from app.models.application_attention import ApplicationAttentionOverride
@@ -47,6 +47,8 @@ class AccountService:
     def export(self, user: User) -> dict[str, object]:
         payload: dict[str, object] = {
             "format": "offeros-account-export-v1",
+            "schema_version": 1,
+            "generated_at": datetime.now(UTC),
             "account": {
                 "id": str(user.id),
                 "email": user.email,
@@ -93,7 +95,7 @@ class AccountService:
     def delete(self, user_id: UUID) -> None:
         user = self.db.scalar(select(User).where(User.id == user_id))
         if user is None:
-            raise NotFoundError("Account")
+            return
         sessions = list(
             self.db.scalars(
                 select(MockInterviewSession.id).where(

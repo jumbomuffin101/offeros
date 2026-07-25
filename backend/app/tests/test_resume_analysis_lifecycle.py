@@ -40,7 +40,7 @@ def test_duplicate_analysis_request_returns_existing_result_without_calling_prov
     user_id = uuid4()
     resume_id = uuid4()
     request_id = uuid4()
-    existing = SimpleNamespace(id=uuid4())
+    existing = SimpleNamespace(id=uuid4(), resume_version_id=resume_id)
     resume = SimpleNamespace(id=resume_id)
 
     class FakeSession:

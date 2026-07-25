@@ -41,6 +41,7 @@ system_design_status = sa.Enum(
     "not_started", "in_progress", "completed", "skipped",
     name="system_design_status", native_enum=False, create_constraint=True,
 )
+json_list = sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
 
 
 def timestamps() -> list[sa.Column]:
@@ -83,7 +84,7 @@ def upgrade() -> None:
         sa.Column("salary_range", sa.String(200), nullable=False),
         sa.Column("priority", application_priority, nullable=False),
         sa.Column("notes", sa.Text(), nullable=False),
-        sa.Column("tags", postgresql.JSONB(), nullable=False),
+        sa.Column("tags", json_list, nullable=False),
         *timestamps(),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
@@ -102,10 +103,10 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=False),
         sa.Column("status", resume_status, nullable=False),
         sa.Column("keyword_match_score", sa.Integer(), nullable=False),
-        sa.Column("tags", postgresql.JSONB(), nullable=False),
-        sa.Column("strengths", postgresql.JSONB(), nullable=False),
-        sa.Column("weaknesses", postgresql.JSONB(), nullable=False),
-        sa.Column("missing_keywords", postgresql.JSONB(), nullable=False),
+        sa.Column("tags", json_list, nullable=False),
+        sa.Column("strengths", json_list, nullable=False),
+        sa.Column("weaknesses", json_list, nullable=False),
+        sa.Column("missing_keywords", json_list, nullable=False),
         sa.Column("suggested_improvement", sa.Text(), nullable=False),
         sa.Column("notes", sa.Text(), nullable=False),
         sa.Column("file_name", sa.String(500), nullable=False),
@@ -172,7 +173,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("title", sa.String(300), nullable=False),
         sa.Column("prompt", sa.Text(), nullable=False),
-        sa.Column("concepts", postgresql.JSONB(), nullable=False),
+        sa.Column("concepts", json_list, nullable=False),
         sa.Column("status", system_design_status, nullable=False),
         sa.Column("notes", sa.Text(), nullable=False),
         *timestamps(),
@@ -189,7 +190,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
         sa.Column("period", sa.String(20), nullable=False),
-        sa.Column("metrics", postgresql.JSONB(), nullable=False),
+        sa.Column("metrics", json_list, nullable=False),
         *timestamps(),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),

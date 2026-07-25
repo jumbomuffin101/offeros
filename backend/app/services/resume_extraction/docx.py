@@ -23,7 +23,7 @@ class DocxResumeExtractor:
                 if cells:
                     lines.append(" | ".join(cells))
         normalized = normalize_resume_text("\n".join(lines))
-        if len(normalized) < 80:
+        if len(normalized) < 40:
             raise ValidationError("This DOCX file does not contain enough readable resume text.")
         warnings: list[str] = []
         if len(normalized) > MAX_EXTRACTED_TEXT_CHARS:

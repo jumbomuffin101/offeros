@@ -126,9 +126,19 @@ def test_completed_interview_stale_snooze_dismiss_focus_and_user_isolation() -> 
         service = ApplicationAttentionService(db, NOW)
         items = service.build(owner.id)
         assert has(items, application.id, "follow_up_due")
-        assert has(items, application.id, "stale_application")
+        assert not has(items, application.id, "stale_application")
         assert service.focus(owner.id).type == "follow_up_due"
         assert service.build(other.id) == []
+
+        stale_application = add_application(
+            db,
+            owner.id,
+            company="Stale Co",
+            status=ApplicationStatus.APPLIED,
+            meaningful_updated_at=NOW - timedelta(days=25),
+        )
+        db.commit()
+        assert has(service.build(owner.id), stale_application.id, "stale_application")
 
         service.override(
             owner.id,
@@ -143,12 +153,14 @@ def test_completed_interview_stale_snooze_dismiss_focus_and_user_isolation() -> 
         service.override(
             owner.id,
             ApplicationAttentionOverrideRequest(
-                application_id=application.id,
+                application_id=stale_application.id,
                 category="stale_application",
                 action="dismiss",
             ),
         )
-        assert not has(service.build(owner.id), application.id, "stale_application")
+        assert not has(
+            service.build(owner.id), stale_application.id, "stale_application"
+        )
 
 
 def test_attention_query_count_is_bounded() -> None:

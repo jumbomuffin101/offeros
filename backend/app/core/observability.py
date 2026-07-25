@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from typing import Any
 from collections import defaultdict, deque
 from hashlib import sha256
 from time import perf_counter, time
@@ -143,7 +144,46 @@ def _scrub_sentry_event(event: dict, _hint: dict) -> dict:
             for key in list(headers):
                 if key.lower() in {"authorization", "cookie", "x-clerk-auth-status"}:
                     headers[key] = "[Filtered]"
-    return event
+    return _scrub_sensitive(event)
+
+
+SENSITIVE_EVENT_KEYS = {
+    "answer",
+    "answers",
+    "authorization",
+    "content",
+    "cookie",
+    "cookies",
+    "extracted_text",
+    "file",
+    "file_bytes",
+    "job_description",
+    "messages",
+    "mock_interview_answer",
+    "openrouter_api_key",
+    "prompt",
+    "provider_credentials",
+    "refresh_token",
+    "resume_text",
+    "secret",
+    "token",
+    "uploaded_file",
+}
+
+
+def _scrub_sensitive(value: Any) -> Any:
+    if isinstance(value, dict):
+        scrubbed: dict[Any, Any] = {}
+        for key, item in value.items():
+            normalized = str(key).lower().replace("-", "_")
+            if normalized in SENSITIVE_EVENT_KEYS or normalized.endswith(("_token", "_secret", "_api_key")):
+                scrubbed[key] = "[Filtered]"
+            else:
+                scrubbed[key] = _scrub_sensitive(item)
+        return scrubbed
+    if isinstance(value, list):
+        return [_scrub_sensitive(item) for item in value]
+    return value
 
 
 def _operation(path: str) -> str:

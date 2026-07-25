@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_router
 from app.api.v1 import health as health_routes
@@ -28,6 +29,7 @@ app.state.ai_provider = settings.ai_provider
 app.state.ai_model = settings.ai_model
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestContextMiddleware)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 
 app.add_middleware(
     CORSMiddleware,

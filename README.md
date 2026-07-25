@@ -120,6 +120,9 @@ NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api
 ```
 
 See [`docs/deployment.md`](docs/deployment.md) for exact backend environment values, Clerk setup, smoke tests, and the production acceptance checklist.
+Use [`docs/manual-qa.md`](docs/manual-qa.md) for authenticated release QA,
+[`docs/production-smoke-test.md`](docs/production-smoke-test.md) after deployment, and
+[`docs/environment.md`](docs/environment.md) for environment-variable classification.
 
 ## Test PWA Installation Locally
 

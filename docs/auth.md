@@ -139,7 +139,8 @@ Policy examples:
 - API JWTs are short-lived and held in memory, not localStorage.
 - The frontend refreshes tokens through Clerk before expiry.
 - FastAPI does not maintain a duplicate server session for ordinary requests.
-- High-risk actions such as account deletion, changing primary identity, or exporting sensitive data require recent authentication.
+- Account deletion and export require a valid current Clerk bearer token. A separate recent-session
+  or step-up authentication check is not implemented yet.
 - Sign-out revokes the Clerk session and clears local user-specific caches.
 
 Offline PWA mutations may be queued locally, but replay requires a fresh valid token. The queue must be partitioned by Clerk user ID and never replay one user's changes into another session.

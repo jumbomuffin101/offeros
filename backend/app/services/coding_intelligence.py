@@ -88,12 +88,9 @@ class CodingIntelligenceService:
         return CodingActivityPage(items=[CodingActivityResponse.model_validate(item) for item in activities[offset:offset + limit]], total=total, limit=limit, offset=offset)
 
     def create_activity(self, user_id: UUID, payload: CodingActivityCreate, *, source: str = "manual") -> CodingActivityResponse:
-        values = persistence_values(payload)
-        if not values.get("solved_at") and not values.get("attempted_at"):
-            raise ValidationError("Choose the date you practiced this problem.")
+        values = self._normalize_activity_values(persistence_values(payload))
         values["provider"] = "manual"
         values["source"] = source
-        values = self._normalize_activity_values(values)
         if self._duplicate(user_id, values):
             raise ValidationError("This coding activity is already in your history.")
         activity = CodingActivity(user_id=user_id, **values)
@@ -126,6 +123,7 @@ class CodingIntelligenceService:
                     skipped += 1
                     continue
                 self.db.add(CodingActivity(user_id=user_id, **values))
+                self.db.flush()
                 imported += 1
             except (TypeError, ValueError, ValidationError):
                 failed += 1
@@ -137,8 +135,16 @@ class CodingIntelligenceService:
         solved = [item for item in activities if item.status == "solved"]
         now = datetime.now(UTC)
         start_of_week = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=now.weekday())
-        weekly = [item for item in solved if item.solved_at and item.solved_at >= start_of_week]
-        weekly_activity = [item for item in activities if _activity_date(item) and _activity_date(item) >= start_of_week]
+        weekly = [
+            item
+            for item in solved
+            if item.solved_at and _as_utc(item.solved_at) >= start_of_week
+        ]
+        weekly_activity = [
+            item
+            for item in activities
+            if _activity_date(item) and _as_utc(_activity_date(item)) >= start_of_week
+        ]
         breakdown = {level: sum(item.difficulty == level for item in solved) for level in ("easy", "medium", "hard")}
         topics: dict[str, int] = {}
         for item in activities:
@@ -192,7 +198,12 @@ class CodingIntelligenceService:
         solved_at = values.get("solved_at") or values.get("attempted_at")
         statement = select(CodingActivity).where(CodingActivity.user_id == user_id, CodingActivity.deleted_at.is_(None), func.lower(CodingActivity.problem_title) == title)
         for item in self.db.scalars(statement):
-            if (item.solved_at or item.attempted_at) == solved_at:
+            existing_at = item.solved_at or item.attempted_at
+            if (
+                isinstance(existing_at, datetime)
+                and isinstance(solved_at, datetime)
+                and _as_utc(existing_at) == _as_utc(solved_at)
+            ):
                 return True
         return False
 
@@ -223,6 +234,10 @@ def _streak(activities: list[CodingActivity]) -> int:
 
 def _activity_date(activity: CodingActivity) -> datetime | None:
     return activity.solved_at or activity.attempted_at
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def _normalized_url(value: object) -> str:

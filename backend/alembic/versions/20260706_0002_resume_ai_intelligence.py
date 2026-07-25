@@ -27,6 +27,7 @@ def timestamps() -> list[sa.Column]:
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     op.add_column("resume_versions", sa.Column("original_file_name", sa.String(500), nullable=False, server_default=""))
     op.add_column("resume_versions", sa.Column("extracted_text", sa.Text(), nullable=False, server_default=""))
     op.add_column("resume_versions", sa.Column("text_extraction_status", sa.String(40), nullable=False, server_default="not_started"))
@@ -44,13 +45,13 @@ def upgrade() -> None:
         sa.Column("impact_score", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("clarity_score", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("technical_depth_score", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("missing_keywords", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("strong_keywords", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("weak_bullets", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("suggested_bullet_rewrites", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("strengths", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("risks", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("recommendations", json_list, nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column("missing_keywords", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("strong_keywords", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("weak_bullets", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("suggested_bullet_rewrites", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("strengths", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("risks", json_list, nullable=False, server_default=_json_list_default(bind)),
+        sa.Column("recommendations", json_list, nullable=False, server_default=_json_list_default(bind)),
         sa.Column("summary", sa.Text(), nullable=False, server_default=""),
         sa.Column("provider", sa.String(80), nullable=False, server_default="mock"),
         sa.Column("model", sa.String(120), nullable=False, server_default="local-mock"),
@@ -73,3 +74,9 @@ def downgrade() -> None:
     op.drop_column("resume_versions", "text_extraction_status")
     op.drop_column("resume_versions", "extracted_text")
     op.drop_column("resume_versions", "original_file_name")
+
+
+def _json_list_default(bind: sa.Connection) -> sa.TextClause:
+    if bind.dialect.name == "postgresql":
+        return sa.text("'[]'::jsonb")
+    return sa.text("'[]'")

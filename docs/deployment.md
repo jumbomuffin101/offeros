@@ -21,10 +21,12 @@ CLERK_ISSUER=
 CLERK_JWKS_URL=
 CLERK_AUDIENCE=offeros-api
 CORS_ORIGINS=https://your-vercel-url.vercel.app
+TRUSTED_HOSTS=your-backend-host.onrender.com
+FRONTEND_APP_URL=https://your-vercel-url.vercel.app
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=
 AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
-AI_TIMEOUT_SECONDS=60
+AI_TIMEOUT_SECONDS=240
 AI_MOCK_ENABLED=false
 LOG_LEVEL=INFO
 ```
@@ -56,6 +58,21 @@ Changes to `NEXT_PUBLIC_*` variables require a new Vercel deployment because the
 5. Confirm `https://your-backend-url/api/v1/health` returns HTTP 200.
 
 The health route is public. User-owned routes require a valid Clerk token when `AUTH_REQUIRED=true`.
+
+## Safe Deployment Order
+
+1. Take and verify a managed PostgreSQL backup.
+2. Review the Alembic history and confirm exactly one head.
+3. Run `alembic upgrade head` in one platform pre-deploy/release job.
+4. Run `alembic current` and confirm `20260724_0016`.
+5. Deploy the backend image; application startup does not run migrations.
+6. Verify `/api/v1/health`, then `/api/v1/ready`.
+7. Deploy the frontend after the backend contract is live.
+8. Run `docs/production-smoke-test.md`.
+9. Monitor request IDs, errors, and latency before increasing traffic.
+
+Render's single `preDeployCommand` owns migration execution. Do not also run migrations in
+`start.sh` or on multiple web instances.
 
 ## Railway or Fly.io
 

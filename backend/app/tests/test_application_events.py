@@ -52,7 +52,7 @@ def test_upcoming_order_focus_priority_and_empty_focus(client: TestClient) -> No
     upcoming = client.get("/api/v1/dashboard/upcoming-events").json()["data"]
     assert upcoming[0]["id"] == urgent["id"]
     focus = client.get("/api/v1/focus").json()["data"]
-    assert focus["type"] == "oa_deadline" and focus["priority"] == 90
+    assert focus["type"] == "oa_deadline_soon" and focus["priority"] == 90
 
 
 def test_event_user_isolation() -> None:
