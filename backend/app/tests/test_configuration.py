@@ -52,3 +52,21 @@ def test_sentry_scrubbing_removes_sensitive_nested_values() -> None:
     assert "private" not in serialized
     assert scrubbed["extra"]["safe_count"] == 2
     assert scrubbed["breadcrumbs"][0]["data"]["status"] == 500
+
+
+def test_sentry_scrubbing_removes_gmail_content_and_identity() -> None:
+    event = {
+        "extra": {
+            "gmail_address": "candidate@example.com",
+            "sender_email": "recruiter@example.com",
+            "normalized_body_excerpt": "private recruiting message",
+            "oauth_state": "state-secret",
+            "safe_count": 3,
+        }
+    }
+    scrubbed = _scrub_sentry_event(event, {})
+    assert scrubbed["extra"]["gmail_address"] == "[Filtered]"
+    assert scrubbed["extra"]["sender_email"] == "[Filtered]"
+    assert scrubbed["extra"]["normalized_body_excerpt"] == "[Filtered]"
+    assert scrubbed["extra"]["oauth_state"] == "[Filtered]"
+    assert scrubbed["extra"]["safe_count"] == 3

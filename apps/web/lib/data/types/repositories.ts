@@ -1,4 +1,4 @@
-import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, AttentionCategory, FocusItem, MockInterviewSession, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
+import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, ApplicationStatus, AttentionCategory, FocusItem, GmailConnectionStatus, GmailSuggestion, MockInterviewSession, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -51,6 +51,17 @@ export interface InboxRepository {
     action: "dismiss" | "snooze";
     duration?: "tomorrow" | "3_days" | "1_week";
   }): Promise<ApplicationInbox>;
+}
+
+export interface GmailRepository {
+  status(): Promise<GmailConnectionStatus>;
+  connect(): Promise<{ authorizationUrl?: string; status?: GmailConnectionStatus }>;
+  sync(): Promise<{ status: string; messagesScanned: number; candidatesFound: number; suggestionsCreated: number; duplicatesSkipped: number; lastSyncedAt?: string }>;
+  suggestions(status?: string, applicationId?: string): Promise<GmailSuggestion[]>;
+  accept(id: string, input: { applicationId: string; eventType: ApplicationEvent["eventType"]; eventAt: string; deadlineAt?: string; proposedStatus?: ApplicationStatus; applyStatus: boolean; recruiterName?: string; note: string }): Promise<GmailSuggestion>;
+  reject(id: string): Promise<GmailSuggestion>;
+  disconnect(deleteDerivedData: boolean): Promise<void>;
+  deleteDerivedData(): Promise<void>;
 }
 
 export interface MockInterviewRepository {

@@ -304,6 +304,16 @@ practice and automated tests. Scores are heuristic practice feedback, not hiring
 32. Verify Today and Smart Inbox agree on the highest-priority application signal.
 33. Trigger the same deadline notification reconciliation twice and confirm only one notification exists.
 34. Export account JSON, then test typed-confirmation deletion on a disposable account.
+35. Enable Gmail API in Google Cloud, configure the OAuth consent screen and test users, and add the
+    exact backend `/api/v1/integrations/gmail/callback` redirect URI.
+36. Set `GMAIL_INTEGRATION_ENABLED=true`, the three `GOOGLE_OAUTH_*` values, a generated
+    `GMAIL_TOKEN_ENCRYPTION_KEY`, and bounded scan settings on Render.
+37. Run `alembic upgrade head`, verify one Alembic head, then connect a dedicated Gmail test account.
+
+Google classifies Gmail scopes as sensitive. Production use may require consent-screen publishing,
+domain/privacy-policy configuration, verified redirect domains, and Google verification. OfferOS
+requests only `gmail.readonly`; future features must use incremental authorization. Pub/Sub watch
+delivery is deferred.
 
 Generate the stable encryption key once with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing or rotating it requires users to reconnect. OfferOS requests OpenID email identity and `calendar.events`; it does not read the full calendar or perform bidirectional synchronization.
 

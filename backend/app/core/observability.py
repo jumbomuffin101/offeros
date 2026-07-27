@@ -82,7 +82,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS" or request.url.path.endswith(("/health", "/ready")):
             return await call_next(request)
         window_seconds = 60
-        limit = 30 if any(part in request.url.path for part in AI_PATH_PARTS) else 180
+        if "/integrations/gmail" in request.url.path:
+            limit = 12 if request.method != "GET" else 60
+        else:
+            limit = 30 if any(part in request.url.path for part in AI_PATH_PARTS) else 180
         key = self._key(request)
         bucket = self._requests[key]
         now = time()
@@ -158,6 +161,16 @@ SENSITIVE_EVENT_KEYS = {
     "file",
     "file_bytes",
     "job_description",
+    "normalized_body_excerpt",
+    "email_body",
+    "email",
+    "gmail_excerpt",
+    "gmail_address",
+    "sender_email",
+    "authorization_code",
+    "oauth_state",
+    "pkce_verifier",
+    "encrypted_refresh_token",
     "messages",
     "mock_interview_answer",
     "openrouter_api_key",

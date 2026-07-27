@@ -201,3 +201,16 @@ and AI limitations. AI feedback is heuristic guidance, not a hiring or ATS predi
 Production reliability includes request IDs, structured request-duration logs, safe GET retries,
 operation-specific timeouts, backend rate limits, monthly AI usage limits, `/health` and `/ready`,
 recoverable Next.js error states, and optional privacy-scrubbed Sentry reporting.
+
+## Gmail-assisted application tracking
+
+API mode supports optional backend-managed Google OAuth with PKCE and the single
+`https://www.googleapis.com/auth/gmail.readonly` Gmail scope. OfferOS scans a configurable,
+bounded 90-day window initially, then uses Gmail history IDs for incremental sync. Deterministic
+filtering runs before selective AI classification. Only limited metadata and capped plain-text
+excerpts are stored; attachments and raw HTML are not retained.
+
+Suggestions are review-only. Accepting one creates a confirmed application timeline event, and an
+application status changes only when the user explicitly selects that option. Disconnect revokes
+Google access when possible and always removes the encrypted refresh token. Local mode provides a
+clearly labeled simulation and never starts real Google OAuth.

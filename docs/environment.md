@@ -18,6 +18,10 @@
 | `AI_LIMIT_*` | optional | Product usage policy limits |
 | `AI_MOCK_ENABLED` | development/test only | Keep `false` in production |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `TOKEN_ENCRYPTION_KEY` | optional group | All required when Calendar is enabled |
+| `GMAIL_INTEGRATION_ENABLED` | optional | Enable backend Gmail OAuth and sync |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI` | required when Gmail enabled | Google web OAuth credentials and exact backend callback |
+| `GMAIL_TOKEN_ENCRYPTION_KEY` | required when Gmail enabled | Fernet key for refresh-token encryption |
+| `GMAIL_INITIAL_SYNC_DAYS`, `GMAIL_MAX_MESSAGES_PER_SYNC` | optional | Initial lookback and per-sync processing bounds |
 | `SENTRY_DSN` | optional | Absence never blocks startup |
 | `LOG_LEVEL` | optional | Defaults to `INFO` |
 
@@ -36,3 +40,6 @@ file-storage credential in this release.
 
 Example files contain placeholders/local defaults only. Never place OpenRouter, database, token
 encryption, Google client secret, or backend Sentry credentials in frontend variables.
+
+`GOOGLE_PUBSUB_TOPIC` and `GOOGLE_PUBSUB_VERIFICATION_TOKEN` are future placeholders and are not
+required. Gmail secrets must never use `NEXT_PUBLIC_` variables.

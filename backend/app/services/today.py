@@ -109,8 +109,8 @@ class TodayService:
                 description=f"{item.company} - {item.role}. {item.description}",
                 application_id=item.application_id,
                 priority=item.priority,
-                action_label=item.suggested_action,
-                action_url=f"/applications?application={item.application_id}",
+                action_label="Review emails" if item.category == "gmail_review" else item.suggested_action,
+                action_url="/integrations/gmail" if item.category == "gmail_review" else f"/applications?application={item.application_id}",
             )
         if not resumes:
             return TodayTopAction(

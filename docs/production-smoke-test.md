@@ -20,3 +20,12 @@ Use a dedicated disposable Clerk account for destructive checks.
 
 - Confirm no new server/client errors, failed migrations, repeated 401s, or sensitive payloads in logs.
 - Record cold/warm latency and request IDs for failed or slow operations.
+
+## Gmail
+
+- Connect a dedicated test account and verify Google requests read-only Gmail access.
+- Run sync, accept one suggestion, and verify the timeline event survives refresh.
+- Confirm a second sync creates no duplicate, then disconnect and verify sync is disabled.
+- Delete Gmail-derived data and verify accepted application events remain.
+- Inspect export, Render logs, and Sentry for OAuth codes, tokens, raw bodies, excerpts, and prompts;
+  none may be present.

@@ -71,6 +71,19 @@ Apply migrations:
 alembic upgrade head
 ```
 
+## Gmail-assisted tracking
+
+Set `GMAIL_INTEGRATION_ENABLED=true`, configure a Google OAuth web client with
+`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and the exact
+`GOOGLE_OAUTH_REDIRECT_URI`, then generate `GMAIL_TOKEN_ENCRYPTION_KEY` with Fernet. Enable the
+Gmail API and request only `https://www.googleapis.com/auth/gmail.readonly`.
+
+Run `alembic upgrade head` before enabling the integration. The initial scan is bounded by
+`GMAIL_INITIAL_SYNC_DAYS` and `GMAIL_MAX_MESSAGES_PER_SYNC`; later scans use Gmail history IDs with
+a bounded fallback when history expires. Tokens remain backend-only and encrypted. Full bodies,
+HTML, and attachments are not retained. Users must confirm every timeline event and any proposed
+application status change. Pub/Sub push sync is deferred.
+
 ## Launch readiness API
 
 Migration `20260724_0016_launch_readiness` adds onboarding/goal settings, notifications, and the AI

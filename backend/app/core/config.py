@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     google_client_secret: str | None = None
     google_calendar_redirect_uri: str | None = None
     token_encryption_key: str | None = None
+    gmail_integration_enabled: bool = False
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    google_oauth_redirect_uri: str | None = None
+    gmail_token_encryption_key: str | None = None
+    gmail_initial_sync_days: int = 90
+    gmail_max_messages_per_sync: int = 100
     frontend_app_url: str = "http://localhost:3000"
     log_level: str = "INFO"
 
@@ -108,6 +115,14 @@ class Settings(BaseSettings):
         )
         if any(google_values) and not all(google_values):
             missing.append("complete Google Calendar OAuth configuration")
+        gmail_values = (
+            self.google_oauth_client_id,
+            self.google_oauth_client_secret,
+            self.google_oauth_redirect_uri,
+            self.gmail_token_encryption_key,
+        )
+        if self.gmail_integration_enabled and not all(gmail_values):
+            missing.append("complete Gmail OAuth and encryption configuration")
         if missing:
             raise ValueError(
                 "Production configuration is incomplete: " + ", ".join(sorted(set(missing)))

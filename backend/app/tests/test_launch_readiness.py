@@ -121,7 +121,7 @@ def test_account_export_is_scoped_and_delete_cleans_dependents() -> None:
         db.commit()
         service = AccountService(db)
         exported = service.export(owner)
-        assert exported["schema_version"] == 1
+        assert exported["schema_version"] == 2
         assert exported["generated_at"]
         assert [item["company"] for item in exported["applications"]] == ["Owner Co"]
         service.delete(owner.id)

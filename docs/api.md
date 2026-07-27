@@ -648,3 +648,22 @@ Notifications use deterministic per-user dedupe keys. Dashboard reconciliation m
 deadline/follow-up notifications whose signal key has changed; repeated reads do not create spam.
 All API responses include `X-Request-ID`. Usage-limit errors use code `usage_limit_reached`;
 technical request limits use `rate_limit_reached` and a retry interval.
+
+## Gmail integration endpoints
+
+All endpoints except the Google callback are Clerk-authenticated and user-scoped.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/integrations/gmail/connect` | Create a single-use OAuth state and PKCE authorization URL |
+| GET | `/integrations/gmail/callback` | Exchange the Google authorization code server-side |
+| GET | `/integrations/gmail/status` | Return sanitized connection and sync state |
+| POST | `/integrations/gmail/sync` | Run bounded initial or incremental history sync |
+| GET | `/integrations/gmail/suggestions` | List owned review suggestions |
+| POST | `/integrations/gmail/suggestions/{id}/accept` | Confirm a timeline event and optional explicit status change |
+| POST | `/integrations/gmail/suggestions/{id}/reject` | Reject without changing application data |
+| POST | `/integrations/gmail/disconnect` | Revoke when possible and remove the encrypted token |
+| POST | `/integrations/gmail/delete-data` | Delete unconfirmed derived data after typed confirmation |
+
+No endpoint sends or modifies Gmail messages. Callback state is hashed, expiring, replay-resistant,
+and stored with an encrypted PKCE verifier.

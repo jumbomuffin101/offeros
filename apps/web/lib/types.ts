@@ -62,7 +62,8 @@ export type AttentionCategory =
   | "oa_deadline_soon"
   | "interview_soon"
   | "offer_deadline_soon"
-  | "low_prep_readiness";
+  | "low_prep_readiness"
+  | "gmail_review";
 export type ApplicationAttentionItem = {
   id: string;
   applicationId: string;
@@ -84,6 +85,47 @@ export type ApplicationAttentionItem = {
 export type ApplicationInbox = {
   items: ApplicationAttentionItem[];
   summary: { critical: number; high: number; medium: number; total: number };
+};
+export type GmailConnectionStatus = {
+  enabled: boolean;
+  connected: boolean;
+  gmailAddress?: string;
+  status: "connected" | "syncing" | "needs_reauthorization" | "error" | "disconnected";
+  scope: string;
+  lastSyncedAt?: string;
+  initialSyncCompletedAt?: string;
+  errorMessage?: string;
+  simulated?: boolean;
+};
+export type GmailSuggestion = {
+  id: string;
+  applicationId?: string;
+  acceptedEventId?: string;
+  suggestionType: string;
+  emailType: string;
+  suggestedStatus?: string;
+  suggestedEventType?: ApplicationEventType;
+  suggestedEventAt?: string;
+  suggestedDeadlineAt?: string;
+  sourceTimezone?: string;
+  dateIsAmbiguous: boolean;
+  companyName?: string;
+  roleTitle?: string;
+  recruiterName?: string;
+  confidence: number;
+  evidence: string[];
+  status: "pending" | "accepted" | "rejected" | "dismissed" | "expired";
+  reviewedAt?: string;
+  note: string;
+  message: {
+    senderEmail: string;
+    senderName?: string;
+    subject: string;
+    snippet?: string;
+    excerpt?: string;
+    receivedAt: string;
+  };
+  createdAt: string;
 };
 export type MockInterviewType = "behavioral" | "resume" | "technical" | "system_design" | "mixed";
 export type MockInterviewDifficulty = "introductory" | "standard" | "challenging";

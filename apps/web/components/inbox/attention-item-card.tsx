@@ -61,6 +61,9 @@ export function AttentionItemCard({
 }
 
 function actionLink(item: ApplicationAttentionItem) {
+  if (item.category === "gmail_review") {
+    return { label: "Review emails", href: "/integrations/gmail" };
+  }
   if (item.category === "follow_up_due") {
     return { label: "Draft follow-up", href: `/applications?open=${item.applicationId}&copilot=follow-up` };
   }

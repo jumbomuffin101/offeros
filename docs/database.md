@@ -370,3 +370,12 @@ failed attempts remain available for operational diagnosis.
 Account deletion explicitly removes dependent user-owned rows in child-first order before deleting
 the OfferOS user. PostgreSQL foreign-key cascades remain a second safeguard. Temporary resume upload
 bytes are not persisted by this schema.
+
+## Gmail-assisted tracking
+
+`gmail_connections` stores one optional connection per user, encrypted refresh-token ciphertext,
+scope, sync cursor, OAuth state hash, encrypted PKCE verifier, and safe diagnostics.
+`gmail_message_references` stores deduplication IDs plus limited sender/subject/snippet/excerpt
+metadata. `gmail_application_suggestions` stores review state and confirmed application/event
+links. Migration `20260727_0017` adds named ownership, status, received-time, application, and
+message-deduplication indexes.

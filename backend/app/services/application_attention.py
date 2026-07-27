@@ -16,6 +16,7 @@ from app.models.application_event import ApplicationEvent
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.coding import CodingActivity
 from app.models.prep import BehavioralQuestion, SystemDesignPrompt
+from app.models.gmail import GmailApplicationSuggestion
 from app.schemas.application_attention import (
     ApplicationAttentionItem,
     ApplicationAttentionOverrideRequest,
@@ -157,6 +158,70 @@ class ApplicationAttentionService:
                 ):
                     continue
                 items.append(item)
+        applications_by_id = {application.id: application for application in applications}
+        gmail_suggestions = list(
+            self.db.scalars(
+                select(GmailApplicationSuggestion).where(
+                    GmailApplicationSuggestion.user_id == user_id,
+                    GmailApplicationSuggestion.status == "pending",
+                    GmailApplicationSuggestion.application_id.in_(application_ids),
+                )
+            )
+        )
+        regular_gmail_suggestions: list[GmailApplicationSuggestion] = []
+        for suggestion in gmail_suggestions:
+            application = applications_by_id.get(suggestion.application_id)
+            if application is None:
+                continue
+            due_at = suggestion.suggested_deadline_at or suggestion.suggested_event_at
+            urgent = due_at is not None and _as_utc(due_at) <= self.now + timedelta(hours=72)
+            urgent = urgent and suggestion.email_type in {"offer", "assessment_invitation", "interview_invitation"}
+            if not urgent:
+                regular_gmail_suggestions.append(suggestion)
+                continue
+            priority = 92
+            signal_key = hashlib.sha256(
+                f"gmail:{suggestion.id}:{suggestion.version}".encode()
+            ).hexdigest()
+            items.append(
+                ApplicationAttentionItem(
+                    id=f"gmail:{suggestion.id}",
+                    application_id=application.id,
+                    company=application.company,
+                    role=application.role,
+                    category="gmail_review",
+                    priority=priority,
+                    title=f"{suggestion.email_type.replace('_', ' ').title()} detected",
+                    description="Review this Gmail suggestion before OfferOS changes the application timeline.",
+                    due_at=due_at,
+                    created_at=suggestion.created_at,
+                    suggested_action="Review Gmail suggestion",
+                    last_meaningful_activity=application.meaningful_updated_at,
+                    signal_key=signal_key,
+                )
+            )
+        if regular_gmail_suggestions:
+            first = regular_gmail_suggestions[0]
+            application = applications_by_id[first.application_id]
+            count = len(regular_gmail_suggestions)
+            signal_key = hashlib.sha256(
+                ("gmail:review:" + ":".join(sorted(str(value.id) for value in regular_gmail_suggestions))).encode()
+            ).hexdigest()
+            items.append(
+                ApplicationAttentionItem(
+                    id="gmail:review",
+                    application_id=application.id,
+                    company="Gmail",
+                    role="Recruiting email review",
+                    category="gmail_review",
+                    priority=58,
+                    title=f"{count} recruiting email{'s' if count != 1 else ''} need review",
+                    description="Review Gmail suggestions before they affect application timelines or statuses.",
+                    created_at=max(value.created_at for value in regular_gmail_suggestions),
+                    suggested_action="Review emails",
+                    signal_key=signal_key,
+                )
+            )
         return sorted(
             items,
             key=lambda item: (

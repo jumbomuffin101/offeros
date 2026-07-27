@@ -13,6 +13,7 @@ from app.models.application_copilot import (
 from app.models.application_event import ApplicationEvent
 from app.models.launch import AIUsageEvent, Notification
 from app.models.calendar import CalendarConnection
+from app.models.gmail import GmailApplicationSuggestion, GmailConnection, GmailMessageReference
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
@@ -33,6 +34,9 @@ __all__ = [
     "Notification",
     "AIUsageEvent",
     "CalendarConnection",
+    "GmailConnection",
+    "GmailMessageReference",
+    "GmailApplicationSuggestion",
     "ApplicationPrepPlan",
     "CodingActivity",
     "CodingGoal",

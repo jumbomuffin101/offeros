@@ -1,4 +1,4 @@
-import type { AnalyticsRepository, ApplicationEventRepository, ApplicationRepository, DashboardRepository, MockInterviewRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
+import type { AnalyticsRepository, ApplicationEventRepository, ApplicationRepository, DashboardRepository, GmailRepository, MockInterviewRepository, PrepRepository, ResumeRepository, WorkspaceRepository } from "@/lib/data/types/repositories";
 import { applicationEventRepository as localApplicationEventRepository } from "@/lib/data/repositories/applicationEventRepository";
 import { apiApplicationEventRepository } from "@/lib/data/repositories/apiApplicationEventRepository";
 import { applicationRepository as localApplicationRepository } from "@/lib/data/repositories/applicationRepository";
@@ -19,6 +19,8 @@ import { inboxRepository as localInboxRepository } from "@/lib/data/repositories
 import { apiInboxRepository } from "@/lib/data/repositories/apiInboxRepository";
 import { mockInterviewRepository as localMockInterviewRepository } from "@/lib/data/repositories/mockInterviewRepository";
 import { apiMockInterviewRepository } from "@/lib/data/repositories/apiMockInterviewRepository";
+import { gmailRepository as localGmailRepository } from "@/lib/data/repositories/gmailRepository";
+import { apiGmailRepository } from "@/lib/data/repositories/apiGmailRepository";
 
 export type DataMode = "local" | "api";
 export const dataMode: DataMode = process.env.NEXT_PUBLIC_DATA_MODE === "api" ? "api" : "local";
@@ -33,3 +35,4 @@ export const prepRepository: PrepRepository = dataMode === "api" ? apiPrepReposi
 export const dashboardRepository: DashboardRepository = dataMode === "api" ? apiDashboardRepository : localDashboardRepository;
 export const analyticsRepository: AnalyticsRepository = dataMode === "api" ? apiAnalyticsRepository : localAnalyticsRepository;
 export const workspaceRepository: WorkspaceRepository = dataMode === "api" ? apiWorkspaceRepository : localWorkspaceRepository;
+export const gmailRepository: GmailRepository = dataMode === "api" ? apiGmailRepository : localGmailRepository;

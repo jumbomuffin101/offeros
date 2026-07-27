@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.common import DataResponse
 from app.schemas.launch import AccountDeleteRequest, UsageSummaryResponse
 from app.services.account import AccountService
+from app.services.gmail import GmailService
 from app.services.usage import AIUsageService
 
 
@@ -36,7 +37,9 @@ def delete_account(
     payload: AccountDeleteRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
 ) -> Response:
     del payload
+    GmailService(db, settings).revoke_for_account_deletion(user.id)
     AccountService(db).delete(user.id)
     return Response(status_code=204)

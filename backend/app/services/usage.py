@@ -19,6 +19,7 @@ OPERATIONS = (
     "mock_interview",
     "mock_interview_turn",
     "recruiter_copilot",
+    "gmail_classification",
 )
 
 
@@ -138,6 +139,7 @@ class AIUsageService:
             "mock_interview": self.settings.ai_limit_mock_interviews,
             "mock_interview_turn": self.settings.ai_limit_mock_interview_turns,
             "recruiter_copilot": self.settings.ai_limit_copilot_messages,
+            "gmail_classification": self.settings.ai_limit_default,
         }
         return limits.get(operation, self.settings.ai_limit_default)
 

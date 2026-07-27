@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BrainCircuit, ExternalLink, Loader2, MessagesSquare, Save, X } from "lucide-react";
+import { BrainCircuit, ExternalLink, Loader2, Mail, MessagesSquare, RefreshCw, Save, X } from "lucide-react";
 import type { Application, ResumeAnalysis, ResumeVersion } from "@/lib/types";
 import type { ApplicationAnalyzeResult, ApplicationInput } from "@/lib/data/types";
 import { formatDate, parseTags } from "@/lib/application-utils";
@@ -20,6 +20,7 @@ import {
   type ApplicationWorkspaceDraft,
 } from "@/components/applications/application-workspace-form";
 import { useInbox } from "@/hooks/use-inbox";
+import { useGmail } from "@/hooks/use-gmail";
 
 type PrepPlan = { plan: { status: string; coding: { priority_topics?: Array<{ topic: string; priority: string; reason: string }> }; behavioral: { focus_areas?: Array<{ category: string }> }; system_design: { focus_areas?: Array<{ topic: string }> }; overall_preparation_summary: string; next_best_action: string }; coding_readiness: number; behavioral_readiness: number; system_design_readiness: number; overall_readiness: number; coding_coverage: Array<{ topic: string; practiced: number; status: string }> };
 
@@ -102,6 +103,7 @@ function ApplicationWorkspace({
     prompt: initialCopilotPrompt ?? "",
   }));
   const attention = useInbox();
+  const gmail = useGmail();
 
   useEffect(() => {
     if (!application.resumeAnalysisId) return;
@@ -134,6 +136,10 @@ function ApplicationWorkspace({
   const attentionItems = attention.inbox?.items.filter((item) => item.applicationId === application.id) ?? [];
   const followUpItem = attentionItems.find((item) => item.category === "follow_up_due");
   const attentionItem = followUpItem ?? attentionItems[0];
+  const gmailSuggestions = gmail.suggestions.filter((item) => item.status === "pending" && item.applicationId === application.id);
+  const latestConfirmedEmail = gmail.suggestions
+    .filter((item) => item.status === "accepted" && item.applicationId === application.id)
+    .sort((left, right) => new Date(right.reviewedAt ?? right.createdAt).getTime() - new Date(left.reviewedAt ?? left.createdAt).getTime())[0];
 
   function updateDraft<K extends keyof ApplicationWorkspaceDraft>(
     key: K,
@@ -270,6 +276,17 @@ function ApplicationWorkspace({
               {error ? <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{error}</div> : null}
               {message ? <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
               <ApplicationTimeline application={application} onChanged={onEventsChanged} />
+              <section className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div><div className="flex items-center gap-2"><Mail className="size-4 text-indigo-300" /><h3 className="font-semibold text-white">Email activity</h3></div><p className="mt-1 text-xs text-slate-500">Review-only Gmail signals for this application.</p></div>
+                  <div className="flex gap-2"><Button disabled={gmail.loading || !gmail.status?.connected} onClick={() => void gmail.sync()} variant="ghost"><RefreshCw className="size-4" />Sync Gmail</Button><Link className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-600/50 bg-slate-800/60 px-4 text-sm font-medium text-slate-100 hover:bg-slate-700/65" href="/integrations/gmail">Review suggestions</Link></div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-700/35 bg-slate-950/20 p-3"><div className="text-xs text-slate-500">Pending review</div><div className="mt-1 text-sm font-medium text-slate-200">{gmailSuggestions.length ? `${gmailSuggestions.length} recruiting email${gmailSuggestions.length === 1 ? "" : "s"}` : "No pending suggestions"}</div></div>
+                  <div className="rounded-lg border border-slate-700/35 bg-slate-950/20 p-3"><div className="text-xs text-slate-500">Last confirmed email event</div><div className="mt-1 text-sm font-medium text-slate-200">{latestConfirmedEmail ? `${latestConfirmedEmail.emailType.replaceAll("_", " ")} - ${formatDate(latestConfirmedEmail.reviewedAt ?? latestConfirmedEmail.createdAt)}` : "None confirmed"}</div></div>
+                </div>
+                {gmailSuggestions[0]?.recruiterName ? <p className="mt-3 text-xs text-slate-400">Suggested recruiter: <span className="text-slate-200">{gmailSuggestions[0].recruiterName}</span></p> : null}
+              </section>
               {analysis ? <section className="rounded-xl border border-slate-700/35 bg-slate-900/20 p-4 sm:p-5"><h3 className="mb-4 font-semibold text-white">Application-specific resume analysis</h3><AnalysisResult analysis={analysis} /></section> : null}
             </div>
 

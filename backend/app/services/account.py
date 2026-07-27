@@ -12,6 +12,7 @@ from app.models.application_copilot import ApplicationCopilotConversation, Appli
 from app.models.application_event import ApplicationEvent
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.calendar import CalendarConnection
+from app.models.gmail import GmailApplicationSuggestion, GmailConnection, GmailMessageReference
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
 from app.models.launch import AIUsageEvent, Notification
 from app.models.mock_interview import MockInterviewScorecard, MockInterviewSession, MockInterviewTurn
@@ -47,7 +48,7 @@ class AccountService:
     def export(self, user: User) -> dict[str, object]:
         payload: dict[str, object] = {
             "format": "offeros-account-export-v1",
-            "schema_version": 1,
+            "schema_version": 2,
             "generated_at": datetime.now(UTC),
             "account": {
                 "id": str(user.id),
@@ -90,6 +91,41 @@ class AccountService:
             if session_ids
             else []
         )
+        connection = self.db.scalar(select(GmailConnection).where(GmailConnection.user_id == user.id))
+        payload["gmail_connection"] = (
+            {
+                "id": str(connection.id),
+                "gmail_address": connection.gmail_address,
+                "token_scopes": connection.token_scopes,
+                "status": connection.status,
+                "last_synced_at": connection.last_synced_at,
+                "initial_sync_completed_at": connection.initial_sync_completed_at,
+                "created_at": connection.created_at,
+            }
+            if connection else None
+        )
+        payload["gmail_suggestions"] = [
+            _columns(row)
+            for row in self.db.scalars(
+                select(GmailApplicationSuggestion).where(GmailApplicationSuggestion.user_id == user.id)
+            )
+        ]
+        payload["gmail_message_metadata"] = [
+            {
+                "id": str(row.id),
+                "gmail_message_id": row.gmail_message_id,
+                "gmail_thread_id": row.gmail_thread_id,
+                "sender_email": row.sender_email,
+                "sender_name": row.sender_name,
+                "subject": row.subject,
+                "received_at": row.received_at,
+                "classification_status": row.classification_status,
+                "processing_status": row.processing_status,
+            }
+            for row in self.db.scalars(
+                select(GmailMessageReference).where(GmailMessageReference.user_id == user.id)
+            )
+        ]
         return jsonable_encoder(payload)
 
     def delete(self, user_id: UUID) -> None:
@@ -116,6 +152,8 @@ class AccountService:
         if conversations:
             self.db.execute(delete(ApplicationCopilotMessage).where(ApplicationCopilotMessage.conversation_id.in_(conversations)))
         for model in (
+            GmailApplicationSuggestion,
+            GmailMessageReference,
             Notification,
             AIUsageEvent,
             ApplicationAttentionOverride,
@@ -132,6 +170,7 @@ class AccountService:
             SystemDesignPrompt,
             AnalyticsSnapshot,
             CalendarConnection,
+            GmailConnection,
             Application,
             ResumeVersion,
             UserSettings,

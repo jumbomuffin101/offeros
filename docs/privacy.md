@@ -14,3 +14,15 @@ The public product policy lives at `/privacy`. This document describes implement
 Operational limitation: if Clerk account deletion fails after database deletion, the authentication
 identity may remain without OfferOS workspace data. The user receives an error and administrators
 can resolve the remaining Clerk identity from the Clerk dashboard.
+
+## Gmail data handling
+
+- Gmail is optional and uses only `gmail.readonly`; no mailbox mutations are implemented.
+- Initial discovery is bounded and incremental sync uses Gmail history IDs.
+- Clearly unrelated messages are rejected before AI. Candidate AI prompts contain only sender,
+  subject, capped excerpt, date, deterministic signals, and minimal application summaries.
+- Email content is untrusted data. Prompts explicitly forbid following instructions in email.
+- Refresh tokens use Fernet authenticated encryption and are never serialized, logged, exported,
+  or sent to Sentry.
+- Deletion removes unconfirmed suggestions, metadata, excerpts, cursors, and safe diagnostics while
+  retaining user-confirmed application timeline events.

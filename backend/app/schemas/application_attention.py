@@ -16,6 +16,7 @@ AttentionCategory = Literal[
     "interview_soon",
     "offer_deadline_soon",
     "low_prep_readiness",
+    "gmail_review",
 ]
 
 

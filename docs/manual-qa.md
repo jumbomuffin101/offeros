@@ -36,3 +36,15 @@ viewport, API request ID, and result for each failure.
 - Frontend Sentry is not currently integrated. Do not claim frontend capture verification until an
   SDK is added and a browser-thrown test exception is observed in a development Sentry project.
 - Never add an exception endpoint or deliberate production crash.
+
+## Gmail-assisted tracking
+
+Use a dedicated Gmail test account. Deny OAuth once, then connect and verify the exact read-only
+scope. Run initial sync and confirm unrelated mail is absent. Review one match, edit its event date,
+accept without status change, and verify the timeline. Accept another with the status checkbox.
+Reject a suggestion, sync again, and verify no duplicates.
+
+Refresh and check Smart Inbox and Today. Disconnect while retaining confirmed events, reconnect,
+then type `DELETE GMAIL DATA` and verify cached excerpts/suggestions disappear while confirmed
+timeline events remain. Export JSON and search for tokens and raw body text. Repeat at 320, 375,
+768, and desktop widths with keyboard-only modal interaction.
