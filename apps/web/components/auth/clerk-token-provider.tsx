@@ -11,25 +11,25 @@ export function ClerkTokenProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    console.info("[OfferOS Auth Diagnostic]", {
+    authDiagnostic({
       clerk_loaded: isLoaded,
       signed_in: Boolean(isSignedIn),
       token_template: jwtTemplate ?? "default",
     });
     setAuthTokenProvider(async () => {
-      console.info("[OfferOS Auth Diagnostic]", {
+      authDiagnostic({
         token_requested: true,
         token_template: jwtTemplate ?? "default",
       });
       try {
         const token = await getToken(jwtTemplate ? { template: jwtTemplate } : undefined);
-        console.info("[OfferOS Auth Diagnostic]", {
+        authDiagnostic({
           token_present: Boolean(token),
           token_template: jwtTemplate ?? "default",
         });
         return token;
       } catch (error) {
-        console.error("[OfferOS Auth Diagnostic]", {
+        authDiagnostic({
           token_error: error instanceof Error ? error.name : "UnknownError",
           token_template: jwtTemplate ?? "default",
         });
@@ -44,4 +44,8 @@ export function ClerkTokenProvider({ children }: { children: ReactNode }) {
   }
 
   return children;
+}
+
+function authDiagnostic(details: Record<string, unknown>) {
+  console.info(`[OfferOS Auth Diagnostic] ${JSON.stringify(details)}`);
 }

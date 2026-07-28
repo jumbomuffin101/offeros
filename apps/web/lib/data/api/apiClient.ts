@@ -103,7 +103,7 @@ class ApiClient {
     if (!init.skipAuth) {
       for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
     }
-    console.info("[OfferOS API Diagnostic]", {
+    apiDiagnostic({
       endpoint: new URL(url).pathname,
       request_id: currentRequestId,
       auth_header_present: headers.has("Authorization"),
@@ -116,7 +116,7 @@ class ApiClient {
       if (!init.skipAuth) firstWorkspaceRequestComplete = true;
       return result;
     } catch (error) {
-      console.error("[OfferOS API Diagnostic]", {
+      apiDiagnostic({
         endpoint: new URL(url).pathname,
         request_id: currentRequestId,
         fetch_phase: "failed",
@@ -279,6 +279,10 @@ function noteRequest(method: string, url: string) {
 function debugApi(message: string, details: Record<string, unknown>) {
   if (!DEV_API_DIAGNOSTICS) return;
   console.debug("[OfferOS API]", message, details);
+}
+
+function apiDiagnostic(details: Record<string, unknown>) {
+  console.info(`[OfferOS API Diagnostic] ${JSON.stringify(details)}`);
 }
 
 function logDebugRequest(label: RequestOptions["debugLabel"], message: string, details: Record<string, unknown>) {
