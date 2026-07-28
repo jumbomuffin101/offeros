@@ -15,6 +15,7 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
 
   const refresh = useCallback(async () => {
     const currentRequest = ++requestId.current;
+    setLoading(true);
     setError(null);
     devRepositoryResourceLog("error cleared", { operation: "refresh", requestId: currentRequest });
     try {

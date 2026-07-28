@@ -19,6 +19,11 @@ from app.models.application_prep import ApplicationPrepPlan
 from app.models.base import ApplicationStatus, Base
 from app.models.calendar import CalendarConnection
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
+from app.models.gmail import (
+    GmailApplicationSuggestion,
+    GmailConnection,
+    GmailMessageReference,
+)
 from app.models.launch import AIUsageEvent, Notification
 from app.models.mock_interview import MockInterviewScorecard, MockInterviewSession, MockInterviewTurn
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
@@ -29,6 +34,7 @@ from app.main import app
 from app.schemas.launch import NotificationCreate
 from app.services.account import AccountService
 from app.services.notifications import NotificationService
+from app.services.today import TodayService
 from app.services.usage import AIUsageService
 
 
@@ -44,9 +50,162 @@ def test_launch_routes_and_request_id(client: TestClient) -> None:
     assert settings.status_code == 200
     assert settings.json()["data"]["onboarding_status"] == "not_started"
     assert today.status_code == 200
-    assert today.json()["data"]["top_action"]["type"] == "upload_resume"
+    today_data = today.json()["data"]
+    assert today_data["top_action"]["type"] == "upload_resume"
+    assert today_data["workspace_status"] == "ready"
+    assert today_data["gmail"] == {
+        "status": "not_connected",
+        "pending_suggestions": 0,
+    }
+    assert today_data["notifications"]["unread_count"] == 0
+    assert today_data["sections"]["ai_coach"] == "disabled"
+    assert today_data["generated_at"]
     assert client.get("/api/v1/notifications").status_code == 200
     assert client.get("/api/v1/account/usage").status_code == 200
+
+
+def test_cors_preflight_allows_authenticated_request_id_header(
+    client: TestClient,
+) -> None:
+    response = client.options(
+        "/api/v1/dashboard/today",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization,x-request-id",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    allowed_headers = response.headers["access-control-allow-headers"].lower()
+    assert "authorization" in allowed_headers
+    assert "x-request-id" in allowed_headers
+
+
+def test_today_handles_gmail_connection_with_zero_and_pending_suggestions() -> None:
+    with database() as db:
+        user = add_user(db, "today-gmail")
+        connection = GmailConnection(
+            user_id=user.id,
+            google_account_id="google-today-gmail",
+            gmail_address="today-gmail@example.com",
+            encrypted_refresh_token="encrypted",
+            status="connected",
+        )
+        db.add(connection)
+        db.commit()
+
+        empty_summary = TodayService(db).summary(user)
+        assert empty_summary.workspace_status == "ready"
+        assert empty_summary.gmail == {
+            "status": "connected",
+            "pending_suggestions": 0,
+        }
+        assert empty_summary.sections["gmail"] == "ready"
+
+        now = datetime.now(UTC)
+        message = GmailMessageReference(
+            user_id=user.id,
+            gmail_connection_id=connection.id,
+            gmail_message_id="today-message",
+            gmail_thread_id="today-thread",
+            internal_date=now,
+            received_at=now,
+        )
+        db.add(message)
+        db.flush()
+        db.add(
+            GmailApplicationSuggestion(
+                user_id=user.id,
+                gmail_connection_id=connection.id,
+                gmail_message_reference_id=message.id,
+                status="pending",
+            )
+        )
+        db.commit()
+
+        pending_summary = TodayService(db).summary(user)
+        assert pending_summary.gmail["pending_suggestions"] == 1
+
+
+def test_today_optional_gmail_failure_returns_partial_workspace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with database() as db:
+        user = add_user(db, "today-partial")
+
+        def unavailable_gmail(
+            _service: TodayService, _user_id: object, sections: dict[str, str]
+        ) -> dict[str, object]:
+            sections["gmail"] = "unavailable"
+            return {"status": "unavailable", "pending_suggestions": 0}
+
+        monkeypatch.setattr(TodayService, "_gmail_summary", unavailable_gmail)
+        summary = TodayService(db).summary(user)
+
+        assert summary.workspace_status == "partial"
+        assert summary.sections["core_workspace"] == "ready"
+        assert summary.sections["gmail"] == "unavailable"
+        assert summary.gmail["pending_suggestions"] == 0
+        assert summary.top_action is not None
+
+
+def test_today_is_user_scoped_and_serializes_populated_workspace() -> None:
+    with database() as db:
+        owner = add_user(db, "today-owner")
+        other = add_user(db, "today-other")
+        db.add_all(
+            [
+                Application(
+                    user_id=owner.id,
+                    company="Owner Co",
+                    role="Engineer",
+                    status=ApplicationStatus.APPLIED,
+                ),
+                Application(
+                    user_id=other.id,
+                    company="Other Co",
+                    role="Engineer",
+                    status=ApplicationStatus.OFFER,
+                ),
+                ResumeVersion(
+                    user_id=owner.id,
+                    name="Owner Resume",
+                    target_role="Engineer",
+                ),
+            ]
+        )
+        db.commit()
+
+        summary = TodayService(db).summary(owner)
+        serialized = summary.model_dump(mode="json")
+
+        assert summary.pipeline["applied"] == 1
+        assert summary.pipeline["offer"] == 0
+        assert summary.resume_performance["total"] == 1
+        assert serialized["generated_at"]
+        assert isinstance(serialized["attention_items"], list)
+        assert all(item["company"] == "Owner Co" for item in serialized["attention_items"])
+        assert serialized["upcoming_events"] == []
+        json.dumps(serialized)
+
+
+def test_today_requires_authentication_when_auth_is_required(
+    client: TestClient,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        app_env="test",
+        auth_required=True,
+        clerk_issuer="https://example.clerk.accounts.dev",
+        clerk_jwks_url="https://example.clerk.accounts.dev/.well-known/jwks.json",
+        clerk_audience="offeros-api",
+    )
+
+    response = client.get("/api/v1/dashboard/today")
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "unauthorized"
 
 
 def test_notification_dedupe_read_and_user_isolation() -> None:

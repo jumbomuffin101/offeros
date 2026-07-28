@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError, ValidationError
@@ -159,15 +160,20 @@ class ApplicationAttentionService:
                     continue
                 items.append(item)
         applications_by_id = {application.id: application for application in applications}
-        gmail_suggestions = list(
-            self.db.scalars(
-                select(GmailApplicationSuggestion).where(
-                    GmailApplicationSuggestion.user_id == user_id,
-                    GmailApplicationSuggestion.status == "pending",
-                    GmailApplicationSuggestion.application_id.in_(application_ids),
+        try:
+            gmail_suggestions = list(
+                self.db.scalars(
+                    select(GmailApplicationSuggestion).where(
+                        GmailApplicationSuggestion.user_id == user_id,
+                        GmailApplicationSuggestion.status == "pending",
+                        GmailApplicationSuggestion.application_id.in_(application_ids),
+                    )
                 )
             )
-        )
+        except SQLAlchemyError:
+            self.db.rollback()
+            logger.warning("application_attention.gmail_unavailable user_id=%s", user_id)
+            gmail_suggestions = []
         regular_gmail_suggestions: list[GmailApplicationSuggestion] = []
         for suggestion in gmail_suggestions:
             application = applications_by_id.get(suggestion.application_id)

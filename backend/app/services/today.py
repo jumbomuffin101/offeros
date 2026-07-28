@@ -1,11 +1,14 @@
 from datetime import UTC, datetime, timedelta
+import logging
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
 from app.models.application_event import ApplicationEvent
+from app.models.gmail import GmailApplicationSuggestion, GmailConnection
 from app.models.mock_interview import MockInterviewSession
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeVersion
@@ -16,6 +19,9 @@ from app.services.application_attention import ApplicationAttentionService
 from app.services.application_events import ApplicationEventService
 from app.services.notifications import NotificationService
 from app.services.settings import SettingsService
+
+
+logger = logging.getLogger(__name__)
 
 
 class TodayService:
@@ -33,7 +39,24 @@ class TodayService:
         attention = ApplicationAttentionService(self.db, now).build(
             user.id, applications=applications
         )
-        NotificationService(self.db).reconcile_attention(user.id, attention[:10])
+        sections = {
+            "core_workspace": "ready",
+            "smart_inbox": "ready",
+            "gmail": "not_connected",
+            "notifications": "ready",
+            "analytics": "ready",
+            "ai_coach": "disabled",
+        }
+        gmail = self._gmail_summary(user.id, sections)
+        notifications = {"unread_count": 0}
+        try:
+            notification_service = NotificationService(self.db)
+            notification_service.reconcile_attention(user.id, attention[:10])
+            notifications["unread_count"] = notification_service.list(user.id).unread_count
+        except SQLAlchemyError:
+            self.db.rollback()
+            sections["notifications"] = "unavailable"
+            logger.warning("today.notifications_unavailable user_id=%s", user.id)
         settings = SettingsService(self.db).get_or_create(user)
         interviews = list(
             self.db.scalars(
@@ -57,6 +80,12 @@ class TodayService:
         )
         top_action = self._top_action(attention, applications, resumes)
         return TodayResponse(
+            generated_at=now,
+            workspace_status=(
+                "partial"
+                if any(value == "unavailable" for value in sections.values())
+                else "ready"
+            ),
             date=now.date(),
             top_action=top_action,
             attention_items=attention[:5],
@@ -87,7 +116,43 @@ class TodayService:
                 applications, resumes, interviews, coding, behavioral, system_design
             ),
             resume_performance=self._resume_performance(resumes),
+            gmail=gmail,
+            notifications=notifications,
+            sections=sections,
         )
+
+    def _gmail_summary(
+        self, user_id: UUID, sections: dict[str, str]
+    ) -> dict[str, object]:
+        try:
+            connection = self.db.scalar(
+                select(GmailConnection).where(GmailConnection.user_id == user_id)
+            )
+            if connection is None or connection.status == "disconnected":
+                return {"status": "not_connected", "pending_suggestions": 0}
+            pending = int(
+                self.db.scalar(
+                    select(func.count(GmailApplicationSuggestion.id)).where(
+                        GmailApplicationSuggestion.user_id == user_id,
+                        GmailApplicationSuggestion.status == "pending",
+                    )
+                )
+                or 0
+            )
+            sections["gmail"] = (
+                "needs_reauthorization"
+                if connection.status == "needs_reauthorization"
+                else "ready"
+            )
+            return {
+                "status": connection.status,
+                "pending_suggestions": pending,
+            }
+        except SQLAlchemyError:
+            self.db.rollback()
+            sections["gmail"] = "unavailable"
+            logger.warning("today.gmail_unavailable user_id=%s", user_id)
+            return {"status": "unavailable", "pending_suggestions": 0}
 
     def _active_rows(self, model: type, user_id: UUID) -> list:
         statement = select(model).where(model.user_id == user_id)

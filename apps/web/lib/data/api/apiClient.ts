@@ -124,7 +124,7 @@ class ApiClient {
     try {
       return await this.fetchJson<T>(url, init, headers, timeoutMs, 0);
     } catch (error) {
-      if (method !== "GET" || init.signal || !isRetryableNetworkError(error)) throw error;
+      if (method !== "GET" || init.signal || !isRetryableGetError(error)) throw error;
       debugApi("retrying request", { method, path: new URL(url).pathname });
       await delay(RETRY_DELAY_MS);
       return this.fetchJson<T>(url, init, headers, timeoutMs, 1);
@@ -195,7 +195,11 @@ async function parseResponse(response: Response): Promise<unknown> {
 
 function apiResponseError(status: number, payload: unknown, request: { method: string; url: string; requestId?: string }) {
   const serverMessage = extractMessage(payload);
-  const options = { requestId: request.requestId, details: extractDetails(payload) };
+  const details = extractDetails(payload);
+  const options = {
+    requestId: request.requestId,
+    details: { ...(details ?? {}), httpStatus: status },
+  };
   if (status === 401) return new DataError("UNAUTHORIZED", "Your session needs to be refreshed.", options);
   if (status === 403) return new DataError("FORBIDDEN", "Your session needs to be refreshed.", options);
   if (status === 429) return new DataError("RATE_LIMITED", serverMessage || "OfferOS received too many requests. Try again shortly.", options);
@@ -299,6 +303,13 @@ function resetWakeup() {
 
 function isRetryableNetworkError(error: unknown) {
   return error instanceof DataError && error.code === "NETWORK_ERROR";
+}
+
+function isRetryableGetError(error: unknown) {
+  if (isRetryableNetworkError(error)) return true;
+  if (!(error instanceof DataError) || error.code !== "API_ERROR") return false;
+  const status = Number(error.details?.httpStatus);
+  return status === 502 || status === 503 || status === 504;
 }
 
 function isAbortError(error: unknown) {

@@ -5,6 +5,7 @@ import type {
   TodaySummary,
 } from "@/lib/types";
 import { apiClient } from "@/lib/data/api/apiClient";
+import { DataError } from "@/lib/data/errors";
 import { fromApiAttentionItem } from "@/lib/data/repositories/apiInboxRepository";
 import { applicationEventRepository as localEventRepository } from "@/lib/data/repositories/applicationEventRepository";
 import { applicationRepository as localApplicationRepository } from "@/lib/data/repositories/applicationRepository";
@@ -52,6 +53,8 @@ type ApiNotification = {
   read_at: string | null; expires_at: string | null; created_at: string;
 };
 type ApiToday = {
+  generated_at: string;
+  workspace_status: "ready" | "partial";
   date: string;
   top_action: null | {
     type: string; title: string; description: string; application_id: string | null;
@@ -69,6 +72,9 @@ type ApiToday = {
   pipeline: Record<string, number>;
   recent_activity: Array<{ type: string; label: string; timestamp: string }>;
   resume_performance: { analyzed: number; total: number; best_resume: string | null; best_score: number | null };
+  gmail: { status: string; pending_suggestions: number };
+  notifications: { unread_count: number };
+  sections: Record<string, string>;
 };
 
 const apiRepository: LaunchRepository = {
@@ -82,6 +88,7 @@ const apiRepository: LaunchRepository = {
   },
   async today() {
     const response = await apiClient.get<ApiEnvelope<ApiToday>>("/dashboard/today");
+    assertApiToday(response);
     return fromApiToday(response.data);
   },
   async notifications(unreadOnly = false) {
@@ -183,6 +190,8 @@ const localRepository: LaunchRepository = {
     reconcileLocalAttentionNotifications(attention);
     const top = attention[0];
     return {
+      generatedAt: new Date().toISOString(),
+      workspaceStatus: "ready",
       date: new Date().toISOString().slice(0, 10),
       topAction: top ? {
         type: top.category, title: top.title, description: `${top.company} - ${top.role}. ${top.description}`,
@@ -211,6 +220,14 @@ const localRepository: LaunchRepository = {
       pipeline,
       recentActivity: [],
       resumePerformance: { analyzed: analyzed.length, total: resumes.length, bestResume: best?.name, bestScore: best?.latestOverallScore },
+      gmail: { status: "local_only", pendingSuggestions: 0 },
+      notifications: { unreadCount: readLocalState().notifications.filter((item) => !item.readAt).length },
+      sections: {
+        core_workspace: "ready",
+        smart_inbox: "ready",
+        gmail: "local_only",
+        notifications: "ready",
+      },
     };
   },
   async notifications(unreadOnly = false) {
@@ -312,6 +329,8 @@ function fromApiNotification(value: ApiNotification): OfferOSNotification {
 }
 function fromApiToday(value: ApiToday): TodaySummary {
   return {
+    generatedAt: value.generated_at,
+    workspaceStatus: value.workspace_status,
     date: value.date,
     topAction: value.top_action ? {
       type: value.top_action.type, title: value.top_action.title, description: value.top_action.description,
@@ -343,7 +362,41 @@ function fromApiToday(value: ApiToday): TodaySummary {
       bestResume: value.resume_performance.best_resume ?? undefined,
       bestScore: value.resume_performance.best_score ?? undefined,
     },
+    gmail: {
+      status: value.gmail.status,
+      pendingSuggestions: value.gmail.pending_suggestions,
+    },
+    notifications: { unreadCount: value.notifications.unread_count },
+    sections: value.sections,
   };
+}
+function assertApiToday(value: unknown): asserts value is ApiEnvelope<ApiToday> {
+  if (!value || typeof value !== "object" || !("data" in value)) throw malformedToday();
+  const data = (value as { data?: unknown }).data;
+  if (!data || typeof data !== "object") throw malformedToday();
+  const summary = data as Partial<ApiToday>;
+  if (
+    typeof summary.generated_at !== "string"
+    || (summary.workspace_status !== "ready" && summary.workspace_status !== "partial")
+    || typeof summary.date !== "string"
+    || !Array.isArray(summary.attention_items)
+    || !Array.isArray(summary.upcoming_events)
+    || !summary.weekly_progress
+    || !summary.pipeline
+    || !Array.isArray(summary.recent_activity)
+    || !summary.resume_performance
+    || !summary.gmail
+    || !summary.notifications
+    || !summary.sections
+  ) {
+    throw malformedToday();
+  }
+}
+function malformedToday() {
+  return new DataError(
+    "API_ERROR",
+    "OfferOS received an incomplete Today summary. Retry after the workspace finishes starting.",
+  );
 }
 function readLocalState(): LocalState {
   try {

@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress";
 export function DashboardContent() {
   const { summary, loading, error, refresh } = useToday();
 
-  if (error) return <DataErrorState error={error} onRetry={() => void refresh()} />;
+  if (error && !summary) return <DataErrorState error={error} onRetry={() => void refresh()} />;
   if (loading || !summary) return <TodayLoadingState />;
 
   const attentionItems = summary.topAction
@@ -28,6 +28,11 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
+      {summary.workspaceStatus === "partial" ? (
+        <div className="rounded-lg border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-sm text-amber-100">
+          Your core workspace is ready. One optional integration is temporarily unavailable.
+        </div>
+      ) : null}
       {summary.topAction ? (
         <section className="overflow-hidden rounded-2xl border border-indigo-300/20 bg-indigo-300/[0.06] p-5 sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">

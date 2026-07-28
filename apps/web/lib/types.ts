@@ -253,6 +253,8 @@ export type TodayTopAction = {
   actionUrl: string;
 };
 export type TodaySummary = {
+  generatedAt: string;
+  workspaceStatus: "ready" | "partial";
   date: string;
   topAction?: TodayTopAction;
   attentionItems: ApplicationAttentionItem[];
@@ -273,6 +275,9 @@ export type TodaySummary = {
     bestResume?: string;
     bestScore?: number;
   };
+  gmail: { status: string; pendingSuggestions: number };
+  notifications: { unreadCount: number };
+  sections: Record<string, string>;
 };
 export type AIUsageSummary = {
   operations: Array<{

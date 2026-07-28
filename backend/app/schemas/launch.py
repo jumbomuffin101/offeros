@@ -51,6 +51,8 @@ class TodayWeeklyProgress(ORMModel):
 
 
 class TodayResponse(ORMModel):
+    generated_at: datetime
+    workspace_status: Literal["ready", "partial"] = "ready"
     date: date
     top_action: TodayTopAction | None
     attention_items: list[ApplicationAttentionItem] = Field(default_factory=list)
@@ -59,6 +61,9 @@ class TodayResponse(ORMModel):
     pipeline: dict[str, int] = Field(default_factory=dict)
     recent_activity: list[dict[str, str]] = Field(default_factory=list)
     resume_performance: dict[str, object] = Field(default_factory=dict)
+    gmail: dict[str, object] = Field(default_factory=dict)
+    notifications: dict[str, int] = Field(default_factory=dict)
+    sections: dict[str, str] = Field(default_factory=dict)
 
 
 class UsageOperationSummary(ORMModel):
