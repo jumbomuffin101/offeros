@@ -99,9 +99,16 @@ class ApiClient {
     if (!init.skipAuth && !init.skipWakeup) await ensureBackendAwake(baseUrl);
     const headers = new Headers(init.headers);
     if (!headers.has("X-Request-ID")) headers.set("X-Request-ID", requestId());
+    const currentRequestId = headers.get("X-Request-ID") ?? undefined;
     if (!init.skipAuth) {
       for (const [key, value] of Object.entries(await getAuthHeaders())) headers.set(key, value);
     }
+    console.info("[OfferOS API Diagnostic]", {
+      endpoint: new URL(url).pathname,
+      request_id: currentRequestId,
+      auth_header_present: headers.has("Authorization"),
+      fetch_phase: "starting",
+    });
     if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
     const timeoutMs = init.timeoutMs ?? (!init.skipAuth && !firstWorkspaceRequestComplete ? FIRST_WORKSPACE_TIMEOUT_MS : WARM_REQUEST_TIMEOUT_MS);
     try {
@@ -109,6 +116,13 @@ class ApiClient {
       if (!init.skipAuth) firstWorkspaceRequestComplete = true;
       return result;
     } catch (error) {
+      console.error("[OfferOS API Diagnostic]", {
+        endpoint: new URL(url).pathname,
+        request_id: currentRequestId,
+        fetch_phase: "failed",
+        error_name: error instanceof Error ? error.name : "UnknownError",
+        data_error_code: error instanceof DataError ? error.code : undefined,
+      });
       if (!init.skipAuth && error instanceof DataError && error.code === "NETWORK_ERROR" && !isAbortError(error.cause)) resetWakeup();
       throw error;
     }
