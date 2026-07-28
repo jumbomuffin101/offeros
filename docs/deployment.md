@@ -64,15 +64,18 @@ The health route is public. User-owned routes require a valid Clerk token when `
 1. Take and verify a managed PostgreSQL backup.
 2. Review the Alembic history and confirm exactly one head.
 3. Run `alembic upgrade head` in one platform pre-deploy/release job.
-4. Run `alembic current` and confirm `20260724_0016`.
-5. Deploy the backend image; application startup does not run migrations.
+4. Run `alembic current` and confirm the repository's current head.
+5. Deploy the backend image.
 6. Verify `/api/v1/health`, then `/api/v1/ready`.
 7. Deploy the frontend after the backend contract is live.
 8. Run `docs/production-smoke-test.md`.
 9. Monitor request IDs, errors, and latency before increasing traffic.
 
-Render's single `preDeployCommand` owns migration execution. Do not also run migrations in
-`start.sh` or on multiple web instances.
+The container entrypoint also runs `alembic upgrade head` before Uvicorn so manually
+created Render free services, which may not apply the repository Blueprint's
+`preDeployCommand`, cannot start against an older schema. Set
+`RUN_MIGRATIONS_ON_START=false` only when a paid or multi-replica deployment has a
+verified single-owner pre-deploy/release migration job.
 
 ## Railway or Fly.io
 
@@ -134,10 +137,11 @@ alembic upgrade head
 alembic current
 ```
 
-On Render, run `alembic upgrade head` from a one-off shell in the backend working
-directory, then redeploy. Verify the configured service uses the repository-root
-`render.yaml` pre-deploy command so future deploys apply revisions before the web
-process starts.
+On a Render service with Shell access, run `alembic upgrade head` from the backend
+working directory, then redeploy. Free manually created services are covered by the
+container entrypoint migration. Blueprint deployments should retain the
+repository-root `render.yaml` pre-deploy command; the entrypoint's second upgrade is
+an idempotent no-op when that job already reached head.
 
 ## Clerk JWT Template
 

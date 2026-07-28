@@ -1,8 +1,17 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.core.observability import _scrub_sentry_event
+
+
+def test_container_startup_applies_migrations_before_uvicorn() -> None:
+    start_script = (Path(__file__).resolve().parents[2] / "start.sh").read_text(encoding="utf-8")
+
+    assert 'RUN_MIGRATIONS_ON_START:-true' in start_script
+    assert start_script.index("alembic upgrade head") < start_script.index("exec uvicorn")
 
 
 def test_production_configuration_rejects_local_defaults() -> None:
