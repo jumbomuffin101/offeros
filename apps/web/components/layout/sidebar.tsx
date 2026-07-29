@@ -17,7 +17,6 @@ import {
 import { ConnectionStatus } from "@/components/pwa/connection-status";
 import { UserAccount } from "@/components/auth/user-account";
 import { cn } from "@/lib/utils";
-import { FocusWidget } from "@/components/layout/focus-widget";
 import { NotificationBell } from "@/components/notifications/notification-center";
 
 const navItems = [
@@ -34,7 +33,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-80 shrink-0 border-r border-slate-700/35 bg-[#151722] px-4 py-5 lg:sticky lg:top-0 lg:flex lg:flex-col">
+    <aside className="hidden h-[100dvh] w-80 shrink-0 overflow-hidden border-r border-slate-700/35 bg-[#151722] px-4 py-5 lg:sticky lg:top-0 lg:flex lg:flex-col">
       <Link
         href="/"
         className="mb-5 flex items-center gap-3 rounded-xl border border-slate-700/35 bg-slate-800/25 p-3 transition hover:border-slate-600/45 hover:bg-slate-800/40"
@@ -56,7 +55,7 @@ export function Sidebar() {
         </span>
       </div>
 
-      <nav className="space-y-1.5">
+      <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -84,13 +83,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto space-y-3">
+      <div className="shrink-0 space-y-3 pt-3">
         <div className="flex justify-end"><NotificationBell /></div>
         <ConnectionStatus />
         <div className="rounded-xl border border-slate-700/35 bg-slate-800/25 p-4">
           <UserAccount />
         </div>
-        <FocusWidget />
       </div>
     </aside>
   );

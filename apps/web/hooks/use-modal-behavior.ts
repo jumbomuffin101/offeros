@@ -11,8 +11,13 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-export function useModalBehavior() {
+export function useModalBehavior(onEscape?: () => void) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onEscapeRef = useRef(onEscape);
+
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  }, [onEscape]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -27,6 +32,12 @@ export function useModalBehavior() {
     });
 
     function trapFocus(event: KeyboardEvent) {
+      if (event.key === "Escape" && onEscapeRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        onEscapeRef.current();
+        return;
+      }
       if (event.key !== "Tab" || !dialog) return;
 
       const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(

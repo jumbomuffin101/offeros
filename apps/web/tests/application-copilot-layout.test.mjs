@@ -12,7 +12,8 @@ const apiRepository = readFileSync(join(testDir, "../lib/data/repositories/apiAp
 const board = readFileSync(join(testDir, "../components/applications/application-board.tsx"), "utf8");
 
 test("application workspace uses available width and responsive two-column layout", () => {
-  assert.match(drawer, /lg:left-80/);
+  assert.match(drawer, /createPortal\(/);
+  assert.match(drawer, /lg:pl-\[21rem\]/);
   assert.match(drawer, /max-w-\[1600px\]/);
   assert.match(drawer, /xl:grid-cols-\[minmax\(0,2fr\)_minmax\(340px,1fr\)\]/);
 });

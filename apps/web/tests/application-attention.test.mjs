@@ -25,10 +25,6 @@ const needsAttention = readFileSync(
   join(testDir, "../components/dashboard/needs-attention.tsx"),
   "utf8",
 );
-const focusWidget = readFileSync(
-  join(testDir, "../components/layout/focus-widget.tsx"),
-  "utf8",
-);
 
 const now = new Date("2026-07-23T12:00:00.000Z");
 const emptyPrep = {
@@ -140,11 +136,9 @@ test("inbox exposes one-click actions, snooze, dismiss, and copilot follow-up", 
   assert.match(inboxWorkspace, /onSnooze/);
 });
 
-test("dashboard and focus use shared inbox items", () => {
+test("dashboard uses shared inbox items", () => {
   assert.match(needsAttention, /AttentionItemCard/);
   assert.match(needsAttention, /items\.slice\(0, 5\)/);
-  assert.match(focusWidget, /useInbox/);
-  assert.match(focusWidget, /inbox\?\.items\[0\]/);
 });
 
 function application(overrides = {}) {

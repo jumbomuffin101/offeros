@@ -13,11 +13,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <ClerkTokenProvider>
       <ThemeProvider>
         <PwaProvider>
-          <div className="min-h-screen lg:flex">
+          <div className="min-h-[100dvh] min-w-0 lg:flex lg:items-start">
             <Sidebar />
-            <div className="min-w-0 flex-1">
+            <div className="flex min-h-[100dvh] min-w-0 flex-1 flex-col">
               <MobileNav />
-              <main className="page-enter relative mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-10 lg:py-10">
+              <main className="page-enter relative mx-auto min-h-0 w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 lg:px-10 lg:py-10">
                 {children}
               </main>
               <footer className="mx-auto flex w-full max-w-7xl flex-wrap gap-4 px-4 pb-8 text-xs text-slate-600 sm:px-6 lg:px-10"><span>OfferOS practice and organization tools</span><Link className="hover:text-slate-400" href="/privacy">Privacy</Link><Link className="hover:text-slate-400" href="/terms">Terms</Link></footer>

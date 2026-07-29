@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { BrainCircuit, ExternalLink, Loader2, Mail, MessagesSquare, RefreshCw, Save, X } from "lucide-react";
 import type { Application, ResumeAnalysis, ResumeVersion } from "@/lib/types";
@@ -21,6 +22,7 @@ import {
 } from "@/components/applications/application-workspace-form";
 import { useInbox } from "@/hooks/use-inbox";
 import { useGmail } from "@/hooks/use-gmail";
+import { useModalBehavior } from "@/hooks/use-modal-behavior";
 
 type PrepPlan = { plan: { status: string; coding: { priority_topics?: Array<{ topic: string; priority: string; reason: string }> }; behavioral: { focus_areas?: Array<{ category: string }> }; system_design: { focus_areas?: Array<{ topic: string }> }; overall_preparation_summary: string; next_best_action: string }; coding_readiness: number; behavioral_readiness: number; system_design_readiness: number; overall_readiness: number; coding_coverage: Array<{ topic: string; practiced: number; status: string }> };
 
@@ -104,6 +106,7 @@ function ApplicationWorkspace({
   }));
   const attention = useInbox();
   const gmail = useGmail();
+  const dialogRef = useModalBehavior(requestClose);
 
   useEffect(() => {
     if (!application.resumeAnalysisId) return;
@@ -238,9 +241,15 @@ function ApplicationWorkspace({
     ...(prepPlan ? ["Prep plan"] : []),
   ];
 
-  return (
-    <div className="fixed inset-y-0 right-0 left-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/78 p-2 backdrop-blur-xl sm:p-4 lg:left-80" role="dialog" aria-modal="true" aria-labelledby="application-workspace-title">
-      <div className="flex h-[calc(100dvh-1rem)] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-slate-700/45 bg-[#1b1d2b] shadow-2xl shadow-black/35 sm:h-[calc(100dvh-2rem)]">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/78 p-2 backdrop-blur-xl sm:p-4 lg:pl-[21rem]">
+      <div
+        aria-labelledby="application-workspace-title"
+        aria-modal="true"
+        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-slate-700/45 bg-[#1b1d2b] shadow-2xl shadow-black/35 sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)]"
+        ref={dialogRef}
+        role="dialog"
+      >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-700/45 px-5 py-4 sm:px-7">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-2">
@@ -254,7 +263,7 @@ function ApplicationWorkspace({
           <Button aria-label="Close application workspace" disabled={saving || analyzing} onClick={requestClose} variant="ghost"><X className="size-4" />Close</Button>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-8 sm:px-6 lg:px-8">
           <div className="mx-auto grid w-full gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
             <div className="min-w-0 space-y-5">
               <div id="application-details"><ApplicationWorkspaceForm draft={draft} onChange={updateDraft} resumes={resumes} /></div>
@@ -359,7 +368,8 @@ function ApplicationWorkspace({
           {!confirmDiscard ? <Button onClick={requestClose} variant="secondary">Done</Button> : null}
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
