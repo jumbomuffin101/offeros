@@ -56,7 +56,8 @@ test("mobile navigation stays viewport-bound at narrow phone widths", () => {
   assert.match(sidebar, /min-w-0 overflow-hidden border-b/);
   assert.match(sidebar, /flex min-w-0 items-center justify-between gap-2/);
   assert.match(sidebar, /hidden rounded-lg[\s\S]*sm:inline/);
-  assert.match(sidebar, /max-w-full gap-2 overflow-x-auto/);
+  assert.match(sidebar, /w-\[calc\(100vw-2rem\)\] max-w-full gap-2 overflow-x-auto/);
+  assert.match(sidebar, /\[contain:inline-size\]/);
 });
 
 test("account controls require typed deletion confirmation and support export", () => {

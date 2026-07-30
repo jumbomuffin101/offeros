@@ -115,7 +115,7 @@ export function MobileNav() {
           </span>
         </div>
       </div>
-      <nav className="flex max-w-full gap-2 overflow-x-auto pb-1">
+      <nav className="flex w-[calc(100vw-2rem)] max-w-full gap-2 overflow-x-auto pb-1 [contain:inline-size]">
         {navItems.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
