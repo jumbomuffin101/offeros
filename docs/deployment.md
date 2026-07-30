@@ -273,6 +273,7 @@ Manual reset validation checklist:
 2. Deploy the backend from `backend/Dockerfile` or the Render Blueprint.
 3. Set all backend environment variables.
 4. Run `alembic upgrade head`.
+   Career Intelligence requires migration `20260730_0018_career_intelligence`.
 5. Configure the Clerk JWT template named `offeros-api`.
 6. Add the backend API URL to Vercel as `NEXT_PUBLIC_API_BASE_URL`.
 7. Set `NEXT_PUBLIC_DATA_MODE=api` and `NEXT_PUBLIC_CLERK_JWT_TEMPLATE=offeros-api`.

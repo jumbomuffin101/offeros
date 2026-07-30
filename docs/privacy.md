@@ -26,3 +26,10 @@ can resolve the remaining Clerk identity from the Clerk dashboard.
   or sent to Sentry.
 - Deletion removes unconfirmed suggestions, metadata, excerpts, cursors, and safe diagnostics while
   retaining user-confirmed application timeline events.
+## Career Intelligence
+
+Career Intelligence combines data a user stores in OfferOS to provide organizational guidance.
+Recommendations and health scores may be inaccurate and do not predict interviews, ATS outcomes,
+or hiring decisions. Gmail is optional, and unconfirmed Gmail suggestions are identified only as
+items requiring review, never as confirmed recruiting facts. OfferOS stores concise evidence
+summaries for observations, not hidden reasoning or raw email bodies.

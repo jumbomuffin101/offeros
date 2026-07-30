@@ -8,6 +8,7 @@ import {
   CalendarDays,
   FileSearch,
   Target,
+  Activity,
 } from "lucide-react";
 import { useToday } from "@/hooks/use-launch";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
@@ -57,12 +58,24 @@ export function DashboardContent() {
           <ActivityFeed activities={summary.recentActivity} />
         </div>
         <div className="space-y-6">
+          <CareerHealthSummary summary={summary} />
           <PipelineSnapshot pipeline={summary.pipeline} />
           <ResumePerformance value={summary.resumePerformance} />
         </div>
       </div>
     </div>
   );
+}
+
+function CareerHealthSummary({ summary }: { summary: NonNullable<ReturnType<typeof useToday>["summary"]> }) {
+  const health = summary.careerHealth;
+  if (!health) {
+    return <section className="rounded-xl border border-amber-300/20 bg-amber-300/[0.05] p-5"><h2 className="font-semibold text-white">Career health</h2><p className="mt-2 text-sm text-slate-400">Career Intelligence is temporarily unavailable. Your core workspace remains ready.</p></section>;
+  }
+  if (health.status === "insufficient_data") {
+    return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div className="flex items-center gap-2"><Activity className="size-4 text-indigo-300" /><h2 className="font-semibold text-white">Career health</h2></div><p className="mt-3 text-sm text-slate-400">Add applications, analyze a resume, or complete prep to establish a useful baseline.</p><div className="mt-3 text-xs text-slate-500">Insufficient data - no score assigned</div></section>;
+  }
+  return <section className="rounded-xl border border-slate-700/35 bg-[#1b1d2b] p-5"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Activity className="size-4 text-indigo-300" /><h2 className="font-semibold text-white">Career health</h2></div><span className="text-2xl font-semibold text-white">{health.overallScore}</span></div><Progress className="mt-4" value={health.overallScore ?? 0} /><p className="mt-3 text-xs leading-5 text-slate-500">Organizational guidance based on your OfferOS activity, not a hiring prediction.</p>{summary.riskSignal ? <p className="mt-3 text-sm text-amber-200">{summary.riskSignal}</p> : summary.improvementSignal ? <p className="mt-3 text-sm text-emerald-200">A recent activity trend is improving.</p> : null}</section>;
 }
 
 function WeeklyProgress({ progress }: { progress: NonNullable<ReturnType<typeof useToday>["summary"]>["weeklyProgress"] }) {

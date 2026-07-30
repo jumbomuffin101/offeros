@@ -569,7 +569,7 @@ OpenAPI documentation should be disabled or protected in production unless an in
 - `POST /application-events/{event_id}/calendar`
 - `GET /dashboard/upcoming-events`
 
-Full timelines load only when an application opens. Application list responses expose only `next_action`, `next_action_due_at`, and `next_event_type`. Focus ranking is deterministic and prioritizes overdue events, imminent OA/interview/offer deadlines, then due follow-ups.
+Full timelines load only when an application opens. Application list responses expose only `next_action`, `next_action_due_at`, and `next_event_type`. Smart Inbox ranking is deterministic and prioritizes overdue events, imminent OA/interview/offer deadlines, then due follow-ups.
 
 Google Calendar uses `GET /integrations/google-calendar/connect`, public state-validated `GET /integrations/google-calendar/callback`, authenticated `GET /integrations/google-calendar/status`, and `DELETE /integrations/google-calendar`. Tokens are never returned by the API. Sync is explicit and one-way, not bidirectional.
 
@@ -607,7 +607,7 @@ Override request:
 ```
 
 `duration` is required only for `snooze` and accepts `tomorrow`, `3_days`, or `1_week`. Dismissals
-and snoozes are user-scoped. The Focus endpoint and Dashboard summary use the same highest-ranked
+and snoozes are user-scoped. Smart Inbox and the Dashboard summary use the same highest-ranked
 attention result.
 
 ## AI Mock Interviews
@@ -666,3 +666,15 @@ All endpoints except the Google callback are Clerk-authenticated and user-scoped
 
 No endpoint sends or modifies Gmail messages. Callback state is hashed, expiring, replay-resistant,
 and stored with an encrypted PKCE verifier.
+## Career Intelligence
+
+Authenticated, user-scoped read endpoints:
+
+- `GET /api/v1/career-intelligence/context`
+- `GET /api/v1/career-intelligence/health`
+- `GET /api/v1/career-intelligence/observations`
+- `GET /api/v1/career-intelligence/recommendations`
+- `GET /api/v1/career-intelligence/trends`
+
+The public context omits `user_id`, raw resume text, Gmail bodies, prompts, secrets, and internal
+diagnostics. Recommendations use deterministic keys and valid OfferOS deep links.

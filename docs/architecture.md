@@ -253,3 +253,27 @@ Likely extraction candidates are AI processing and notification delivery. Applic
 - **Pydantic separate from SQLAlchemy:** API compatibility and persistence evolution remain independent.
 - **Outbox before event bus:** reliable asynchronous behavior without operating a distributed event platform prematurely.
 - **Private object storage for files:** database rows retain metadata and references, not resume bytes.
+## Career Intelligence
+
+`backend/app/career_intelligence` is the shared intelligence domain for Phase 1 and Phase 2.
+`CareerIntelligenceRepository` performs a fixed set of bounded, user-scoped queries and returns a
+snapshot rather than exposing ORM objects. `CareerContextBuilder` normalizes that snapshot and
+invokes deterministic observation, recommendation, health, and trend engines.
+
+Contexts use versioned per-user cache keys with a 45-second TTL. SQLAlchemy session events collect
+changed `user_id` values during flush and invalidate those keys after a successful commit, covering
+existing application, timeline, resume, prep, interview, Gmail, goal, and observation mutations.
+Cache failure always falls back to a fresh build.
+
+Career Health uses normalized available-data weights: application momentum 20%, resume readiness
+15%, interview readiness 15%, coding consistency 15%, behavioral readiness 10%, system-design
+readiness 10%, follow-up health 8%, and deadline health 7%. Missing dimensions are omitted and
+their weight is redistributed; a new user receives `insufficient_data`, not a low score.
+
+Trends compare the latest 14 days with the preceding 14 days inside a bounded 60-day repository
+window. Response rate and interview conversion compare application cohorts and require at least
+two records in each cohort. The engine reports `insufficient_data` when samples are too small.
+
+Phase 2 consumers are Today, Smart Inbox, and Recruiter Copilot. Resume Intelligence, mock
+interview generation/scoring, behavioral coaching, system-design coaching, and Gmail
+classification remain Phase 3 candidates.

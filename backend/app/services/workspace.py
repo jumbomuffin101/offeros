@@ -9,6 +9,7 @@ from app.models.application_copilot import ApplicationCopilotConversation
 from app.models.application_attention import ApplicationAttentionOverride
 from app.models.application_event import ApplicationEvent
 from app.models.base import ApplicationStatus, Difficulty, PrepStatus, Priority, ResumeStatus
+from app.models.career_intelligence import CareerObservation
 from app.models.mock_interview import MockInterviewSession
 from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeAnalysis, ResumeVersion
@@ -30,6 +31,7 @@ class WorkspaceService:
             created=_empty_created_counts(),
         )
         try:
+            self._delete(CareerObservation, user_id)
             if payload.scope in {"all", "applications"}:
                 self._delete(ApplicationAttentionOverride, user_id)
                 self._delete(ApplicationCopilotConversation, user_id)

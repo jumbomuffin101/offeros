@@ -251,6 +251,27 @@ export type TodayTopAction = {
   actionLabel: string;
   actionUrl: string;
 };
+export type CareerRecommendation = {
+  key: string;
+  type: string;
+  title: string;
+  summary: string;
+  priority: "urgent" | "high" | "medium" | "low";
+  actionLabel: string;
+  actionRoute: string;
+  confidence: number;
+  reasonCodes: string[];
+};
+export type CareerHealth = {
+  status: "ready" | "insufficient_data";
+  overallScore?: number;
+  subscores: Record<string, number | undefined>;
+  reasonCodes: string[];
+  positiveDrivers: string[];
+  negativeDrivers: string[];
+  dataSufficiency: number;
+  recommendedActions: string[];
+};
 export type TodaySummary = {
   generatedAt: string;
   workspaceStatus: "ready" | "partial";
@@ -277,6 +298,10 @@ export type TodaySummary = {
   gmail: { status: string; pendingSuggestions: number };
   notifications: { unreadCount: number };
   sections: Record<string, string>;
+  careerHealth?: CareerHealth;
+  careerPriorities: CareerRecommendation[];
+  improvementSignal?: { direction: string; currentValue?: number; comparisonValue?: number };
+  riskSignal?: string;
 };
 export type AIUsageSummary = {
   operations: Array<{

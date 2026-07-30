@@ -7,6 +7,7 @@ from pydantic import Field
 from app.schemas.application_attention import ApplicationAttentionItem
 from app.schemas.application_event import UpcomingEventResponse
 from app.schemas.common import ORMModel
+from app.career_intelligence.schemas import CareerHealth, CareerRecommendation, CareerTrend
 
 
 class NotificationCreate(ORMModel):
@@ -64,6 +65,10 @@ class TodayResponse(ORMModel):
     gmail: dict[str, object] = Field(default_factory=dict)
     notifications: dict[str, int] = Field(default_factory=dict)
     sections: dict[str, str] = Field(default_factory=dict)
+    career_health: CareerHealth | None = None
+    career_priorities: list[CareerRecommendation] = Field(default_factory=list)
+    improvement_signal: CareerTrend | None = None
+    risk_signal: str | None = None
 
 
 class UsageOperationSummary(ORMModel):

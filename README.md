@@ -18,6 +18,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Clerk sign-in/sign-up, protected application routes, and account controls
 - Manifest V3 job capture extension for user-initiated Greenhouse, Lever, Ashby, and active-page fallback capture
 - Application-specific AI Recruiter Copilot with persistent conversations, quick prompts, and follow-up drafting
+- Deterministic Career Intelligence shared by Today, Smart Inbox, and Recruiter Copilot
 
 ## Tech Stack
 
@@ -99,6 +100,12 @@ Use **Log problem** or **Import CSV** in Prep to record activity. CSV headers ar
 The backend foundation lives in `backend/`. It includes versioned REST routes, ownership-scoped SQLAlchemy repositories, Alembic migrations, Clerk JWT verification, a development demo-user fallback, Docker Compose, and pytest coverage.
 
 See [`backend/README.md`](backend/README.md) for setup, migrations, API startup, authentication modes, and tests.
+
+Career Intelligence builds a bounded, user-scoped summary of applications, resume-analysis
+summaries, preparation activity, goals, confirmed timelines, and optional Gmail suggestions.
+It produces deterministic observations, recommendations, trends, and an organizational health
+score. Health scores are guidance rather than hiring predictions, and insufficient history is
+reported without assigning a misleading low score.
 
 ## Production Build
 

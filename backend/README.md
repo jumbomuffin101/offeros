@@ -71,6 +71,11 @@ Apply migrations:
 alembic upgrade head
 ```
 
+Migration `20260730_0018_career_intelligence` adds persistent, user-scoped career observations.
+The shared builder under `app/career_intelligence` powers Today, Smart Inbox, and Recruiter
+Copilot with bounded deterministic context. It does not migrate Resume Intelligence, interview
+generation/scoring, behavioral coaching, system-design coaching, or Gmail classification.
+
 ## Gmail-assisted tracking
 
 Set `GMAIL_INTEGRATION_ENABLED=true`, configure a Google OAuth web client with

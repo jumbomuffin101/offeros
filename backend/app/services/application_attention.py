@@ -24,6 +24,8 @@ from app.schemas.application_attention import (
     ApplicationAttentionSummary,
     ApplicationInboxResponse,
 )
+from app.career_intelligence.recommendations import generate_recommendations
+from app.career_intelligence.repository import CareerSnapshot
 
 
 logger = logging.getLogger(__name__)
@@ -227,6 +229,63 @@ class ApplicationAttentionService:
                     signal_key=signal_key,
                 )
             )
+        try:
+            recommendation_snapshot = CareerSnapshot(
+                applications=applications,
+                events=events,
+                prep_plans=plans,
+                resumes=[],
+                analyses=[],
+                coding_problems=[],
+                coding_activity=[],
+                behavioral=[],
+                system_design=[],
+                mock_interviews=[],
+                gmail_connection=None,
+                gmail_suggestions=gmail_suggestions,
+                settings=None,
+            )
+            existing_pairs = {(item.application_id, item.category) for item in items}
+            category_by_type = {
+                "complete_oa": "oa_deadline_soon",
+                "prepare_interview": "interview_soon",
+                "generate_prep_plan": "needs_prep_plan",
+                "follow_up": "follow_up_due",
+                "gmail_review": "gmail_review",
+            }
+            priority_by_level = {"urgent": 95, "high": 75, "medium": 50, "low": 25}
+            for recommendation in generate_recommendations(recommendation_snapshot, self.now):
+                category = category_by_type.get(recommendation.type)
+                application = applications_by_id.get(recommendation.application_id)
+                if category is None or application is None:
+                    continue
+                pair = (application.id, category)
+                override = override_by_signal.get(pair)
+                if pair in existing_pairs or (
+                    not include_overridden
+                    and override is not None
+                    and (override.dismissed_until is None or _as_utc(override.dismissed_until) > self.now)
+                ):
+                    continue
+                items.append(ApplicationAttentionItem(
+                    id=recommendation.key,
+                    application_id=application.id,
+                    company=application.company,
+                    role=application.role,
+                    category=category,
+                    priority=priority_by_level[recommendation.priority],
+                    title=recommendation.title,
+                    description=recommendation.summary,
+                    due_at=recommendation.expires_at,
+                    created_at=recommendation.created_at,
+                    suggested_action=recommendation.action_label,
+                    last_meaningful_activity=application.meaningful_updated_at,
+                    signal_key=recommendation.key,
+                ))
+                existing_pairs.add(pair)
+        except Exception:
+            self.db.rollback()
+            logger.exception("application_attention.career_intelligence_unavailable user_id=%s", user_id)
         return sorted(
             items,
             key=lambda item: (

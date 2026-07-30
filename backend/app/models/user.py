@@ -45,4 +45,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     ai_usage_events = relationship(
         "AIUsageEvent", back_populates="user", cascade="all, delete-orphan"
     )
+    career_observations = relationship(
+        "CareerObservation", back_populates="user", cascade="all, delete-orphan"
+    )
     settings = relationship("UserSettings", back_populates="user", uselist=False)

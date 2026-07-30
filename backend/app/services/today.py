@@ -19,6 +19,7 @@ from app.services.application_attention import ApplicationAttentionService
 from app.services.application_events import ApplicationEventService
 from app.services.notifications import NotificationService
 from app.services.settings import SettingsService
+from app.career_intelligence.service import CareerIntelligenceService
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,15 @@ class TodayService:
             "notifications": "ready",
             "analytics": "ready",
             "ai_coach": "disabled",
+            "career_intelligence": "ready",
         }
+        career_context = None
+        try:
+            career_context = CareerIntelligenceService(self.db).context(user.id)
+        except Exception:
+            self.db.rollback()
+            sections["career_intelligence"] = "unavailable"
+            logger.exception("today.career_intelligence_unavailable user_id=%s", user.id)
         gmail = self._gmail_summary(user.id, sections)
         notifications = {"unread_count": 0}
         try:
@@ -78,7 +87,7 @@ class TodayService:
                 )
             )
         )
-        top_action = self._top_action(attention, applications, resumes)
+        top_action = self._career_top_action(career_context) or self._top_action(attention, applications, resumes)
         return TodayResponse(
             generated_at=now,
             workspace_status=(
@@ -119,7 +128,37 @@ class TodayService:
             gmail=gmail,
             notifications=notifications,
             sections=sections,
+            career_health=career_context.career_health if career_context else None,
+            career_priorities=career_context.recommendations[:5] if career_context else [],
+            improvement_signal=self._improvement_signal(career_context),
+            risk_signal=(
+                career_context.career_health.negative_drivers[0]
+                if career_context and career_context.career_health.negative_drivers
+                else None
+            ),
         )
+
+    def _career_top_action(self, context: object | None) -> TodayTopAction | None:
+        recommendations = getattr(context, "recommendations", [])
+        if not recommendations:
+            return None
+        item = recommendations[0]
+        priority = {"urgent": 95, "high": 75, "medium": 50, "low": 25}[item.priority]
+        return TodayTopAction(
+            type=item.type,
+            title=item.title,
+            description=item.summary,
+            application_id=item.application_id,
+            priority=priority,
+            action_label=item.action_label,
+            action_url=item.action_route,
+        )
+
+    def _improvement_signal(self, context: object | None):
+        if context is None:
+            return None
+        improving = [trend for trend in context.trends.values() if trend.direction == "improving"]
+        return improving[0] if improving else None
 
     def _gmail_summary(
         self, user_id: UUID, sections: dict[str, str]

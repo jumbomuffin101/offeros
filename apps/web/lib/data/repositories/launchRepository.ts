@@ -75,6 +75,19 @@ type ApiToday = {
   gmail: { status: string; pending_suggestions: number };
   notifications: { unread_count: number };
   sections: Record<string, string>;
+  career_health: null | {
+    status: "ready" | "insufficient_data"; overall_score: number | null;
+    subscores: Record<string, number | null>; reason_codes: string[];
+    positive_drivers: string[]; negative_drivers: string[]; data_sufficiency: number;
+    recommended_actions: string[];
+  };
+  career_priorities: Array<{
+    key: string; type: string; title: string; summary: string;
+    priority: "urgent" | "high" | "medium" | "low"; action_label: string;
+    action_route: string; confidence: number; reason_codes: string[];
+  }>;
+  improvement_signal: null | { direction: string; current_value: number | null; comparison_value: number | null };
+  risk_signal: string | null;
 };
 
 const apiRepository: LaunchRepository = {
@@ -228,6 +241,17 @@ const localRepository: LaunchRepository = {
         gmail: "local_only",
         notifications: "ready",
       },
+      careerHealth: {
+        status: applications.length || resumes.length || completedPrep.length ? "ready" : "insufficient_data",
+        overallScore: applications.length || resumes.length || completedPrep.length ? 60 : undefined,
+        subscores: {},
+        reasonCodes: applications.length || resumes.length ? [] : ["INSUFFICIENT_HISTORY"],
+        positiveDrivers: [],
+        negativeDrivers: [],
+        dataSufficiency: Math.min(1, (applications.length + resumes.length + completedPrep.length) / 10),
+        recommendedActions: [],
+      },
+      careerPriorities: [],
     };
   },
   async notifications(unreadOnly = false) {
@@ -368,6 +392,27 @@ function fromApiToday(value: ApiToday): TodaySummary {
     },
     notifications: { unreadCount: value.notifications.unread_count },
     sections: value.sections,
+    careerHealth: value.career_health ? {
+      status: value.career_health.status,
+      overallScore: value.career_health.overall_score ?? undefined,
+      subscores: Object.fromEntries(Object.entries(value.career_health.subscores).map(([key, score]) => [key, score ?? undefined])),
+      reasonCodes: value.career_health.reason_codes,
+      positiveDrivers: value.career_health.positive_drivers,
+      negativeDrivers: value.career_health.negative_drivers,
+      dataSufficiency: value.career_health.data_sufficiency,
+      recommendedActions: value.career_health.recommended_actions,
+    } : undefined,
+    careerPriorities: value.career_priorities.map((item) => ({
+      key: item.key, type: item.type, title: item.title, summary: item.summary,
+      priority: item.priority, actionLabel: item.action_label, actionRoute: item.action_route,
+      confidence: item.confidence, reasonCodes: item.reason_codes,
+    })),
+    improvementSignal: value.improvement_signal ? {
+      direction: value.improvement_signal.direction,
+      currentValue: value.improvement_signal.current_value ?? undefined,
+      comparisonValue: value.improvement_signal.comparison_value ?? undefined,
+    } : undefined,
+    riskSignal: value.risk_signal ?? undefined,
   };
 }
 function assertApiToday(value: unknown): asserts value is ApiEnvelope<ApiToday> {
@@ -388,6 +433,7 @@ function assertApiToday(value: unknown): asserts value is ApiEnvelope<ApiToday> 
     || !summary.gmail
     || !summary.notifications
     || !summary.sections
+    || !Array.isArray(summary.career_priorities)
   ) {
     throw malformedToday();
   }

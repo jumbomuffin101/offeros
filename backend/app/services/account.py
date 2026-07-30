@@ -12,6 +12,7 @@ from app.models.application_copilot import ApplicationCopilotConversation, Appli
 from app.models.application_event import ApplicationEvent
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.calendar import CalendarConnection
+from app.models.career_intelligence import CareerObservation
 from app.models.gmail import GmailApplicationSuggestion, GmailConnection, GmailMessageReference
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
 from app.models.launch import AIUsageEvent, Notification
@@ -38,6 +39,7 @@ EXPORT_MODELS = {
     "notifications": Notification,
     "settings": UserSettings,
     "ai_usage": AIUsageEvent,
+    "career_observations": CareerObservation,
 }
 
 
@@ -156,6 +158,7 @@ class AccountService:
             GmailMessageReference,
             Notification,
             AIUsageEvent,
+            CareerObservation,
             ApplicationAttentionOverride,
             ApplicationEvent,
             ApplicationPrepPlan,

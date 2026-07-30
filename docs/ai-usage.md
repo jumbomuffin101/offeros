@@ -1,5 +1,10 @@
 # AI Usage and Reliability
 
+Career Intelligence recommendations, observations, health, and trends are deterministic and do
+not call an AI provider. Recruiter Copilot receives a sanitized CareerContext summary; job
+descriptions, notes, and email-derived metadata remain explicitly untrusted data and cannot
+override system instructions. No chain-of-thought is requested or stored.
+
 OfferOS enforces monthly completed-operation limits in the backend. Defaults:
 
 - Resume analyses: 10

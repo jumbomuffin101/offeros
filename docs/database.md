@@ -18,6 +18,13 @@ Conventions:
 
 This document describes tables and constraints; SQL and migrations belong to the backend implementation phase.
 
+## Career Observations
+
+Migration `20260730_0018` adds `career_observations`. Rows are owned by a user with cascade
+deletion and have a unique `(user_id, dedupe_key)` identity. Evidence and source identifiers are
+concise JSON summaries; raw resumes, email bodies, prompts, and hidden reasoning are not stored.
+Statuses are `active`, `resolved`, `superseded`, `expired`, and `dismissed`.
+
 ## Relationship Overview
 
 ```mermaid
