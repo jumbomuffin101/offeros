@@ -58,11 +58,11 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="max-w-full overflow-x-hidden" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
       </head>
-      <body className="font-sans antialiased">
+      <body className="max-w-full overflow-x-hidden font-sans antialiased">
         <ClerkProvider>
           <AuthenticatedShell>{children}</AuthenticatedShell>
         </ClerkProvider>

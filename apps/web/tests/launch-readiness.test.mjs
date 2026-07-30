@@ -10,6 +10,7 @@ const onboarding = read("../components/onboarding/onboarding-modal.tsx");
 const dashboard = read("../components/dashboard/dashboard-content.tsx");
 const notifications = read("../components/notifications/notification-center.tsx");
 const sidebar = read("../components/layout/sidebar.tsx");
+const rootLayout = read("../app/layout.tsx");
 const settings = read("../components/settings/launch-settings.tsx");
 const repository = read("../lib/data/repositories/launchRepository.ts");
 const apiClient = read("../lib/data/api/apiClient.ts");
@@ -58,6 +59,8 @@ test("mobile navigation stays viewport-bound at narrow phone widths", () => {
   assert.match(sidebar, /hidden rounded-lg[\s\S]*sm:inline/);
   assert.match(sidebar, /w-\[calc\(100vw-2rem\)\] max-w-full gap-2 overflow-x-auto/);
   assert.match(sidebar, /\[contain:inline-size\]/);
+  assert.match(rootLayout, /<html[^>]+max-w-full overflow-x-hidden/);
+  assert.match(rootLayout, /<body className="max-w-full overflow-x-hidden/);
 });
 
 test("account controls require typed deletion confirmation and support export", () => {
