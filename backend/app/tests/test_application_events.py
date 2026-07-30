@@ -44,15 +44,12 @@ def test_application_event_crud_and_next_action(client: TestClient) -> None:
     assert client.get(f"/api/v1/applications/{application['id']}/events").json()["data"] == []
 
 
-def test_upcoming_order_focus_priority_and_empty_focus(client: TestClient) -> None:
+def test_upcoming_events_are_ordered_by_schedule(client: TestClient) -> None:
     application = create_application(client)
-    assert client.get("/api/v1/focus").json()["data"] is None
     client.post(f"/api/v1/applications/{application['id']}/events", json=event_payload(48, "technical_interview"))
     urgent = client.post(f"/api/v1/applications/{application['id']}/events", json=event_payload(12, "oa_deadline")).json()["data"]
     upcoming = client.get("/api/v1/dashboard/upcoming-events").json()["data"]
     assert upcoming[0]["id"] == urgent["id"]
-    focus = client.get("/api/v1/focus").json()["data"]
-    assert focus["type"] == "oa_deadline_soon" and focus["priority"] == 90
 
 
 def test_event_user_isolation() -> None:

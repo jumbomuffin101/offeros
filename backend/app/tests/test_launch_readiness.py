@@ -5,6 +5,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -148,6 +149,29 @@ def test_today_optional_gmail_failure_returns_partial_workspace(
         assert summary.sections["core_workspace"] == "ready"
         assert summary.sections["gmail"] == "unavailable"
         assert summary.gmail["pending_suggestions"] == 0
+        assert summary.top_action is not None
+
+
+def test_today_optional_notification_failure_returns_partial_workspace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with database() as db:
+        user = add_user(db, "today-notifications-partial")
+
+        def unavailable_notifications(*_args: object, **_kwargs: object) -> None:
+            raise SQLAlchemyError("notifications unavailable")
+
+        monkeypatch.setattr(
+            NotificationService,
+            "reconcile_attention",
+            unavailable_notifications,
+        )
+        summary = TodayService(db).summary(user)
+
+        assert summary.workspace_status == "partial"
+        assert summary.sections["core_workspace"] == "ready"
+        assert summary.sections["notifications"] == "unavailable"
+        assert summary.notifications == {"unread_count": 0}
         assert summary.top_action is not None
 
 

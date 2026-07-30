@@ -53,14 +53,3 @@ class UpcomingEventResponse(ORMModel):
     title: str
     scheduled_at: datetime
     status: str
-
-
-class FocusResponse(ORMModel):
-    type: str
-    application_id: UUID
-    title: str
-    subtitle: str
-    due_at: datetime | None
-    priority: int
-    prep_readiness: int | None = None
-    prep_next_action: str | None = None

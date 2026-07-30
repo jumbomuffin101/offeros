@@ -2,7 +2,6 @@ import type {
   Application,
   Activity,
   ApplicationStatus,
-  FocusItem,
   BehavioralQuestion,
   CodingProblem,
   PrepGoal,
@@ -108,7 +107,6 @@ export type DashboardSummary = {
   activities: Activity[];
   empty: boolean;
   upcomingEvents: UpcomingRecruitingEvent[];
-  focus: FocusItem | null;
   attentionItems: ApplicationAttentionItem[];
 };
 

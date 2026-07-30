@@ -11,6 +11,8 @@ const board = read("../components/applications/application-board.tsx");
 const sidebar = read("../components/layout/sidebar.tsx");
 const shell = read("../components/layout/app-shell.tsx");
 const modalBehavior = read("../hooks/use-modal-behavior.ts");
+const repositoryTypes = read("../lib/data/types/repositories.ts");
+const appTypes = read("../lib/types.ts");
 
 test("application drawer is portaled into a viewport-bound modal shell", () => {
   assert.match(drawer, /createPortal\(/);
@@ -43,6 +45,8 @@ test("sidebar has bounded navigation and no Focus widget", () => {
   assert.match(sidebar, /<UserAccount/);
   assert.doesNotMatch(sidebar, /FocusWidget/);
   assert.doesNotMatch(sidebar, />Focus</);
+  assert.doesNotMatch(repositoryTypes, /FocusItem|focus\(\)/);
+  assert.doesNotMatch(appTypes, /FocusItem/);
 });
 
 test("app shell keeps natural footer flow with explicit flex boundaries", () => {

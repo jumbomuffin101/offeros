@@ -24,7 +24,6 @@ from app.schemas.application_attention import (
     ApplicationAttentionSummary,
     ApplicationInboxResponse,
 )
-from app.schemas.application_event import FocusResponse
 
 
 logger = logging.getLogger(__name__)
@@ -237,24 +236,6 @@ class ApplicationAttentionService:
                 else float("inf"),
                 item.company.lower(),
             ),
-        )
-
-    def focus(
-        self,
-        user_id: UUID,
-        items: list[ApplicationAttentionItem] | None = None,
-    ) -> FocusResponse | None:
-        items = items if items is not None else self.build(user_id)
-        if not items:
-            return None
-        item = items[0]
-        return FocusResponse(
-            type=item.category,
-            application_id=item.application_id,
-            title=f"{item.company} - {item.role}",
-            subtitle=item.description,
-            due_at=item.due_at,
-            priority=item.priority,
         )
 
     def override(

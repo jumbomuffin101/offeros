@@ -8,15 +8,9 @@ type WorkspaceResetPayload = {
 };
 
 export async function resetApiWorkspace(scope: WorkspaceScope, mode: WorkspaceResetMode) {
-  if (process.env.NODE_ENV === "development") {
-    console.debug("[OfferOS reset]", { scope, mode });
-  }
   const response = await apiClient.post<ApiDataResponse<WorkspaceResetResult>, WorkspaceResetPayload>(
     "/workspace/reset",
     { scope, mode },
   );
-  if (process.env.NODE_ENV === "development") {
-    console.debug("[OfferOS reset complete]", response.data);
-  }
   return response.data;
 }

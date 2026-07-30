@@ -1,4 +1,4 @@
-import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, ApplicationStatus, AttentionCategory, FocusItem, GmailConnectionStatus, GmailSuggestion, MockInterviewSession, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
+import type { Application, ApplicationCopilotConversation, ApplicationCopilotMessage, ApplicationEvent, ApplicationInbox, ApplicationStatus, AttentionCategory, GmailConnectionStatus, GmailSuggestion, MockInterviewSession, PrepWorkspaceData, ResumeAnalysis, ResumeVersion, UpcomingRecruitingEvent } from "@/lib/types";
 import type {
   AnalyticsSummary,
   ApplicationInput,
@@ -34,7 +34,6 @@ export interface ApplicationEventRepository {
   delete(id: string): Promise<void>;
   addToCalendar(id: string): Promise<ApplicationEvent>;
   upcoming(): Promise<UpcomingRecruitingEvent[]>;
-  focus(): Promise<FocusItem | null>;
 }
 
 export interface ApplicationCopilotRepository {

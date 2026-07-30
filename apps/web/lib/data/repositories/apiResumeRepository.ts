@@ -62,33 +62,18 @@ export const apiResumeRepository: ResumeRepository = {
     };
   },
   async analyzeResume(resumeId, payload) {
-    devResumeAnalysisLog("repository entered", { resumeId });
-    devResumeAnalysisLog("apiClient.post entered", { resumeId, path: resumeAnalyzePath(resumeId) });
-    let response: unknown;
-    try {
-      response = await apiClient.post<unknown>(
-        resumeAnalyzePath(resumeId),
-        toApiResumeAnalysis(payload),
-        {
-          timeoutMs: RESUME_ANALYSIS_TIMEOUT_MS,
-          timeoutMessage: RESUME_ANALYSIS_TIMEOUT_MESSAGE,
-          debugLabel: "resume-analysis",
-          headers: payload.analysisRequestId ? { "Idempotency-Key": payload.analysisRequestId } : undefined,
-        },
-      );
-    } catch (cause) {
-      devResumeAnalysisError("apiClient.post failed", cause, { resumeId });
-      throw cause;
-    }
-    devAnalysisResponseShape(response);
+    const response = await apiClient.post<unknown>(
+      resumeAnalyzePath(resumeId),
+      toApiResumeAnalysis(payload),
+      {
+        timeoutMs: RESUME_ANALYSIS_TIMEOUT_MS,
+        timeoutMessage: RESUME_ANALYSIS_TIMEOUT_MESSAGE,
+        headers: payload.analysisRequestId ? { "Idempotency-Key": payload.analysisRequestId } : undefined,
+      },
+    );
     const data = parseAnalyzeData(response);
     const analysis = fromApiResumeAnalysis(data.analysis);
     const resume = data.resume ? fromApiResume(data.resume) : null;
-    devResumeAnalysisLog("request completed", {
-      resumeId: resume?.id ?? resumeId,
-      analysisId: analysis.id,
-      resumeIncluded: Boolean(resume),
-    });
     return { analysis, resume };
   },
   async listResumeAnalyses(resumeId) {
@@ -103,25 +88,3 @@ export const apiResumeRepository: ResumeRepository = {
     await apiClient.delete(`/resume-analyses/${id}`);
   },
 };
-
-function devResumeAnalysisLog(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug(`[ResumeAnalysis] ${message}`, details);
-}
-
-function devAnalysisResponseShape(response: unknown) {
-  if (process.env.NODE_ENV !== "development" || !response || typeof response !== "object") return;
-  const body = response as Record<string, unknown>;
-  const analysis = body.analysis && typeof body.analysis === "object" ? body.analysis as Record<string, unknown> : null;
-  const resume = body.resume && typeof body.resume === "object" ? body.resume as Record<string, unknown> : null;
-  console.debug("[ResumeAnalysis] response shape", {
-    rootKeys: Object.keys(body),
-    analysisKeys: analysis ? Object.keys(analysis) : [],
-    resumeKeys: resume ? Object.keys(resume) : [],
-  });
-}
-
-function devResumeAnalysisError(message: string, cause: unknown, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.error(`[ResumeAnalysis] ${message}`, details, cause);
-}

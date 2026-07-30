@@ -98,24 +98,24 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <div className="sticky top-0 z-20 border-b border-slate-700/35 bg-[#151722]/95 px-4 py-3 backdrop-blur-xl lg:hidden">
-      <div className="mb-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-white">
+    <div className="sticky top-0 z-20 min-w-0 overflow-hidden border-b border-slate-700/35 bg-[#151722]/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-white">
           <span className="flex size-8 items-center justify-center rounded-lg border border-indigo-400/25 bg-indigo-400/12 text-xs text-indigo-200">
             <Layers3 className="size-4" />
           </span>
           OfferOS
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <NotificationBell />
           <ConnectionStatus compact />
           <UserAccount compact />
-          <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500">
+          <span className="hidden rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-500 sm:inline">
             Ctrl K
           </span>
         </div>
       </div>
-      <nav className="flex gap-2 overflow-x-auto pb-1">
+      <nav className="flex max-w-full gap-2 overflow-x-auto pb-1">
         {navItems.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

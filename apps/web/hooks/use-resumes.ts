@@ -28,10 +28,8 @@ export function useResumes() {
     return result;
   }, [resource]);
   const analyzeResume = useCallback(async (resumeId: string, payload: ResumeAnalysisInput) => {
-    devResumeAnalysis("calling analyzeResume", { resumeId });
     const result = await resumeRepository.analyzeResume(resumeId, payload);
     validateResumeAnalysisResult(result);
-    devResumeRefreshLog("analyze complete", { resumeId, analysisId: result.analysis.id, returnedResumeId: result.resume?.id ?? null });
     resource.patchData((current) => mergeAnalyzedResume(current, resumeId, result));
     // The analyze response is authoritative. Avoid a follow-up list request
     // overwriting its fresh summary with a stale cache response.
@@ -52,14 +50,4 @@ export function useResumes() {
     create, update, delete: remove, duplicate, toggleStatus, reset, updateResumeText,
     uploadResumeFile, analyzeResume, listResumeAnalyses, getResumeAnalysis, deleteResumeAnalysis,
   };
-}
-
-function devResumeRefreshLog(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Resume Refresh]", message, details);
-}
-
-function devResumeAnalysis(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug(`[ResumeAnalysis] ${message}`, details);
 }

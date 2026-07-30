@@ -19,6 +19,7 @@ def test_summary_routes_are_registered_in_openapi(client: TestClient) -> None:
     assert "get" in paths["/api/v1/dashboard/summary"]
     assert "/api/v1/analytics/summary" in paths
     assert "get" in paths["/api/v1/analytics/summary"]
+    assert "/api/v1/focus" not in paths
 
 
 def test_summary_routes_are_registered_in_route_table() -> None:

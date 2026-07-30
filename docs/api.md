@@ -568,7 +568,6 @@ OpenAPI documentation should be disabled or protected in production unless an in
 - `PATCH/DELETE /application-events/{event_id}`
 - `POST /application-events/{event_id}/calendar`
 - `GET /dashboard/upcoming-events`
-- `GET /focus`
 
 Full timelines load only when an application opens. Application list responses expose only `next_action`, `next_action_due_at`, and `next_event_type`. Focus ranking is deterministic and prioritizes overdue events, imminent OA/interview/offer deadlines, then due follow-ups.
 

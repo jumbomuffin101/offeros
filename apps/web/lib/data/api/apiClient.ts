@@ -6,7 +6,6 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
   timeoutMessage?: string;
-  debugLabel?: "resume-analysis" | "leetcode-connect";
   skipAuth?: boolean;
   skipWakeup?: boolean;
 };
@@ -16,12 +15,10 @@ const WAKEUP_TIMEOUT_MS = 60_000;
 const FIRST_WORKSPACE_TIMEOUT_MS = 45_000;
 const GET_CACHE_MS = 45_000;
 const RETRY_DELAY_MS = 650;
-const DEV_API_DIAGNOSTICS = process.env.NODE_ENV === "development";
 
 let authTokenProvider: AuthTokenProvider | null = null;
 let providerWaiters: Array<(provider: AuthTokenProvider) => void> = [];
 const getCache = new Map<string, { expiresAt: number; value: Promise<unknown> }>();
-const requestCounts = new Map<string, { count: number; firstSeenAt: number }>();
 let wakeupPromise: Promise<void> | null = null;
 let wakeupComplete = false;
 let firstWorkspaceRequestComplete = false;
@@ -37,14 +34,10 @@ export function setAuthTokenProvider(provider: AuthTokenProvider | null) {
 }
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const waitStartedAt = now();
   const provider = authTokenProvider ?? await new Promise<AuthTokenProvider>((resolve) => {
     providerWaiters.push(resolve);
   });
-  logTiming("auth.provider", waitStartedAt);
-  const tokenStartedAt = now();
   const token = await provider();
-  logTiming("auth.clerkToken", tokenStartedAt);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -77,7 +70,6 @@ class ApiClient {
     if (method === "GET" && !init.signal) {
       const cached = getCache.get(url);
       if (cached && cached.expiresAt > Date.now()) {
-        debugApi("cache hit", { method, path });
         return cached.value as Promise<T>;
       }
       const value = this.requestWithWakeupAndAuth<T>(baseUrl, url, requestOptions);
@@ -122,12 +114,11 @@ class ApiClient {
   ): Promise<T> {
     const method = init.method ?? "GET";
     try {
-      return await this.fetchJson<T>(url, init, headers, timeoutMs, 0);
+      return await this.fetchJson<T>(url, init, headers, timeoutMs);
     } catch (error) {
       if (method !== "GET" || init.signal || !isRetryableGetError(error)) throw error;
-      debugApi("retrying request", { method, path: new URL(url).pathname });
       await delay(RETRY_DELAY_MS);
-      return this.fetchJson<T>(url, init, headers, timeoutMs, 1);
+      return this.fetchJson<T>(url, init, headers, timeoutMs);
     }
   }
 
@@ -136,13 +127,8 @@ class ApiClient {
     init: RequestInit,
     headers: Headers,
     timeoutMs: number,
-    attempt: number,
   ): Promise<T> {
     let response: Response;
-    const method = init.method ?? "GET";
-    const startedAt = now();
-    noteRequest(method, url);
-    logDebugRequest((init as RequestOptions).debugLabel, "fetch starting", { method, path: new URL(url).pathname });
     const timeoutController = init.signal ? null : new AbortController();
     const timeoutId = timeoutController
       ? globalThis.setTimeout(() => timeoutController.abort(), timeoutMs)
@@ -168,13 +154,11 @@ class ApiClient {
     }
 
     const payload = await parseResponse(response);
-    logDebugRequest((init as RequestOptions).debugLabel, "response status", { status: response.status });
-    logTiming(`api.${method}.${new URL(url).pathname}.${response.status}`, startedAt, { attempt });
-    if (!response.ok) throw apiResponseError(response.status, payload, {
-      method,
-      url,
-      requestId: response.headers.get("X-Request-ID") ?? undefined,
-    });
+    if (!response.ok) throw apiResponseError(
+      response.status,
+      payload,
+      response.headers.get("X-Request-ID") ?? undefined,
+    );
     return payload as T;
   }
 }
@@ -193,11 +177,11 @@ async function parseResponse(response: Response): Promise<unknown> {
   }
 }
 
-function apiResponseError(status: number, payload: unknown, request: { method: string; url: string; requestId?: string }) {
+function apiResponseError(status: number, payload: unknown, requestId?: string) {
   const serverMessage = extractMessage(payload);
   const details = extractDetails(payload);
   const options = {
-    requestId: request.requestId,
+    requestId,
     details: { ...(details ?? {}), httpStatus: status },
   };
   if (status === 401) return new DataError("UNAUTHORIZED", "Your session needs to be refreshed.", options);
@@ -205,8 +189,7 @@ function apiResponseError(status: number, payload: unknown, request: { method: s
   if (status === 429) return new DataError("RATE_LIMITED", serverMessage || "OfferOS received too many requests. Try again shortly.", options);
   if (status === 404) {
     const notFoundMessage = "The workspace endpoint is unavailable.";
-    const diagnostic = DEV_API_DIAGNOSTICS ? ` (${request.method} ${request.url})` : "";
-    return new DataError("NOT_FOUND", `${serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage}${diagnostic}`, options);
+    return new DataError("NOT_FOUND", serverMessage === "Not Found" ? notFoundMessage : serverMessage || notFoundMessage, options);
   }
   if (status === 413) return new DataError("VALIDATION_ERROR", serverMessage || "The uploaded file is too large.", options);
   if (status === 415) return new DataError("VALIDATION_ERROR", serverMessage || "This file type is not supported.", options);
@@ -239,44 +222,9 @@ function extractDetails(payload: unknown): Record<string, unknown> | undefined {
   return details && typeof details === "object" ? details as Record<string, unknown> : undefined;
 }
 
-function now() {
-  return typeof performance === "undefined" ? Date.now() : performance.now();
-}
-
-function logTiming(label: string, startedAt: number, details: Record<string, unknown> = {}) {
-  if (!DEV_API_DIAGNOSTICS) return;
-  debugApi(label, { durationMs: Math.round(now() - startedAt), ...details });
-}
-
-function noteRequest(method: string, url: string) {
-  if (!DEV_API_DIAGNOSTICS) return;
-  const pathname = new URL(url).pathname;
-  const key = `${method} ${pathname}`;
-  const current = requestCounts.get(key);
-  const timestamp = Date.now();
-  if (!current || timestamp - current.firstSeenAt > 10_000) {
-    requestCounts.set(key, { count: 1, firstSeenAt: timestamp });
-    return;
-  }
-  current.count += 1;
-  if (current.count > 1) debugApi("duplicate request", { key, count: current.count });
-}
-
-function debugApi(message: string, details: Record<string, unknown>) {
-  if (!DEV_API_DIAGNOSTICS) return;
-  console.debug("[OfferOS API]", message, details);
-}
-
-function logDebugRequest(label: RequestOptions["debugLabel"], message: string, details: Record<string, unknown>) {
-  if (!DEV_API_DIAGNOSTICS || !label) return;
-  const prefix = label === "leetcode-connect" ? "LeetCodeConnect" : "ResumeAnalysis";
-  console.debug(`[${prefix}] ${message}`, details);
-}
-
 async function ensureBackendAwake(baseUrl: string): Promise<void> {
   if (wakeupComplete) return;
   if (wakeupPromise) return wakeupPromise;
-  const startedAt = now();
   const healthUrl = `${baseUrl}/health`;
   wakeupPromise = apiClient
     .get(healthUrl, {
@@ -286,7 +234,6 @@ async function ensureBackendAwake(baseUrl: string): Promise<void> {
     })
     .then(() => {
       wakeupComplete = true;
-      logTiming("api.healthWakeup", startedAt);
     })
     .catch((error) => {
       resetWakeup();

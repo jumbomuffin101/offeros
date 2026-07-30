@@ -156,14 +156,14 @@ On iPhone or iPad, open OfferOS in Safari and choose **Share > Add to Home Scree
 
 ## Recruiting Timelines
 
-Applications support persistent interview, OA, offer, and follow-up events. These events drive application next actions, the Dashboard 14-day view, and the deterministic Focus widget. API mode can explicitly create or update selected events in Google Calendar; local mode retains timelines without external calendar sync.
+Applications support persistent interview, OA, offer, and follow-up events. These events drive application next actions, the Dashboard 14-day view, and the Smart Application Inbox. API mode can explicitly create or update selected events in Google Calendar; local mode retains timelines without external calendar sync.
 
 ## Smart Application Inbox
 
 OfferOS derives a ranked recruiting inbox from application status, meaningful timeline events,
 deadlines, resume context, analysis state, and interview preparation readiness. The `/inbox`
 workspace and Dashboard **Needs attention** section use the same deterministic priority engine as
-the sidebar Focus widget. Follow-up, deadline, missing-context, analysis, and prep actions link
+the notification and application workflows. Follow-up, deadline, missing-context, analysis, and prep actions link
 directly to the relevant application workflow.
 
 Dismissed and snoozed signals persist per user in API mode and in localStorage in local mode. A

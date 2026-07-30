@@ -68,16 +68,13 @@ export function ResumeManager() {
     try {
       setStatus("creating");
       const created = await resumeData.create(input);
-      devResumeUploadLog("resume create success", { id: created.id });
       setSelectedId(created.id);
       if (uploadFile && dataMode === "api") {
         try {
           setStatus("uploading");
-          devResumeUploadLog("upload request start", { resumeId: created.id, fileName: uploadFile.name, size: uploadFile.size });
           await waitForPaint();
           setStatus("extracting");
           const uploaded = await resumeData.uploadResumeFile(created.id, uploadFile);
-          devResumeUploadLog("upload response status", { resumeId: created.id, status: 200 });
           setSelectedId(uploaded.resume.id);
           setStatus("ready");
           setToast(`Resume uploaded and text extracted. ${uploaded.extraction.characterCount.toLocaleString()} characters extracted.`);
@@ -111,16 +108,13 @@ export function ResumeManager() {
     try {
       setStatus("saving");
       const updated = await resumeData.update(editingResume.id, input);
-      devResumeUploadLog("resume update success", { id: updated.id });
       setSelectedId(updated.id);
       if (uploadFile && dataMode === "api") {
         try {
           setStatus("uploading");
-          devResumeUploadLog("upload request start", { resumeId: editingResume.id, fileName: uploadFile.name, size: uploadFile.size });
           await waitForPaint();
           setStatus("extracting");
           const uploaded = await resumeData.uploadResumeFile(editingResume.id, uploadFile);
-          devResumeUploadLog("upload response status", { resumeId: editingResume.id, status: 200 });
           setSelectedId(uploaded.resume.id);
           setToast(`Resume uploaded and text extracted. ${uploaded.extraction.characterCount.toLocaleString()} characters extracted.`);
         } catch (cause) {
@@ -191,11 +185,6 @@ export function ResumeManager() {
       <Toast message={toast} />
     </div>
   );
-}
-
-function devResumeUploadLog(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Resume Upload]", message, details);
 }
 
 function waitForPaint() {

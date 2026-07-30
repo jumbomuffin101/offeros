@@ -23,13 +23,12 @@ export function CodingIntelligencePanel() {
 
   async function connect() {
     const normalized = username.trim().replace(/^@/, "");
-    if (process.env.NODE_ENV === "development") { console.debug("[LeetCodeConnect] click"); console.debug("[LeetCodeConnect] handler entered"); }
     setConnectionError(""); setNotice("");
     if (!normalized) { setConnectionError("Enter your LeetCode username."); return; }
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(normalized)) { setConnectionError("Use only letters, numbers, underscores, or hyphens."); return; }
     setBusy(true);
     try { const profile = await coding.connect(normalized); setUsername(profile.username); setNotice(`Connected @${profile.username}. Automatic sync is unsupported; log or import practice manually.`); }
-    catch (cause) { if (process.env.NODE_ENV === "development") console.error("[LeetCodeConnect] failed", cause); setConnectionError(connectionMessage(cause)); }
+    catch (cause) { setConnectionError(connectionMessage(cause)); }
     finally { setBusy(false); }
   }
 

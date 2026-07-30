@@ -9,6 +9,7 @@ const read = (path) => readFileSync(join(testDir, path), "utf8");
 const onboarding = read("../components/onboarding/onboarding-modal.tsx");
 const dashboard = read("../components/dashboard/dashboard-content.tsx");
 const notifications = read("../components/notifications/notification-center.tsx");
+const sidebar = read("../components/layout/sidebar.tsx");
 const settings = read("../components/settings/launch-settings.tsx");
 const repository = read("../lib/data/repositories/launchRepository.ts");
 const apiClient = read("../lib/data/api/apiClient.ts");
@@ -39,6 +40,8 @@ test("Today dashboard has one primary action and ordered launch sections", () =>
   assert.match(dashboard, /Resume performance/);
   assert.match(dashboard, /summary\.workspaceStatus === "partial"/);
   assert.match(dashboard, /error && !summary/);
+  assert.match(dashboard, /summary\.topAction \?/);
+  assert.match(dashboard, /summary\.attentionItems/);
 });
 
 test("notification center exposes unread, read-all, actions, and useful empty state", () => {
@@ -47,6 +50,13 @@ test("notification center exposes unread, read-all, actions, and useful empty st
   assert.match(notifications, /Mark read/);
   assert.match(notifications, /You are caught up/);
   assert.match(repository, /`\/notifications\/\$\{id\}\/read`/);
+});
+
+test("mobile navigation stays viewport-bound at narrow phone widths", () => {
+  assert.match(sidebar, /min-w-0 overflow-hidden border-b/);
+  assert.match(sidebar, /flex min-w-0 items-center justify-between gap-2/);
+  assert.match(sidebar, /hidden rounded-lg[\s\S]*sm:inline/);
+  assert.match(sidebar, /max-w-full gap-2 overflow-x-auto/);
 });
 
 test("account controls require typed deletion confirmation and support export", () => {
@@ -67,6 +77,12 @@ test("Today retries transient GET failures without retrying auth or route errors
   assert.match(apiClient, /method !== "GET" \|\| init\.signal \|\| !isRetryableGetError/);
   assert.match(apiClient, /if \(status === 401\)/);
   assert.match(apiClient, /if \(status === 404\)/);
+});
+
+test("Today keeps optional integration failures scoped to a partial-state notice", () => {
+  assert.match(dashboard, /summary\.workspaceStatus === "partial"/);
+  assert.match(dashboard, /Your core workspace is ready/);
+  assert.doesNotMatch(dashboard, /workspaceStatus === "partial"[\s\S]{0,200}<DataErrorState/);
 });
 
 test("Retry enters loading and authentication has a dedicated recovery state", () => {

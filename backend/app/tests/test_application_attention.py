@@ -103,7 +103,7 @@ def test_missing_context_analysis_prep_and_low_readiness_rules() -> None:
         assert priority(items, interview.id, "low_prep_readiness") == 70
 
 
-def test_completed_interview_stale_snooze_dismiss_focus_and_user_isolation() -> None:
+def test_completed_interview_stale_snooze_dismiss_and_user_isolation() -> None:
     with database() as db:
         owner = add_user(db, "owner")
         other = add_user(db, "other")
@@ -127,7 +127,6 @@ def test_completed_interview_stale_snooze_dismiss_focus_and_user_isolation() -> 
         items = service.build(owner.id)
         assert has(items, application.id, "follow_up_due")
         assert not has(items, application.id, "stale_application")
-        assert service.focus(owner.id).type == "follow_up_due"
         assert service.build(other.id) == []
 
         stale_application = add_application(

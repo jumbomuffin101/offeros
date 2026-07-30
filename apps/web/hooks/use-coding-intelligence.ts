@@ -52,14 +52,12 @@ export function useCodingIntelligence() {
     const normalized = normalizeUsername(username);
     if (!normalized) throw new DataError("VALIDATION_ERROR", "Enter your LeetCode username.");
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(normalized)) throw new DataError("VALIDATION_ERROR", "Use only letters, numbers, underscores, or hyphens in your LeetCode username.");
-    debugConnect("repository called", { apiMode: dataMode === "api" });
     if (dataMode === "local") {
       const local = readLocal();
       local.profile = { provider: "leetcode", username: normalized, profileUrl: `https://leetcode.com/u/${normalized}/`, connectionStatus: "connected", syncStatus: "unsupported", lastSyncedAt: "", lastSyncError: "Automatic sync is unavailable in local mode." };
       writeLocal(local); await refresh(); return local.profile;
     }
-    debugConnect("validation passed", { username: normalized });
-    const response = await apiClient.post<{ data: ApiProfile }>("/prep/coding-profile/connect", { provider: "leetcode", username: normalized }, { debugLabel: "leetcode-connect", skipWakeup: true });
+    const response = await apiClient.post<{ data: ApiProfile }>("/prep/coding-profile/connect", { provider: "leetcode", username: normalized }, { skipWakeup: true });
     if (!response || !isApiProfile(response.data)) throw new DataError("API_ERROR", "OfferOS received an invalid profile connection response.");
     const next = fromProfile(response.data); setProfile(next); return next;
   }, [refresh]);
@@ -156,4 +154,3 @@ function streak(items: CodingActivity[]) { const days = new Set(items.filter((it
 
 function normalizeUsername(value: string) { return value.trim().replace(/^@/, ""); }
 function isApiProfile(value: unknown): value is ApiProfile { if (!value || typeof value !== "object") return false; const profile = value as Record<string, unknown>; return profile.provider === "leetcode" && typeof profile.username === "string" && typeof profile.profile_url === "string" && typeof profile.connection_status === "string" && typeof profile.sync_status === "string"; }
-function debugConnect(message: string, details: Record<string, unknown>) { if (process.env.NODE_ENV === "development") console.debug(`[LeetCodeConnect] ${message}`, details); }

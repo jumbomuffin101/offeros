@@ -16,7 +16,6 @@ export type ApiWorkspaceSummary = {
   behavioral_questions: ApiBehavioralQuestion[];
   system_design_prompts: ApiSystemDesignPrompt[];
   upcoming_events?: ApiUpcomingEvent[];
-  focus?: ApiFocus | null;
   attention_items?: ApiAttentionItem[];
   as_of: string;
 };
@@ -80,8 +79,6 @@ export type ApiApplication = {
 
 export type ApiApplicationEvent = { id: string; application_id: string; event_type: string; title: string; description: string; scheduled_at: string; completed_at: string | null; status: "upcoming" | "completed" | "canceled"; source: "manual" | "application" | "calendar" | "future_email"; external_calendar_event_id: string | null; created_at: string; updated_at: string };
 export type ApiUpcomingEvent = ApiApplicationEvent & { company: string; role: string };
-export type ApiFocus = { type: string; application_id: string; title: string; subtitle: string; due_at: string | null; priority: number; prep_readiness: number | null; prep_next_action: string | null };
-
 export type ApiResume = {
   id: string;
   user_id: string;

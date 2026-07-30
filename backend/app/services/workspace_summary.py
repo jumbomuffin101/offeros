@@ -46,7 +46,6 @@ class WorkspaceSummaryService:
                 applications, resumes, coding_problems, behavioral_questions, system_design_prompts
             ),
             upcoming_events=event_service.upcoming(user_id),
-            focus=attention_service.focus(user_id, attention_items),
             attention_items=attention_items[:5],
             as_of=as_of,
         )

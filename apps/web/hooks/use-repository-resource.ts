@@ -17,7 +17,6 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     const currentRequest = ++requestId.current;
     setLoading(true);
     setError(null);
-    devRepositoryResourceLog("error cleared", { operation: "refresh", requestId: currentRequest });
     try {
       const next = await loader();
       if (mounted.current && currentRequest === requestId.current) {
@@ -27,7 +26,6 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     } catch (cause) {
       if (mounted.current && currentRequest === requestId.current && dataRef.current === null) {
         const nextError = toDataError(cause, "Unable to load workspace data.");
-        devRepositoryResourceLog("error set", { operation: "refresh", requestId: currentRequest, code: nextError.code, message: nextError.message });
         setError(nextError);
       }
     } finally {
@@ -43,11 +41,9 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
         dataRef.current = next;
         setData(next);
         setError(null);
-        devRepositoryResourceLog("error cleared", { operation: "silent-refresh", requestId: currentRequest });
       }
       return true;
     } catch {
-      devRepositoryResourceLog("silent refresh failed", { requestId: currentRequest, hasData: dataRef.current !== null });
       return false;
     } finally {
       if (mounted.current && currentRequest === requestId.current) setLoading(false);
@@ -75,7 +71,6 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
   const mutate = useCallback(async <TResult,>(operation: () => Promise<TResult>) => {
     const currentRequest = ++requestId.current;
     setError(null);
-    devRepositoryResourceLog("error cleared", { operation: "mutate", requestId: currentRequest });
     try {
       const result = await operation();
       try {
@@ -92,7 +87,6 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
     } catch (cause) {
       const nextError = toDataError(cause, "Unable to update workspace data.");
       if (mounted.current && currentRequest === requestId.current) {
-        devRepositoryResourceLog("error set", { operation: "mutate", requestId: currentRequest, code: nextError.code, message: nextError.message });
         setError(nextError);
       }
       throw nextError;
@@ -105,16 +99,10 @@ export function useRepositoryResource<T>(loader: () => Promise<T>) {
       dataRef.current = next;
       if (next !== null) {
         setError(null);
-        devRepositoryResourceLog("error cleared", { operation: "patch-data" });
       }
       return next;
     });
   }, []);
 
   return { data, loading, error, refresh, refreshSilently, mutate, patchData };
-}
-
-function devRepositoryResourceLog(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Repository Resource]", message, details);
 }

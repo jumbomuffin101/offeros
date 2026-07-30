@@ -73,7 +73,6 @@ export function ResumeAnalysisPanel({
       setHistoryLoading(true);
       setHistoryError("");
     });
-    devAnalysisPanelLog("history request start", { resumeId: resume.id, requestId });
     onListAnalyses(resume.id)
       .then((items) => {
         if (requestId !== historyRequestId.current) return;
@@ -81,12 +80,10 @@ export function ResumeAnalysisPanel({
         setSelectedId(items[0]?.id ?? "");
         hasAnalysisData.current = items.length > 0;
         setHistoryError("");
-        devAnalysisPanelLog("history request success", { resumeId: resume.id, requestId, count: items.length });
       })
       .catch((cause) => {
         if (requestId !== historyRequestId.current) return;
         const nextError = cause instanceof Error ? cause.message : "Unable to load analysis history.";
-        devAnalysisPanelLog("history request error", { resumeId: resume.id, requestId, message: nextError, hasAnalysisData: hasAnalysisData.current });
         if (!hasAnalysisData.current) setHistoryError(nextError);
       })
       .finally(() => {
@@ -126,9 +123,6 @@ export function ResumeAnalysisPanel({
 
   async function runAnalysis() {
     if (analysisInFlight.current) return;
-    devResumeAnalysis("click");
-    devResumeAnalysis("handler entered");
-    devResumeAnalysis("resume id", { resumeId: resume?.id });
     setAnalysisError("");
     setHistoryError("");
     setMessage("");
@@ -145,7 +139,6 @@ export function ResumeAnalysisPanel({
         analysisRequestId: analysisRequestId.current,
       });
     } catch (cause) {
-      devResumeAnalysisError("validation failed", cause);
       setAnalysisError(unexpectedAnalysisStartError(cause));
       setAnalysisStatus("failed");
       return;
@@ -155,8 +148,6 @@ export function ResumeAnalysisPanel({
     setAnalysisStatusMessage(ANALYSIS_STATUS_MESSAGES[0]);
     setAnalysisStatus("submitting");
     const requestId = ++historyRequestId.current;
-    devResumeAnalysis("validation passed");
-    devResumeAnalysis("calling analyzeResume", { resumeId: request.resumeId, requestId });
     try {
       const result = await invokeResumeAnalysis(onAnalyze, request);
       // The repository has returned: response validation begins only at this point.
@@ -170,9 +161,7 @@ export function ResumeAnalysisPanel({
       setMessage("Analysis saved to history.");
       setAnalysisStatus("completed");
       analysisRequestId.current = null;
-      devResumeAnalysis("request completed", { resumeId: request.resumeId, requestId, analysisId: analysis.id });
     } catch (cause) {
-      devResumeAnalysisError("request failed", cause, { resumeId: request.resumeId, requestId });
       setAnalysisError(analysisErrorMessage(cause));
       setAnalysisStatus("failed");
       if (isAnalysisTimeout(cause)) void checkAnalysisHistoryAfterTimeout(requestId);
@@ -328,41 +317,6 @@ export function ResumeAnalysisPanel({
 
 function ScopedError({ message }: { message: string }) {
   return <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{message}</div>;
-}
-
-function devAnalysisPanelLog(message: string, details: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug("[OfferOS Resume Analysis Panel]", message, details);
-}
-
-function devResumeAnalysis(message: string, details?: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  if (message === "click") {
-    console.debug("[ResumeAnalysis] click");
-    return;
-  }
-  if (message === "resume id") {
-    console.debug("[ResumeAnalysis] resume id:", details?.resumeId);
-    return;
-  }
-  if (message === "validation passed") {
-    console.debug("[ResumeAnalysis] validation passed");
-    return;
-  }
-  if (message === "calling analyzeResume") {
-    console.debug("[ResumeAnalysis] calling analyzeResume");
-    return;
-  }
-  if (details) {
-    console.debug(`[ResumeAnalysis] ${message}`, details);
-    return;
-  }
-  console.debug(`[ResumeAnalysis] ${message}`);
-}
-
-function devResumeAnalysisError(message: string, cause: unknown, details?: Record<string, unknown>) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.error(`[ResumeAnalysis] ${message}`, details ?? {}, cause);
 }
 
 function createAnalysisRequestId() {

@@ -135,7 +135,8 @@ test("API resume repository posts the canonical analysis endpoint and payload", 
     job_description: "Backend engineer role requiring Python, FastAPI, PostgreSQL, testing, reliable services, Docker, APIs, and ownership.",
     resume_text: "Built FastAPI services with PostgreSQL.",
   });
-  assert.equal(calls[0].options.debugLabel, "resume-analysis");
+  assert.equal(calls[0].options.timeoutMs, RESUME_ANALYSIS_TIMEOUT_MS);
+  assert.equal("debugLabel" in calls[0].options, false);
 });
 
 test("missing resume id does not crash before request", () => {
