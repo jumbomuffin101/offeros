@@ -3,12 +3,18 @@ from collections.abc import Sequence
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.types import TypeEngine
 
 
 revision: str = "20260730_0018"
 down_revision: str | None = "20260727_0017"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+
+def _json_type() -> TypeEngine:
+    return sa.JSON().with_variant(postgresql.JSONB(), "postgresql")
 
 
 def upgrade() -> None:
@@ -22,14 +28,18 @@ def upgrade() -> None:
         sa.Column("summary", sa.Text(), nullable=False),
         sa.Column("confidence", sa.Float(), nullable=False, server_default="0.5"),
         sa.Column("source_type", sa.String(50), nullable=False),
-        sa.Column("source_ids_json", sa.JSON(), nullable=False, server_default="[]"),
-        sa.Column("evidence_json", sa.JSON(), nullable=False, server_default="[]"),
+        sa.Column("source_ids_json", _json_type(), nullable=False, server_default=sa.text("'[]'")),
+        sa.Column("evidence_json", _json_type(), nullable=False, server_default=sa.text("'[]'")),
         sa.Column("status", sa.String(30), nullable=False, server_default="active"),
         sa.Column("first_observed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("last_confirmed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.CheckConstraint(
+            "status IN ('active', 'resolved', 'superseded', 'expired', 'dismissed')",
+            name="ck_career_observations_status",
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )

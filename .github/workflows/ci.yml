@@ -83,5 +83,13 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Verify one migration head
         run: test "$(alembic heads | wc -l)" -eq 1
-      - run: alembic upgrade head
-      - run: alembic current
+      - name: Upgrade clean database to previous head
+        run: alembic upgrade 20260727_0017
+      - name: Seed pre-0018 user
+        run: python scripts/verify_career_intelligence_migration.py --seed
+      - name: Upgrade previous head to current head
+        run: alembic upgrade head
+      - name: Verify current migration
+        run: alembic current
+      - name: Verify Career Intelligence migration contract
+        run: python scripts/verify_career_intelligence_migration.py --verify
