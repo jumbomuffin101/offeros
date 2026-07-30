@@ -86,10 +86,10 @@ jobs:
       - name: Upgrade clean database to previous head
         run: alembic upgrade 20260727_0017
       - name: Seed pre-0018 user
-        run: python scripts/verify_career_intelligence_migration.py --seed
+        run: python -m scripts.verify_career_intelligence_migration --seed
       - name: Upgrade previous head to current head
         run: alembic upgrade head
       - name: Verify current migration
         run: alembic current
       - name: Verify Career Intelligence migration contract
-        run: python scripts/verify_career_intelligence_migration.py --verify
+        run: python -m scripts.verify_career_intelligence_migration --verify
