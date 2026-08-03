@@ -384,6 +384,44 @@ Account deletion explicitly removes dependent user-owned rows in child-first ord
 the OfferOS user. PostgreSQL foreign-key cascades remain a second safeguard. Temporary resume upload
 bytes are not persisted by this schema.
 
+## Migration Contract Verification
+
+The CI migration job uses independent disposable PostgreSQL schemas for clean-head, 0018, and 0019
+scenarios. Seed and verification modes never create missing data implicitly. Each seed commits its
+deterministic fixtures, opens a new transaction to confirm persistence, and prints only the driver,
+host, port, database name, revision, safe fixture identifier, and bounded row counts.
+
+To reproduce the Career Intelligence `0017 -> 0018` contract from the repository root, point
+`DATABASE_URL` at a disposable PostgreSQL database, then run:
+
+```bash
+cd backend
+python -m pip install -r requirements-dev.txt
+alembic downgrade base
+alembic upgrade 20260727_0017
+python -m scripts.verify_career_intelligence_migration --seed
+python -m scripts.verify_career_intelligence_migration --confirm-seed
+alembic upgrade 20260730_0018
+python -m scripts.verify_career_intelligence_migration --verify
+```
+
+Recreate the disposable database or its `public` schema before testing the Mock Interview
+`0018 -> 0019` contract:
+
+```bash
+alembic upgrade 20260730_0018
+python -m scripts.verify_mock_interview_intelligence_migration --seed
+python -m scripts.verify_mock_interview_intelligence_migration --confirm-seed
+alembic upgrade 20260803_0019
+python -m scripts.verify_mock_interview_intelligence_migration --verify
+alembic current
+alembic heads
+```
+
+Never run the destructive downgrade or schema-reset portions of this procedure against production.
+The scripts deliberately fail if the current revision, fixture identifier, or committed seed state
+does not match the scenario.
+
 ## Gmail-assisted tracking
 
 `gmail_connections` stores one optional connection per user, encrypted refresh-token ciphertext,

@@ -382,3 +382,8 @@ Apply migrations through `20260803_0019` before enabling Career Intelligence-bac
 ```bash
 alembic upgrade head
 ```
+
+Migration contract scripts have explicit `--seed`, `--confirm-seed`, and `--verify` modes. See
+[`../docs/database.md`](../docs/database.md#migration-contract-verification) for disposable
+PostgreSQL reproduction commands. Verification never auto-seeds missing fixtures or prints database
+credentials.
