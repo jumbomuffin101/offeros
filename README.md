@@ -107,6 +107,12 @@ It produces deterministic observations, recommendations, trends, and an organiza
 score. Health scores are guidance rather than hiring predictions, and insufficient history is
 reported without assigning a misleading low score.
 
+Career Intelligence Phase 3A also powers Mock Interview planning. It selects a small sanitized
+projection of the chosen application/resume, recent practice trends, active observations, and prep
+priorities; creates a deterministic question plan; and updates longitudinal observations only after
+a completed session supplies enough repeated evidence. User-selected type, difficulty, question
+count, and focus areas remain authoritative.
+
 ## Production Build
 
 ```bash
@@ -188,6 +194,9 @@ API mode reuses the backend OpenRouter provider configuration. Local mode uses c
 deterministic questions and simplified scoring in localStorage. Assessments are practice guidance,
 not hiring predictions, and OfferOS does not claim private company interview knowledge. Voice and
 code execution are not included.
+
+See [`docs/mock-interviews.md`](docs/mock-interviews.md) for context selection, adaptive planning,
+observation thresholds, Career Health impact, privacy boundaries, and local-mode behavior.
 
 ## Launch readiness
 

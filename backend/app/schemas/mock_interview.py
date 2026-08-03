@@ -20,6 +20,38 @@ class MockInterviewCreate(BaseModel):
     interview_type: InterviewType
     difficulty: InterviewDifficulty = "standard"
     question_count: int = Field(default=5, ge=3, le=10)
+    focus_areas: list[str] = Field(default_factory=list, max_length=8)
+
+
+class MockInterviewPlanRequest(MockInterviewCreate):
+    pass
+
+
+class FocusArea(BaseModel):
+    key: str = Field(min_length=1, max_length=80)
+    label: str = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=1, max_length=300)
+    source: Literal["history", "observation", "prep", "role", "default"]
+
+
+class QuestionPlan(BaseModel):
+    interview_type: InterviewType
+    difficulty: InterviewDifficulty
+    target_dimensions: list[str] = Field(default_factory=list)
+    priority_topics: list[str] = Field(default_factory=list)
+    avoid_recent_repetition: list[str] = Field(default_factory=list)
+    recurring_weaknesses: list[str] = Field(default_factory=list)
+    validated_strengths: list[str] = Field(default_factory=list)
+    application_specific_topics: list[str] = Field(default_factory=list)
+    focus_areas: list[FocusArea] = Field(default_factory=list)
+    question_count: int = Field(ge=3, le=10)
+    max_follow_ups_per_question: int = Field(default=2, ge=0, le=2)
+
+
+class MockInterviewPlanResponse(BaseModel):
+    question_plan: QuestionPlan
+    context_sources: list[str] = Field(default_factory=list)
+    intelligence_status: Literal["ready", "partial", "unavailable"]
 
 
 class MockInterviewAnswerRequest(BaseModel):
@@ -61,6 +93,18 @@ class TurnEvaluation(BaseModel):
     follow_up_reason: str | None = None
     follow_up_question: str | None = None
     summary: str = ""
+    observation_candidates: list["InterviewObservationCandidate"] = Field(
+        default_factory=list, max_length=8
+    )
+
+
+class InterviewObservationCandidate(BaseModel):
+    type: Literal[
+        "interview_weakness", "interview_strength", "interview_improvement"
+    ]
+    dimension: str = Field(min_length=1, max_length=60)
+    summary: str = Field(min_length=1, max_length=300)
+    confidence: float = Field(ge=0, le=1)
 
 
 class GeneratedQuestion(BaseModel):
@@ -124,6 +168,11 @@ class MockInterviewSessionSummary(ORMModel):
     provider: str
     model: str
     overall_score: int | None = None
+    career_context_version: str = ""
+    question_plan: QuestionPlan | None = None
+    trend_delta: dict[str, object] = Field(default_factory=dict)
+    observation_updates: list[dict[str, object]] = Field(default_factory=list)
+    intelligence_status: Literal["ready", "partial", "unavailable"] = "unavailable"
     created_at: datetime
     updated_at: datetime
 

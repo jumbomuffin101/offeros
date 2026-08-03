@@ -50,6 +50,10 @@ const active = readFileSync(
   join(testDir, "../components/prep/active-mock-interview.tsx"),
   "utf8",
 );
+const config = readFileSync(
+  join(testDir, "../components/prep/mock-interview-config.tsx"),
+  "utf8",
+);
 const scorecard = readFileSync(
   join(testDir, "../components/prep/mock-interview-scorecard.tsx"),
   "utf8",
@@ -86,7 +90,23 @@ test("local mode creates, resumes, evaluates, and completes a persisted intervie
   }
   assert.equal(result.session.status, "completed");
   assert.ok(result.session.scorecard);
+  assert.equal(result.session.trendDelta.direction, "insufficient_data");
+  assert.ok(result.session.observationUpdates.length > 0);
   assert.equal((await mockInterviewRepository.get(created.session.id)).status, "completed");
+});
+
+test("local question planning preserves explicit focus and user settings", async () => {
+  const result = await mockInterviewRepository.plan({
+    interviewType: "system_design",
+    difficulty: "challenging",
+    questionCount: 7,
+    focusAreas: ["tradeoffs", "reliability"],
+  });
+  assert.equal(result.questionPlan.interviewType, "system_design");
+  assert.equal(result.questionPlan.difficulty, "challenging");
+  assert.equal(result.questionPlan.questionCount, 7);
+  assert.deepEqual(result.questionPlan.targetDimensions, ["tradeoffs", "reliability"]);
+  assert.equal(result.contextSources[0], "Deterministic local practice");
 });
 
 test("local answer idempotency does not create duplicate turns", async () => {
@@ -111,11 +131,13 @@ test("local answer idempotency does not create duplicate turns", async () => {
 
 test("API repository uses authenticated mock interview endpoints and long timeout", () => {
   assert.match(apiRepository, /"\/mock-interviews"/);
+  assert.match(apiRepository, /"\/mock-interviews\/plan"/);
   assert.match(apiRepository, /`\/mock-interviews\/\$\{id\}\/answer`/);
   assert.match(apiRepository, /answer_request_id: answerRequestId/);
   assert.match(apiRepository, /MOCK_INTERVIEW_TIMEOUT_MS/);
   assert.match(apiRepository, /application_id: input\.applicationId \?\? null/);
   assert.match(apiRepository, /resume_version_id: input\.resumeVersionId \?\? null/);
+  assert.match(apiRepository, /focus_areas: input\.focusAreas \?\? \[\]/);
 });
 
 test("Prep exposes configuration, resumable active experience, feedback, and results", () => {
@@ -129,6 +151,14 @@ test("Prep exposes configuration, resumable active experience, feedback, and res
   assert.match(scorecard, /AI-generated practice assessment/);
   assert.match(scorecard, /Question-by-question review/);
   assert.match(scorecard, /Save next action to Prep/);
+  assert.match(scorecard, /Compared with recent interviews/);
+  assert.match(scorecard, /Career Intelligence updates/);
+  assert.match(scorecard, /bounded, recency-weighted contribution/);
+  assert.match(config, /Recommended focus/);
+  assert.match(config, /never override your interview settings/);
+  assert.match(config, /Career Intelligence is partially unavailable/);
+  assert.match(workspace, /trendDelta\.direction/);
+  assert.match(active, /Simulated locally/);
 });
 
 test("application workspace prefills mock interview launch context", () => {

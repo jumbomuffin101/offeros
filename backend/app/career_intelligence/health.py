@@ -35,14 +35,33 @@ def calculate_health(snapshot: CareerSnapshot, metrics: dict[str, object]) -> Ca
     completed_behavioral = int(metrics["behavioral_completed"])
     completed_design = int(metrics["system_design_completed"])
     completed_interviews = [r for r in snapshot.mock_interviews if r.status == "completed" and r.overall_score is not None]
+    interview_score = _bounded_interview_score(
+        [row.overall_score for row in completed_interviews]
+    )
 
     subscores: dict[str, int | None] = {
         "application_momentum": min(100, 45 + recent_apps * 12) if snapshot.applications else None,
         "resume_readiness": min(100, 45 + analyzed * 25) if snapshot.resumes else None,
-        "interview_readiness": min(100, round(sum(r.overall_score or 0 for r in completed_interviews) / len(completed_interviews))) if completed_interviews else (55 if active else None),
-        "coding_consistency": min(100, 35 + completed_coding * 12) if snapshot.coding_activity or snapshot.coding_problems else None,
-        "behavioral_readiness": min(100, 35 + completed_behavioral * 15) if snapshot.behavioral else None,
-        "system_design_readiness": min(100, 35 + completed_design * 15) if snapshot.system_design else None,
+        "interview_readiness": interview_score if interview_score is not None else (55 if active else None),
+        "coding_consistency": _blend_type_readiness(
+            min(100, 35 + completed_coding * 12)
+            if snapshot.coding_activity or snapshot.coding_problems
+            else None,
+            [
+                row.scorecard.technical_reasoning_score
+                for row in completed_interviews
+                if row.scorecard
+                and row.scorecard.technical_reasoning_score is not None
+            ],
+        ),
+        "behavioral_readiness": _blend_type_readiness(
+            min(100, 35 + completed_behavioral * 15) if snapshot.behavioral else None,
+            [row.scorecard.behavioral_score for row in completed_interviews if row.scorecard and row.scorecard.behavioral_score is not None],
+        ),
+        "system_design_readiness": _blend_type_readiness(
+            min(100, 35 + completed_design * 15) if snapshot.system_design else None,
+            [row.scorecard.system_design_score for row in completed_interviews if row.scorecard and row.scorecard.system_design_score is not None],
+        ),
         "follow_up_health": max(20, 100 - stale * 20) if snapshot.applications else None,
         "deadline_health": max(15, 100 - deadlines * 25) if snapshot.applications else None,
     }
@@ -68,3 +87,22 @@ def calculate_health(snapshot: CareerSnapshot, metrics: dict[str, object]) -> Ca
         data_sufficiency=min(1, evidence_count / 20),
         recommended_actions=negatives[:2] or ["Maintain the current weekly recruiting cadence."],
     )
+
+
+def _bounded_interview_score(scores: list[int]) -> int | None:
+    if not scores:
+        return None
+    recent = scores[:5]
+    weights = [1, 0.8, 0.65, 0.5, 0.4][: len(recent)]
+    average = sum(score * weight for score, weight in zip(recent, weights)) / sum(weights)
+    contribution = min(0.6, 0.15 * len(recent))
+    return max(0, min(100, round(55 + (average - 55) * contribution)))
+
+
+def _blend_type_readiness(base: int | None, scores: list[int]) -> int | None:
+    if not scores:
+        return base
+    interview = _bounded_interview_score(scores)
+    if base is None:
+        return interview
+    return round(base * 0.7 + (interview or base) * 0.3)

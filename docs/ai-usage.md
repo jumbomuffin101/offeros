@@ -28,6 +28,13 @@ Provider failures are mapped to stable application errors by each AI service. No
 POSTs are not automatically retried by the frontend. Users retain their input and can retry
 manually. Scores and recommendations are heuristic guidance and do not predict hiring outcomes.
 
+Mock Interview question planning is deterministic. The AI provider receives the session settings,
+the sanitized Mock Interview Career Context projection, the persisted Question Plan, bounded recent
+history, and current turn state. It does not receive the entire Career Context. Structured question,
+evaluation, and scorecard responses are validated; malformed JSON is repaired once and otherwise
+rejected. Per-turn observation candidates are not persisted as Career Observations until session
+completion and a minimum repeated-evidence threshold is met.
+
 Gmail classification reuses the configured provider only after deterministic filtering. Failed or
 malformed provider requests remain failed usage and do not count as completed operations. The model
 receives a capped excerpt and an instruction to treat email as untrusted data, return concise

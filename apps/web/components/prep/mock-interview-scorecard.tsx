@@ -62,6 +62,24 @@ export function MockInterviewScorecardView({
         <ListSection title="Missed points" values={scorecard.missedPoints} tone="rose" />
       </div>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-700/40 bg-slate-900/20 p-5">
+          <h2 className="font-semibold text-white">Compared with recent interviews</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-400">{trendSummary(session)}</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+            {session.trendDelta.strongestDimension ? <span>Strongest: {formatDimension(session.trendDelta.strongestDimension)}</span> : null}
+            {session.trendDelta.weakestDimension ? <span>Focus: {formatDimension(session.trendDelta.weakestDimension)}</span> : null}
+          </div>
+        </div>
+        <div className="rounded-xl border border-slate-700/40 bg-slate-900/20 p-5">
+          <h2 className="font-semibold text-white">Career Intelligence updates</h2>
+          <ul className="mt-3 space-y-2">
+            {session.observationUpdates.length ? session.observationUpdates.map((item) => <li className="text-sm leading-6 text-slate-400" key={`${item.type}-${item.dimension}`}>{item.summary}</li>) : <li className="text-sm text-slate-500">No longitudinal observation changed from this session.</li>}
+          </ul>
+          <p className="mt-3 text-xs text-slate-500">Career Health uses a bounded, recency-weighted contribution, so one session cannot cause a dramatic swing.</p>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-slate-700/40 bg-slate-900/20 p-5">
         <div className="flex items-center gap-2"><Target className="size-4 text-indigo-300" /><h2 className="font-semibold text-white">Recommended prep actions</h2></div>
         <ol className="mt-4 space-y-3">
@@ -93,3 +111,11 @@ function ListSection({ title, values, tone }: { title: string; values: string[];
   const dot = tone === "emerald" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : "bg-rose-400";
   return <section className="rounded-xl border border-slate-700/40 bg-slate-900/20 p-5"><h2 className="font-semibold text-white">{title}</h2><ul className="mt-4 space-y-3">{values.length ? values.map((value) => <li className="flex gap-2 text-sm leading-6 text-slate-400" key={value}><span className={`mt-2 size-1.5 shrink-0 rounded-full ${dot}`} />{value}</li>) : <li className="text-sm text-slate-500">No items recorded.</li>}</ul></section>;
 }
+
+function trendSummary(session: MockInterviewSession) {
+  const trend = session.trendDelta;
+  if (trend.direction === "insufficient_data" || typeof trend.recentAverage !== "number") return "This session establishes a longitudinal practice baseline.";
+  const delta = trend.delta ?? 0;
+  return `${trend.direction === "improving" ? "Improving" : trend.direction === "declining" ? "Needs attention" : "Stable"}: ${Math.abs(delta)} points ${delta >= 0 ? "above" : "below"} the recent average of ${trend.recentAverage}.`;
+}
+function formatDimension(value: string) { return value.replaceAll("_", " "); }

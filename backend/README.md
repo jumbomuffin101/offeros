@@ -361,6 +361,7 @@ Copilot reuses `AI_PROVIDER`, `OPENROUTER_API_KEY`, `AI_MODEL`, and the existing
 Mock interview routes are user-scoped under `/api/v1/mock-interviews`:
 
 - `GET /mock-interviews` returns lightweight recent session summaries.
+- `POST /mock-interviews/plan` previews an adjustable deterministic Career Intelligence question plan.
 - `POST /mock-interviews` validates optional application/resume ownership and creates the first question.
 - `GET /mock-interviews/{id}` loads turns and the final scorecard after refresh.
 - `POST /mock-interviews/{id}/answer` evaluates one answer and advances or follows up.
@@ -370,7 +371,13 @@ The feature reuses `AI_PROVIDER`, `OPENROUTER_API_KEY`, and `AI_MODEL`. In local
 `AI_MOCK_ENABLED=true` enables the deterministic provider. Answer request UUIDs provide idempotency,
 and follow-ups are capped at two per main question.
 
-Apply migration `20260724_0015_mock_interviews` before enabling the feature:
+Phase 3A uses a persisted, sanitized context snapshot and question plan for each session. Answer
+turns reuse that snapshot instead of rebuilding the full Career Context. Completion aggregates
+validated turn evidence, refreshes user-scoped Career Intelligence once, and can produce
+deduplicated observations and recommendations. Raw resume text, job descriptions, application
+notes, Gmail content, prompts, and provider diagnostics are excluded from the stored context.
+
+Apply migrations through `20260803_0019` before enabling Career Intelligence-backed planning:
 
 ```bash
 alembic upgrade head

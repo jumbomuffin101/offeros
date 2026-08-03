@@ -8,6 +8,7 @@ import type {
   ResumeVersion,
 } from "@/lib/types";
 import type { MockInterviewCreateInput } from "@/lib/data/types";
+import type { MockInterviewPlanResult } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
 
 export function MockInterviewConfig({
@@ -17,6 +18,8 @@ export function MockInterviewConfig({
   busy,
   onChange,
   onStart,
+  plan,
+  planLoading,
 }: {
   applications: Application[];
   resumes: ResumeVersion[];
@@ -24,6 +27,8 @@ export function MockInterviewConfig({
   busy: boolean;
   onChange: (value: MockInterviewCreateInput) => void;
   onStart: () => void;
+  plan?: MockInterviewPlanResult;
+  planLoading: boolean;
 }) {
   return (
     <section className="rounded-xl border border-slate-700/40 bg-slate-900/20 p-5 sm:p-6">
@@ -38,6 +43,20 @@ export function MockInterviewConfig({
           </p>
         </div>
       </div>
+      <section className="mt-5 rounded-lg border border-slate-700/35 bg-slate-950/20 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div><h3 className="text-sm font-medium text-slate-200">Recommended focus</h3><p className="mt-1 text-xs text-slate-500">Career Intelligence suggestions remain adjustable and never override your interview settings.</p></div>
+          {planLoading ? <span className="text-xs text-slate-500">Updating...</span> : null}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {plan?.questionPlan.focusAreas.map((item) => {
+            const selected = value.focusAreas?.includes(item.key) ?? false;
+            return <button aria-pressed={selected} className={`rounded-md border px-2.5 py-1.5 text-xs transition ${selected ? "border-indigo-300/30 bg-indigo-300/10 text-indigo-100" : "border-slate-700/40 text-slate-500 hover:text-slate-300"}`} key={item.key} onClick={() => onChange({ ...value, focusAreas: selected ? (value.focusAreas?.length === 1 ? value.focusAreas : value.focusAreas?.filter((key) => key !== item.key)) : [...(value.focusAreas ?? []), item.key] })} title={item.reason} type="button">{item.label}</button>;
+          })}
+          {!planLoading && !plan?.questionPlan.focusAreas.length ? <span className="text-xs text-slate-500">Balanced baseline focus</span> : null}
+        </div>
+        {plan && plan.intelligenceStatus !== "ready" ? <p className="mt-3 text-xs text-amber-200/80">Career Intelligence is partially unavailable. The interview will continue with a deterministic plan.</p> : null}
+      </section>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <Field label="Application">
           <Select

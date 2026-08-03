@@ -33,3 +33,10 @@ Recommendations and health scores may be inaccurate and do not predict interview
 or hiring decisions. Gmail is optional, and unconfirmed Gmail suggestions are identified only as
 items requiring review, never as confirmed recruiting facts. OfferOS stores concise evidence
 summaries for observations, not hidden reasoning or raw email bodies.
+
+Mock Interview planning uses only a selected application summary, selected resume summary, active
+relevant observations, bounded recent practice summaries, and prep/readiness signals. It excludes
+raw resume text, full job descriptions, application notes, raw Gmail content, user identifiers,
+tokens, and hidden prompts. Interview answers are sent only for the requested evaluation and are
+not written to logs. Account export omits the persisted sanitized context snapshot as an additional
+data-minimization measure.

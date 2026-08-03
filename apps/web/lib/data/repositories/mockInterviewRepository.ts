@@ -22,6 +22,9 @@ export const mockInterviewRepository: MockInterviewRepository = {
     const session = readMockInterviews().find((item) => item.id === id);
     return session ? publicSession(session) : null;
   },
+  async plan(input) {
+    return localPlan(input);
+  },
   async create(input) {
     const [application, resume] = await Promise.all([
       input.applicationId
@@ -35,6 +38,7 @@ export const mockInterviewRepository: MockInterviewRepository = {
     const id = `mock-interview-${Date.now()}`;
     const targetRole = application?.role || resume?.targetRole || "Software Engineer";
     const companyName = application?.company || "";
+    const plan = localPlan(input);
     const firstTurn = questionTurn(id, 0, input.interviewType, 0, now);
     const session: StoredMockInterview = {
       id,
@@ -59,6 +63,11 @@ export const mockInterviewRepository: MockInterviewRepository = {
       startedAt: now,
       provider: "mock",
       model: "local-deterministic",
+      careerContextVersion: "local-deterministic-v1",
+      questionPlan: plan.questionPlan,
+      trendDelta: {},
+      observationUpdates: [],
+      intelligenceStatus: "ready",
       createdAt: now,
       updatedAt: now,
       turns: [firstTurn],
@@ -114,6 +123,26 @@ export const mockInterviewRepository: MockInterviewRepository = {
         session.completedAt = now;
         session.scorecard = buildScorecard(session);
         session.overallScore = overall(session.scorecard);
+        const completed = sessions.filter(
+          (item) =>
+            item.id !== session.id &&
+            item.status === "completed" &&
+            typeof item.overallScore === "number",
+        );
+        const baseline = completed.length
+          ? Math.round(completed.slice(0, 5).reduce((sum, item) => sum + (item.overallScore ?? 0), 0) / Math.min(5, completed.length))
+          : undefined;
+        const delta = baseline === undefined ? undefined : session.overallScore - baseline;
+        session.trendDelta = {
+          direction: delta === undefined ? "insufficient_data" : delta >= 5 ? "improving" : delta <= -5 ? "declining" : "stable",
+          currentScore: session.overallScore,
+          recentAverage: baseline,
+          delta,
+          sampleSize: Math.min(5, completed.length),
+          strongestDimension: strongestDimension(session.scorecard),
+          weakestDimension: weakestDimension(session.scorecard),
+        };
+        session.observationUpdates = aggregateLocalObservations(session);
       } else {
         nextQuestion = questionTurn(
           id,
@@ -159,6 +188,10 @@ function publicSession(
     ...value
   } = session;
   const result = structuredClone(value);
+  result.careerContextVersion ??= "";
+  result.trendDelta ??= {};
+  result.observationUpdates ??= [];
+  result.intelligenceStatus ??= "unavailable";
   if (!includeDetails) {
     delete result.turns;
     delete result.scorecard;
@@ -189,6 +222,9 @@ function evaluateAnswer(answer: string, followUpCount: number): MockInterviewEva
         : "Which tradeoff did you consider, and why did you choose that approach?"
       : undefined,
     summary: "Simulated local feedback based on answer structure and detail.",
+    observationCandidates: words < 60
+      ? [{ type: "interview_weakness", dimension: "depth", summary: "Answer depth needs more concrete decisions and tradeoffs.", confidence: 0.72 }]
+      : [{ type: "interview_strength", dimension: "structure", summary: "The answer used a consistent, easy-to-follow structure.", confidence: 0.72 }],
   };
 }
 
@@ -301,4 +337,76 @@ function resultFromSession(session: StoredMockInterview) {
 
 function unique(values: string[]) {
   return [...new Set(values)];
+}
+
+function localPlan(input: Parameters<MockInterviewRepository["create"]>[0]) {
+  const defaults = input.interviewType === "behavioral"
+    ? ["structure", "measurable impact"]
+    : input.interviewType === "system_design"
+      ? ["system design tradeoffs", "scalability"]
+      : input.interviewType === "technical"
+        ? ["technical reasoning", "depth"]
+        : input.interviewType === "resume"
+          ? ["resume fluency", "architecture detail"]
+          : ["clarity", "technical depth"];
+  const selected = input.focusAreas?.length ? input.focusAreas : defaults;
+  return {
+    questionPlan: {
+      interviewType: input.interviewType,
+      difficulty: input.difficulty,
+      targetDimensions: selected,
+      priorityTopics: selected.map(label),
+      avoidRecentRepetition: [],
+      recurringWeaknesses: [],
+      validatedStrengths: [],
+      applicationSpecificTopics: [],
+      focusAreas: selected.map((key) => ({
+        key,
+        label: label(key),
+        reason: input.focusAreas?.length
+          ? "Selected explicitly for this practice session."
+          : "A deterministic local focus for the selected interview type.",
+        source: "default" as const,
+      })),
+      questionCount: input.questionCount,
+      maxFollowUpsPerQuestion: 2,
+    },
+    contextSources: ["Deterministic local practice"],
+    intelligenceStatus: "ready" as const,
+  };
+}
+
+function aggregateLocalObservations(session: StoredMockInterview) {
+  const candidates = (session.turns ?? []).flatMap((turn) => turn.evaluation?.observationCandidates ?? []);
+  const counts = new Map<string, typeof candidates>();
+  for (const item of candidates) {
+    const key = `${item.type}:${item.dimension}`;
+    counts.set(key, [...(counts.get(key) ?? []), item]);
+  }
+  return [...counts.values()].filter((items) => items.length >= 2).map((items) => ({
+    type: items[0].type,
+    dimension: items[0].dimension,
+    summary: items[0].summary,
+    confidence: Math.min(0.95, items.reduce((sum, item) => sum + item.confidence, 0) / items.length),
+    evidenceCount: items.length,
+  }));
+}
+
+function dimensionValues(scorecard: MockInterviewScorecard) {
+  return {
+    clarity: scorecard.communicationScore,
+    accuracy: scorecard.technicalAccuracyScore,
+    structure: scorecard.structureScore,
+    depth: scorecard.depthScore,
+    relevance: scorecard.relevanceScore,
+  };
+}
+function strongestDimension(scorecard: MockInterviewScorecard) {
+  return Object.entries(dimensionValues(scorecard)).sort((a, b) => b[1] - a[1])[0][0];
+}
+function weakestDimension(scorecard: MockInterviewScorecard) {
+  return Object.entries(dimensionValues(scorecard)).sort((a, b) => a[1] - b[1])[0][0];
+}
+function label(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

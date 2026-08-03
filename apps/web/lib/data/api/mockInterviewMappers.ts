@@ -1,5 +1,6 @@
 import type {
   MockInterviewEvaluation,
+  MockInterviewQuestionPlan,
   MockInterviewScorecard,
   MockInterviewSession,
   MockInterviewTurn,
@@ -26,6 +27,21 @@ export function fromApiMockInterview(value: RecordValue): MockInterviewSession {
     provider: string(value.provider),
     model: string(value.model),
     overallScore: optionalNumber(value.overall_score),
+    careerContextVersion: string(value.career_context_version),
+    questionPlan: isRecord(value.question_plan)
+      ? fromApiQuestionPlan(value.question_plan)
+      : undefined,
+    trendDelta: mapTrend(value.trend_delta),
+    observationUpdates: array(value.observation_updates).map((item) => ({
+      type: string(item.type),
+      dimension: string(item.dimension),
+      summary: string(item.summary),
+      confidence: number(item.confidence),
+      evidenceCount: number(item.evidence_count),
+    })),
+    intelligenceStatus:
+      (value.intelligence_status as MockInterviewSession["intelligenceStatus"]) ??
+      "unavailable",
     createdAt: string(value.created_at),
     updatedAt: string(value.updated_at),
     turns: array(value.turns).map(fromApiTurn),
@@ -68,6 +84,46 @@ export function fromApiEvaluation(value: RecordValue): MockInterviewEvaluation {
     followUpReason: optionalString(value.follow_up_reason),
     followUpQuestion: optionalString(value.follow_up_question),
     summary: string(value.summary),
+    observationCandidates: array(value.observation_candidates).map((item) => ({
+      type: item.type as MockInterviewEvaluation["observationCandidates"][number]["type"],
+      dimension: string(item.dimension),
+      summary: string(item.summary),
+      confidence: number(item.confidence),
+    })),
+  };
+}
+
+export function fromApiQuestionPlan(value: RecordValue): MockInterviewQuestionPlan {
+  return {
+    interviewType: value.interview_type as MockInterviewQuestionPlan["interviewType"],
+    difficulty: value.difficulty as MockInterviewQuestionPlan["difficulty"],
+    targetDimensions: strings(value.target_dimensions),
+    priorityTopics: strings(value.priority_topics),
+    avoidRecentRepetition: strings(value.avoid_recent_repetition),
+    recurringWeaknesses: strings(value.recurring_weaknesses),
+    validatedStrengths: strings(value.validated_strengths),
+    applicationSpecificTopics: strings(value.application_specific_topics),
+    focusAreas: array(value.focus_areas).map((item) => ({
+      key: string(item.key),
+      label: string(item.label),
+      reason: string(item.reason),
+      source: item.source as MockInterviewQuestionPlan["focusAreas"][number]["source"],
+    })),
+    questionCount: number(value.question_count),
+    maxFollowUpsPerQuestion: number(value.max_follow_ups_per_question),
+  };
+}
+
+function mapTrend(value: unknown): MockInterviewSession["trendDelta"] {
+  if (!isRecord(value)) return {};
+  return {
+    direction: optionalString(value.direction) as MockInterviewSession["trendDelta"]["direction"],
+    currentScore: optionalNumber(value.current_score),
+    recentAverage: optionalNumber(value.recent_average),
+    delta: optionalNumber(value.delta),
+    sampleSize: optionalNumber(value.sample_size),
+    strongestDimension: optionalString(value.strongest_dimension),
+    weakestDimension: optionalString(value.weakest_dimension),
   };
 }
 

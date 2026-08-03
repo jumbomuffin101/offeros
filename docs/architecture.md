@@ -274,6 +274,13 @@ Trends compare the latest 14 days with the preceding 14 days inside a bounded 60
 window. Response rate and interview conversion compare application cohorts and require at least
 two records in each cohort. The engine reports `insufficient_data` when samples are too small.
 
-Phase 2 consumers are Today, Smart Inbox, and Recruiter Copilot. Resume Intelligence, mock
-interview generation/scoring, behavioral coaching, system-design coaching, and Gmail
-classification remain Phase 3 candidates.
+Phase 2 consumers are Today, Smart Inbox, and Recruiter Copilot. Phase 3A adds Mock Interviews as a
+consumer through `MockInterviewContextService`, which projects only selected application/resume
+summaries, active interview observations, bounded recent session summaries, prep priorities, and
+readiness signals. A deterministic `QuestionPlan` is persisted with the session and remains stable
+through answer turns; the full Career Context is not rebuilt on every answer.
+
+After completion, validated per-turn candidates are aggregated before Career Observations are
+reconciled. The normal user-scoped cache invalidation path then updates Today and Smart Inbox.
+Resume Intelligence, Gmail classification, Behavioral Coach, and System Design Coach migrations
+remain deferred to Phase 3B.

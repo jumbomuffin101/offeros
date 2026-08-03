@@ -129,6 +129,25 @@ export type GmailSuggestion = {
 export type MockInterviewType = "behavioral" | "resume" | "technical" | "system_design" | "mixed";
 export type MockInterviewDifficulty = "introductory" | "standard" | "challenging";
 export type MockInterviewStatus = "created" | "active" | "completed" | "abandoned" | "failed";
+export type MockInterviewFocusArea = {
+  key: string;
+  label: string;
+  reason: string;
+  source: "history" | "observation" | "prep" | "role" | "default";
+};
+export type MockInterviewQuestionPlan = {
+  interviewType: MockInterviewType;
+  difficulty: MockInterviewDifficulty;
+  targetDimensions: string[];
+  priorityTopics: string[];
+  avoidRecentRepetition: string[];
+  recurringWeaknesses: string[];
+  validatedStrengths: string[];
+  applicationSpecificTopics: string[];
+  focusAreas: MockInterviewFocusArea[];
+  questionCount: number;
+  maxFollowUpsPerQuestion: number;
+};
 export type MockInterviewScores = {
   accuracy: number;
   relevance: number;
@@ -154,6 +173,12 @@ export type MockInterviewEvaluation = {
   followUpReason?: string;
   followUpQuestion?: string;
   summary: string;
+  observationCandidates: Array<{
+    type: "interview_weakness" | "interview_strength" | "interview_improvement";
+    dimension: string;
+    summary: string;
+    confidence: number;
+  }>;
 };
 export type MockInterviewTurn = {
   id: string;
@@ -205,6 +230,25 @@ export type MockInterviewSession = {
   provider: string;
   model: string;
   overallScore?: number;
+  careerContextVersion: string;
+  questionPlan?: MockInterviewQuestionPlan;
+  trendDelta: {
+    direction?: "improving" | "stable" | "declining" | "insufficient_data";
+    currentScore?: number;
+    recentAverage?: number;
+    delta?: number;
+    sampleSize?: number;
+    strongestDimension?: string;
+    weakestDimension?: string;
+  };
+  observationUpdates: Array<{
+    type: string;
+    dimension: string;
+    summary: string;
+    confidence: number;
+    evidenceCount: number;
+  }>;
+  intelligenceStatus: "ready" | "partial" | "unavailable";
   createdAt: string;
   updatedAt: string;
   turns?: MockInterviewTurn[];

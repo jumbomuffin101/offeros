@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -19,11 +21,18 @@ from app.schemas.mock_interview import (
     MockInterviewCreate,
     MockInterviewCreateResponse,
     MockInterviewProgress,
+    MockInterviewPlanRequest,
+    MockInterviewPlanResponse,
     MockInterviewScorecardResponse,
     MockInterviewSessionResponse,
     MockInterviewSessionSummary,
     MockInterviewTurnResponse,
     TurnEvaluation,
+)
+from app.career_intelligence.service import CareerIntelligenceService
+from app.services.mock_interview_intelligence import (
+    aggregate_completion,
+    build_question_plan,
 )
 from app.services.mock_interview_ai import (
     MockInterviewProvider,
@@ -33,6 +42,7 @@ from app.services.mock_interview_context import MockInterviewContextService
 
 
 MAX_FOLLOW_UPS = 2
+logger = logging.getLogger(__name__)
 
 
 class MockInterviewService:
@@ -57,7 +67,7 @@ class MockInterviewService:
             )
         )
         return [
-            MockInterviewSessionSummary.model_validate(session)
+            self._summary(session)
             for session in sessions
         ]
 
@@ -66,12 +76,30 @@ class MockInterviewService:
     ) -> MockInterviewSessionResponse:
         return self._response(self._session(user_id, session_id))
 
+    def plan(
+        self, user_id: UUID, payload: MockInterviewPlanRequest
+    ) -> MockInterviewPlanResponse:
+        context, sources, _, _ = self.context_service.build(
+            user_id, payload.application_id, payload.resume_version_id
+        )
+        question_plan = build_question_plan(context, payload)
+        return MockInterviewPlanResponse(
+            question_plan=question_plan,
+            context_sources=sources,
+            intelligence_status=context.get("intelligence_status", "unavailable"),
+        )
+
     def create(
         self, user_id: UUID, payload: MockInterviewCreate
     ) -> MockInterviewCreateResponse:
         context, sources, application, resume = self.context_service.build(
             user_id, payload.application_id, payload.resume_version_id
         )
+        question_plan = build_question_plan(context, payload)
+        provider_context = {
+            **context,
+            "question_plan": question_plan.model_dump(mode="json"),
+        }
         provider = self.provider or mock_interview_provider_from_settings(
             self.settings
         )
@@ -88,13 +116,19 @@ class MockInterviewService:
             if company_name
             else f"{target_role} practice"
         )
+        question_started = time.perf_counter()
         question = provider.question(
-            context,
+            provider_context,
             payload.interview_type,
             payload.difficulty,
             0,
             [],
         )
+        logger.debug(
+            "mock_interview.question_generated duration_ms=%d stage=initial",
+            round((time.perf_counter() - question_started) * 1000),
+        )
+        question = self._avoid_duplicate_question(question, provider_context, [])
         now = datetime.now(UTC)
         session = MockInterviewSession(
             user_id=user_id,
@@ -113,6 +147,12 @@ class MockInterviewService:
             started_at=now,
             provider=provider.provider,
             model=provider.model,
+            career_context_version=str(context.get("version", "")),
+            career_context_json=context,
+            question_plan_json=question_plan.model_dump(mode="json"),
+            intelligence_status=str(
+                context.get("intelligence_status", "unavailable")
+            ),
         )
         first_turn = MockInterviewTurn(
             session=session,
@@ -162,17 +202,46 @@ class MockInterviewService:
         if session.turns[-1].speaker == "candidate":
             raise ValidationError("Your previous answer is still being processed.")
 
-        context, _, _, _ = self.context_service.build(
-            user_id, session.application_id, session.resume_version_id
-        )
+        context = session.career_context_json or {}
+        if not context:
+            context, sources, _, _ = self.context_service.build(
+                user_id, session.application_id, session.resume_version_id
+            )
+            plan = build_question_plan(
+                context,
+                MockInterviewCreate(
+                    application_id=session.application_id,
+                    resume_version_id=session.resume_version_id,
+                    interview_type=session.interview_type,
+                    difficulty=session.difficulty,
+                    question_count=session.question_count,
+                ),
+            )
+            session.career_context_version = str(context.get("version", ""))
+            session.career_context_json = context
+            session.question_plan_json = plan.model_dump(mode="json")
+            session.context_sources = sources
+            session.intelligence_status = str(
+                context.get("intelligence_status", "partial")
+            )
+        provider_context = {
+            **context,
+            "question_plan": session.question_plan_json or {},
+        }
         provider = self.provider or mock_interview_provider_from_settings(
             self.settings
         )
+        evaluation_started = time.perf_counter()
         evaluation = provider.evaluate(
-            context,
+            provider_context,
             current_question.content,
             payload.answer,
             current_question.question_type or session.interview_type,
+            session.current_follow_up_count,
+        )
+        logger.debug(
+            "mock_interview.answer_evaluated duration_ms=%d follow_up_count=%d",
+            round((time.perf_counter() - evaluation_started) * 1000),
             session.current_follow_up_count,
         )
         now = datetime.now(UTC)
@@ -215,12 +284,20 @@ class MockInterviewService:
             if session.current_question_index >= session.question_count:
                 self._complete(session, provider, now)
             else:
+                question_started = time.perf_counter()
                 generated = provider.question(
-                    context,
+                    provider_context,
                     session.interview_type,
                     session.difficulty,
                     session.current_question_index,
                     self._history(session.turns),
+                )
+                logger.debug(
+                    "mock_interview.question_generated duration_ms=%d stage=next",
+                    round((time.perf_counter() - question_started) * 1000),
+                )
+                generated = self._avoid_duplicate_question(
+                    generated, provider_context, session.turns
                 )
                 next_turn = self._question_turn(
                     session,
@@ -230,6 +307,11 @@ class MockInterviewService:
                 )
         session.updated_at = now
         self.db.commit()
+        if session.status == "completed":
+            try:
+                CareerIntelligenceService(self.db).context(user_id, refresh=True)
+            except Exception:
+                self.db.rollback()
         refreshed = self._session(user_id, session.id)
         return MockInterviewAnswerResponse(
             session=self._response(refreshed),
@@ -256,6 +338,7 @@ class MockInterviewService:
         provider: MockInterviewProvider,
         now: datetime,
     ) -> None:
+        started = time.perf_counter()
         evaluations = [
             TurnEvaluation.model_validate(turn.evaluation_json)
             for turn in session.turns
@@ -265,7 +348,13 @@ class MockInterviewService:
             turn.content for turn in session.turns if turn.speaker == "candidate"
         ]
         draft = provider.scorecard(
-            session.interview_type, evaluations, answers
+            session.career_context_json or {},
+            session.interview_type,
+            evaluations,
+            answers,
+        )
+        trend, observations = aggregate_completion(
+            evaluations, draft, session.career_context_json or {}
         )
         scorecard = MockInterviewScorecard(
             session_id=session.id,
@@ -281,8 +370,16 @@ class MockInterviewService:
         session.overall_score = round(sum(core_scores) / len(core_scores))
         session.status = "completed"
         session.completed_at = now
+        session.trend_delta_json = trend
+        session.observation_summary_json = observations
         session.scorecard = scorecard
         self.db.add(scorecard)
+        logger.debug(
+            "mock_interview.completion_aggregated duration_ms=%d evaluation_count=%d observation_count=%d",
+            round((time.perf_counter() - started) * 1000),
+            len(evaluations),
+            len(observations),
+        )
 
     def _question_turn(
         self,
@@ -324,10 +421,9 @@ class MockInterviewService:
     def _response(
         self, session: MockInterviewSession
     ) -> MockInterviewSessionResponse:
+        summary = self._summary(session).model_dump()
         return MockInterviewSessionResponse(
-            **MockInterviewSessionSummary.model_validate(
-                session
-            ).model_dump(),
+            **summary,
             turns=[
                 MockInterviewTurnResponse.model_validate(turn)
                 for turn in session.turns
@@ -338,6 +434,14 @@ class MockInterviewService:
                 else None
             ),
         )
+
+    @staticmethod
+    def _summary(session: MockInterviewSession) -> MockInterviewSessionSummary:
+        value = MockInterviewSessionSummary.model_validate(session).model_dump()
+        value["question_plan"] = session.question_plan_json or None
+        value["trend_delta"] = session.trend_delta_json or {}
+        value["observation_updates"] = session.observation_summary_json or []
+        return MockInterviewSessionSummary.model_validate(value)
 
     def _existing_answer_response(
         self,
@@ -381,3 +485,23 @@ class MockInterviewService:
             {"speaker": turn.speaker, "content": turn.content[:1_500]}
             for turn in turns[-8:]
         ]
+
+    @staticmethod
+    def _avoid_duplicate_question(generated, context, turns):
+        existing = {
+            turn.content.strip().casefold()
+            for turn in turns
+            if turn.speaker == "interviewer"
+        }
+        plan = context.get("question_plan")
+        if isinstance(plan, dict):
+            existing.update(
+                value.strip().casefold()
+                for value in plan.get("avoid_recent_repetition", [])
+                if isinstance(value, str)
+            )
+        if generated.question.strip().casefold() in existing:
+            generated.question = (
+                f"{generated.question.rstrip()} Use a different project or example than in recent practice."
+            )[:2_000]
+        return generated

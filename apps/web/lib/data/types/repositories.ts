@@ -66,6 +66,7 @@ export interface GmailRepository {
 export interface MockInterviewRepository {
   list(): Promise<MockInterviewSession[]>;
   get(id: string): Promise<MockInterviewSession | null>;
+  plan(input: MockInterviewCreateInput): Promise<import("@/lib/data/types").MockInterviewPlanResult>;
   create(input: MockInterviewCreateInput): Promise<MockInterviewCreateResult>;
   answer(
     id: string,

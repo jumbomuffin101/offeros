@@ -15,6 +15,8 @@ from app.schemas.mock_interview import (
     MockInterviewAnswerResponse,
     MockInterviewCreate,
     MockInterviewCreateResponse,
+    MockInterviewPlanRequest,
+    MockInterviewPlanResponse,
     MockInterviewSessionResponse,
     MockInterviewSessionSummary,
 )
@@ -25,6 +27,16 @@ from app.schemas.launch import NotificationCreate
 
 
 router = APIRouter(prefix="/mock-interviews", tags=["mock-interviews"])
+
+
+@router.post("/plan", response_model=MockInterviewPlanResponse)
+def plan_mock_interview(
+    payload: MockInterviewPlanRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> MockInterviewPlanResponse:
+    return MockInterviewService(db, settings).plan(user.id, payload)
 
 
 @router.get("", response_model=DataResponse[list[MockInterviewSessionSummary]])

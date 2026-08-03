@@ -87,9 +87,15 @@ jobs:
         run: alembic upgrade 20260727_0017
       - name: Seed pre-0018 user
         run: python -m scripts.verify_career_intelligence_migration --seed
-      - name: Upgrade previous head to current head
+      - name: Upgrade previous head to Career Intelligence head
+        run: alembic upgrade 20260730_0018
+      - name: Seed pre-0019 mock interview
+        run: python -m scripts.verify_mock_interview_intelligence_migration --seed
+      - name: Upgrade Career Intelligence head to current head
         run: alembic upgrade head
       - name: Verify current migration
         run: alembic current
       - name: Verify Career Intelligence migration contract
         run: python -m scripts.verify_career_intelligence_migration --verify
+      - name: Verify Mock Interview intelligence migration contract
+        run: python -m scripts.verify_mock_interview_intelligence_migration --verify

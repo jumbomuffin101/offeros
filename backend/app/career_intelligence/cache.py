@@ -51,6 +51,11 @@ def clear_cache() -> None:
 def _collect_changed_users(session: Session, _context: object) -> None:
     changed = session.info.setdefault("career_intelligence_changed_users", set())
     for row in (*session.new, *session.dirty, *session.deleted):
+        if (
+            row.__class__.__name__ == "MockInterviewSession"
+            and getattr(row, "status", None) == "active"
+        ):
+            continue
         user_id = getattr(row, "user_id", None)
         if isinstance(user_id, UUID):
             changed.add(user_id)

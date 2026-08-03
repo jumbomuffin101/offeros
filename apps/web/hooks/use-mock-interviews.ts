@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import type { MockInterviewCreateInput } from "@/lib/data/types";
 import { mockInterviewRepository } from "@/lib/data/repositories/repositoryFactory";
 import { useRepositoryResource } from "@/hooks/use-repository-resource";
+import { announceDataChange } from "@/lib/data/repositories/events";
 
 const loadSessions = () => mockInterviewRepository.list();
 
@@ -13,6 +14,10 @@ export function useMockInterviews() {
     (input: MockInterviewCreateInput) =>
       resource.mutate(() => mockInterviewRepository.create(input)),
     [resource],
+  );
+  const plan = useCallback(
+    (input: MockInterviewCreateInput) => mockInterviewRepository.plan(input),
+    [],
   );
   const answer = useCallback(
     async (id: string, value: string, answerRequestId: string) => {
@@ -26,6 +31,7 @@ export function useMockInterviews() {
           session.id === id ? result.session : session,
         ) ?? current,
       );
+      if (result.session.status === "completed") announceDataChange();
       return result;
     },
     [resource],
@@ -41,6 +47,7 @@ export function useMockInterviews() {
     error: resource.error,
     refresh: resource.refresh,
     get: mockInterviewRepository.get,
+    plan,
     create,
     answer,
     abandon,

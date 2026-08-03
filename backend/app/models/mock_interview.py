@@ -65,6 +65,16 @@ class MockInterviewSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     provider: Mapped[str] = mapped_column(String(80), default="")
     model: Mapped[str] = mapped_column(String(160), default="")
     overall_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    career_context_version: Mapped[str] = mapped_column(String(60), default="")
+    career_context_json: Mapped[dict] = mapped_column(string_list_type, default=dict)
+    question_plan_json: Mapped[dict] = mapped_column(string_list_type, default=dict)
+    trend_delta_json: Mapped[dict] = mapped_column(string_list_type, default=dict)
+    observation_summary_json: Mapped[list[dict[str, object]]] = mapped_column(
+        string_list_type, default=list
+    )
+    intelligence_status: Mapped[str] = mapped_column(
+        String(30), default="unavailable"
+    )
 
     user = relationship("User", back_populates="mock_interview_sessions")
     turns = relationship(

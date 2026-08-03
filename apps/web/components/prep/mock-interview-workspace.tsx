@@ -8,6 +8,7 @@ import type {
   MockInterviewType,
 } from "@/lib/types";
 import type { MockInterviewCreateInput } from "@/lib/data/types";
+import type { MockInterviewPlanResult } from "@/lib/data/types";
 import { useApplications } from "@/hooks/use-applications";
 import { useMockInterviews } from "@/hooks/use-mock-interviews";
 import { useResumes } from "@/hooks/use-resumes";
@@ -27,6 +28,7 @@ const defaultConfig: MockInterviewCreateInput = {
 
 export function MockInterviewWorkspace() {
   const interviews = useMockInterviews();
+  const planInterview = interviews.plan;
   const applicationData = useApplications();
   const resumeData = useResumes();
   const [config, setConfig] = useState(defaultConfig);
@@ -37,19 +39,55 @@ export function MockInterviewWorkspace() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [plan, setPlan] = useState<MockInterviewPlanResult>();
+  const [planLoading, setPlanLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const applicationId = params.get("application") ?? undefined;
     const resumeVersionId = params.get("resume") ?? undefined;
     const requestedSession = params.get("session");
+    const requestedFocus = params.get("focus");
     window.queueMicrotask(() => {
-      setConfig((current) => ({ ...current, applicationId, resumeVersionId }));
+      setConfig((current) => ({
+        ...current,
+        applicationId,
+        resumeVersionId,
+        focusAreas: requestedFocus ? [requestedFocus] : current.focusAreas,
+      }));
       if (requestedSession) void openSession(requestedSession);
     });
     // Query parameters are a one-time launch context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (session) return;
+    let current = true;
+    const timer = window.setTimeout(() => {
+      setPlanLoading(true);
+      void planInterview({
+        applicationId: config.applicationId,
+        resumeVersionId: config.resumeVersionId,
+        interviewType: config.interviewType,
+        difficulty: config.difficulty,
+        questionCount: config.questionCount,
+        focusAreas: [],
+      }).then((result) => {
+        if (!current) return;
+        setPlan(result);
+        setConfig((value) => value.focusAreas?.length ? value : ({
+          ...value,
+          focusAreas: result.questionPlan.focusAreas.map((item) => item.key),
+        }));
+      }).catch(() => {
+        if (current) setPlan(undefined);
+      }).finally(() => {
+        if (current) setPlanLoading(false);
+      });
+    }, 250);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [config.applicationId, config.resumeVersionId, config.interviewType, config.difficulty, config.questionCount, planInterview, session]);
 
   useEffect(() => {
     if (session?.status !== "active") return;
@@ -191,6 +229,8 @@ export function MockInterviewWorkspace() {
         busy={busy}
         resumes={resumeData.resumes}
         value={config}
+        plan={plan}
+        planLoading={planLoading}
         onChange={setConfig}
         onStart={() => void start()}
       />
@@ -206,6 +246,7 @@ export function MockInterviewWorkspace() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2"><span className="font-medium text-white">{item.title}</span><Status value={item.status} /></div>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500"><span>{typeLabel(item.interviewType)}</span><span>{item.difficulty}</span><span className="flex items-center gap-1"><Clock3 className="size-3" />{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(item.startedAt))}</span></div>
+                {item.trendDelta.direction && item.trendDelta.direction !== "insufficient_data" ? <div className="mt-2 text-xs text-slate-400">{labelTrend(item.trendDelta.direction)} - strongest {formatDimension(item.trendDelta.strongestDimension)} - focus {formatDimension(item.trendDelta.weakestDimension)}</div> : null}
               </div>
               <div className="flex shrink-0 items-center gap-3">{typeof item.overallScore === "number" ? <span className="text-2xl font-semibold text-white">{item.overallScore}</span> : item.status === "active" ? <span className="flex items-center gap-1 text-xs text-indigo-200"><Play className="size-3" />Resume</span> : null}<ArrowRight className="size-4 text-slate-600 transition group-hover:text-slate-300" /></div>
             </button>
@@ -231,6 +272,8 @@ function Status({ value }: { value: MockInterviewSession["status"] }) {
   return <span className={`rounded-md px-2 py-1 text-[11px] font-medium capitalize ${tone}`}>{value}</span>;
 }
 function typeLabel(value: MockInterviewType) { return value === "system_design" ? "System design" : value.charAt(0).toUpperCase() + value.slice(1); }
+function labelTrend(value: string) { return value === "improving" ? "Improving" : value === "declining" ? "Needs attention" : "Stable"; }
+function formatDimension(value?: string) { return value?.replaceAll("_", " ") ?? "baseline"; }
 function messageFor(cause: unknown, fallback: string) { return cause instanceof Error && cause.message ? cause.message : fallback; }
 function ErrorNotice({ message }: { message: string }) { return <div className="rounded-lg border border-rose-300/20 bg-rose-300/[0.08] px-3 py-2 text-sm text-rose-100">{message}</div>; }
 function Notice({ message }: { message: string }) { return <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-sm text-emerald-100">{message}</div>; }

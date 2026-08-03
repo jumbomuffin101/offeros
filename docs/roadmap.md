@@ -1,5 +1,17 @@
 # OfferOS Production Roadmap
 
+## Career Intelligence Delivery Status
+
+- Phase 1 complete: shared context, observations, recommendations, health, trends, and cache.
+- Phase 2 complete: Today, Smart Inbox, and Recruiter Copilot consumers.
+- Phase 3A complete: Mock Interview context projection, deterministic question planning,
+  longitudinal observations, recommendations, and bounded readiness impact.
+- Phase 3B deferred: Resume Intelligence migration, Gmail classification, Behavioral Coach, and
+  System Design Coach.
+
+The production use of a Clerk development instance is an accepted portfolio limitation and is not
+changed by Phase 3A.
+
 ## Roadmap Principles
 
 - Complete the system-of-record foundation before AI or broad integrations.

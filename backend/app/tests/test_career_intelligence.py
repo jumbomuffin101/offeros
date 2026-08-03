@@ -17,6 +17,7 @@ from app.career_intelligence.trends import count_trend, status_ratio_trend
 from app.models.application import Application
 from app.models.base import ApplicationStatus, Base, Priority, ResumeStatus
 from app.models.career_intelligence import CareerObservation
+from app.models.mock_interview import MockInterviewScorecard, MockInterviewSession
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.user import User
 from app.services.account import AccountService
@@ -147,7 +148,7 @@ def test_recommendations_cover_deadline_prep_and_stale_application() -> None:
         user = add_user(db, "recommendations")
         application = add_application(
             db, user.id, "Interview Co", status=ApplicationStatus.INTERVIEW,
-            created_at=NOW - timedelta(days=20), deadline=date(2026, 8, 1),
+            created_at=NOW - timedelta(days=20), deadline=datetime.now(UTC).date() + timedelta(days=2),
         )
         application.meaningful_updated_at = NOW - timedelta(days=12)
         db.commit()
@@ -175,6 +176,84 @@ def test_health_does_not_penalize_missing_gmail_and_cache_invalidates() -> None:
         db.commit()
         after = service.context(user.id)
         assert after.applications["total"] == before.applications["total"] + 1
+
+
+def test_mock_interview_health_impact_is_bounded_and_ignores_abandoned() -> None:
+    with database() as db:
+        user = add_user(db, "bounded-interview-health")
+        add_application(
+            db,
+            user.id,
+            "Interview Co",
+            status=ApplicationStatus.INTERVIEW,
+            created_at=NOW,
+        )
+        completed = add_mock_interview(db, user.id, "completed", 100)
+        db.add(
+            MockInterviewScorecard(
+                session_id=completed.id,
+                communication_score=100,
+                technical_accuracy_score=100,
+                structure_score=100,
+                depth_score=100,
+                relevance_score=100,
+                technical_reasoning_score=100,
+                strengths=[],
+                weaknesses=[],
+                missed_points=[],
+                strongest_answer="",
+                weakest_answer="",
+                recommended_actions=[],
+                summary="Practice scorecard.",
+            )
+        )
+        add_mock_interview(db, user.id, "abandoned", 0)
+        db.commit()
+        context = CareerIntelligenceService(db).context(user.id, refresh=True)
+        assert context.career_health.subscores["interview_readiness"] == 62
+        assert context.career_health.subscores["coding_consistency"] == 62
+
+
+def test_newer_interview_improvement_resolves_older_weakness() -> None:
+    with database() as db:
+        user = add_user(db, "interview-resolution")
+        older = add_mock_interview(db, user.id, "completed", 55)
+        older.completed_at = NOW - timedelta(days=4)
+        older.updated_at = older.completed_at
+        older.observation_summary_json = [{
+            "type": "interview_weakness",
+            "dimension": "structure",
+            "summary": "Answers need a clearer framework.",
+            "confidence": 0.8,
+            "evidence_count": 3,
+        }]
+        db.commit()
+        CareerIntelligenceService(db).context(user.id, refresh=True)
+        weakness = db.scalar(select(CareerObservation).where(
+            CareerObservation.user_id == user.id,
+            CareerObservation.dedupe_key == "interview-weakness:structure",
+        ))
+        assert weakness is not None and weakness.status == "active"
+
+        newer = add_mock_interview(db, user.id, "completed", 78)
+        newer.completed_at = NOW
+        newer.updated_at = NOW
+        newer.observation_summary_json = [{
+            "type": "interview_improvement",
+            "dimension": "structure",
+            "summary": "Answer structure improved across recent practice.",
+            "confidence": 0.82,
+            "evidence_count": 3,
+        }]
+        db.commit()
+        CareerIntelligenceService(db).context(user.id, refresh=True)
+        db.refresh(weakness)
+        assert weakness.status == "resolved"
+        improvement = db.scalar(select(CareerObservation).where(
+            CareerObservation.user_id == user.id,
+            CareerObservation.dedupe_key == "interview-improvement:structure",
+        ))
+        assert improvement is not None and improvement.status == "active"
 
 
 def test_cache_hit_expiry_failure_fallback_and_user_isolation(
@@ -297,6 +376,35 @@ def add_application(
         user_id=user_id, company=company, role="Software Engineer", status=status,
         priority=Priority.HIGH, created_at=created_at, updated_at=created_at,
         meaningful_updated_at=created_at, deadline=deadline,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def add_mock_interview(
+    db: Session,
+    user_id,
+    status: str,
+    score: int | None,
+) -> MockInterviewSession:
+    row = MockInterviewSession(
+        user_id=user_id,
+        interview_type="technical",
+        status=status,
+        difficulty="standard",
+        title="Technical practice",
+        target_role="Software Engineer",
+        company_name="",
+        question_count=3,
+        current_question_index=3 if status == "completed" else 1,
+        current_follow_up_count=0,
+        context_sources=[],
+        started_at=NOW,
+        completed_at=NOW if status != "active" else None,
+        provider="mock",
+        model="test",
+        overall_score=score,
     )
     db.add(row)
     db.flush()

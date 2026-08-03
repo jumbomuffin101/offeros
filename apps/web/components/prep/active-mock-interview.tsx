@@ -46,6 +46,7 @@ export function ActiveMockInterview({
       <Progress className="rounded-none border-0" value={progress} />
       <main className="mx-auto max-w-4xl space-y-5 px-4 py-6 sm:px-8 sm:py-10">
         <div className="flex flex-wrap gap-2">
+          {session.questionPlan?.focusAreas.map((focus) => <span className="rounded-md border border-indigo-300/20 bg-indigo-300/[0.07] px-2 py-1 text-[11px] text-indigo-200" key={focus.key}>{focus.label}</span>)}
           {session.contextSources.map((source) => <span className="rounded-md border border-slate-700/40 bg-slate-900/30 px-2 py-1 text-[11px] text-slate-400" key={source}>{source}</span>)}
           {session.provider === "mock" ? <span className="rounded-md border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[11px] text-amber-200">Simulated locally</span> : null}
         </div>

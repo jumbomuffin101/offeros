@@ -77,6 +77,23 @@ def generate_recommendations(snapshot: CareerSnapshot, now: datetime) -> list[Ca
             repeated.capitalize(), "medium", "Review resumes", "/resumes",
             ["REPEATED_RESUME_WEAKNESS"], [], now,
         ))
+    for session in snapshot.mock_interviews:
+        if session.status != "completed":
+            continue
+        for item in session.observation_summary_json or []:
+            if not isinstance(item, dict) or item.get("type") != "interview_weakness":
+                continue
+            dimension = str(item.get("dimension") or "practice")[:60]
+            _add(recommendations, _rec(
+                f"mock-interview-practice:{dimension}", "mock_interview_practice",
+                f"Practice {dimension.replace('_', ' ')}",
+                str(item.get("summary") or "A recurring mock interview weakness needs deliberate practice.")[:300],
+                "medium", "Start mock interview",
+                f"/prep?tab=mock-interviews&focus={dimension}",
+                ["RECURRING_MOCK_INTERVIEW_WEAKNESS"], [str(session.id)], now,
+                expires_at=now + timedelta(days=7),
+            ))
+        break
     return sorted(recommendations.values(), key=lambda row: (-PRIORITY_ORDER[row.priority], row.key))
 
 

@@ -351,6 +351,12 @@ edits from incorrectly resetting stale and follow-up timers.
 metadata, progress counters, context-source labels, lifecycle timestamps, and the final overall
 score. Application and resume foreign keys use `SET NULL`; user deletion cascades.
 
+Migration `20260803_0019` adds `career_context_version`, `career_context_json`,
+`question_plan_json`, `trend_delta_json`, `observation_summary_json`, and `intelligence_status` with
+PostgreSQL-safe JSON defaults. Existing sessions remain readable with empty summaries. The context
+column stores only the bounded Mock Interview projection and is intentionally excluded from account
+export; question plans, trend summaries, and observation summaries are exportable.
+
 `mock_interview_turns` stores ordered interviewer/candidate text and validated evaluation JSON. A
 unique `(session_id, turn_index)` constraint preserves ordering, while
 `(session_id, answer_request_id)` prevents duplicate answer processing. It does not store hidden

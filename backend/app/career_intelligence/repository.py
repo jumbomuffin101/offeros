@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.application import Application
 from app.models.application_event import ApplicationEvent
@@ -55,7 +55,7 @@ class CareerIntelligenceRepository:
             coding_activity=self._recent(CodingActivity, user_id, threshold, 300),
             behavioral=self._active(BehavioralQuestion, user_id, 300),
             system_design=self._active(SystemDesignPrompt, user_id, 200),
-            mock_interviews=self._recent(MockInterviewSession, user_id, threshold, 100),
+            mock_interviews=self._mock_interviews(user_id, threshold, 100),
             gmail_connection=self.db.scalar(select(GmailConnection).where(GmailConnection.user_id == user_id)),
             gmail_suggestions=list(self.db.scalars(select(GmailApplicationSuggestion).where(
                 GmailApplicationSuggestion.user_id == user_id,
@@ -74,6 +74,22 @@ class CareerIntelligenceRepository:
         return list(self.db.scalars(select(model).where(
             model.user_id == user_id, model.updated_at >= threshold
         ).order_by(model.updated_at.desc()).limit(limit)))
+
+    def _mock_interviews(
+        self, user_id: UUID, threshold: datetime, limit: int
+    ) -> list[MockInterviewSession]:
+        return list(
+            self.db.scalars(
+                select(MockInterviewSession)
+                .options(selectinload(MockInterviewSession.scorecard))
+                .where(
+                    MockInterviewSession.user_id == user_id,
+                    MockInterviewSession.updated_at >= threshold,
+                )
+                .order_by(MockInterviewSession.updated_at.desc())
+                .limit(limit)
+            )
+        )
 
     def _related(self, model: type, user_id: UUID, threshold: datetime, ids: list[UUID], limit: int) -> list:
         if not ids:

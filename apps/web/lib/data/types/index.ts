@@ -50,6 +50,12 @@ export type MockInterviewCreateInput = {
   interviewType: MockInterviewType;
   difficulty: MockInterviewDifficulty;
   questionCount: number;
+  focusAreas?: string[];
+};
+export type MockInterviewPlanResult = {
+  questionPlan: import("@/lib/types").MockInterviewQuestionPlan;
+  contextSources: string[];
+  intelligenceStatus: "ready" | "partial" | "unavailable";
 };
 export type MockInterviewCreateResult = {
   session: MockInterviewSession;

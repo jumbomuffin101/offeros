@@ -615,19 +615,23 @@ attention result.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/mock-interviews` | List up to 30 lightweight user-owned session summaries |
+| POST | `/mock-interviews/plan` | Preview recommended focus areas and a deterministic question plan |
 | POST | `/mock-interviews` | Create a session and generate its first question |
 | GET | `/mock-interviews/{session_id}` | Load one owned session, turns, and scorecard |
 | POST | `/mock-interviews/{session_id}/answer` | Submit and evaluate one idempotent answer |
 | POST | `/mock-interviews/{session_id}/abandon` | Mark an active session abandoned |
 
-Creation accepts optional `application_id` and `resume_version_id`, interview type, difficulty, and
-three to ten main questions. Missing optional context does not prevent practice. Answer submission
+Planning and creation accept optional `application_id`, `resume_version_id`, and `focus_areas`, plus
+interview type, difficulty, and three to ten main questions. Explicit settings are preserved.
+Missing optional Career Intelligence context does not prevent practice. Answer submission
 accepts `answer` and optional `answer_request_id`; repeating an existing request ID returns the
 persisted result without adding turns.
 
 Per-turn evaluations contain 1-5 accuracy, relevance, clarity, depth, and structure scores plus
 concise strengths, weaknesses, missed points, and a bounded follow-up decision. Completed sessions
-return a 0-100 practice scorecard. Hidden reasoning and system prompts are never returned.
+return a 0-100 practice scorecard, longitudinal trend summary, and safe observation-update
+summaries. Session list responses use those lightweight summaries and do not load full Career
+Context per card. Hidden reasoning and system prompts are never returned.
 
 ## Launch readiness endpoints
 

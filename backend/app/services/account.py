@@ -185,4 +185,9 @@ class AccountService:
 
 def _columns(row: object) -> dict[str, object]:
     table = getattr(row, "__table__")
-    return {column.name: getattr(row, column.name) for column in table.columns}
+    excluded = {"career_context_json"} if isinstance(row, MockInterviewSession) else set()
+    return {
+        column.name: getattr(row, column.name)
+        for column in table.columns
+        if column.name not in excluded
+    }

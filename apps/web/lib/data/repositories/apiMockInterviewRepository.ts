@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/data/api/apiClient";
 import {
   fromApiEvaluation,
   fromApiMockInterview,
+  fromApiQuestionPlan,
   fromApiTurn,
 } from "@/lib/data/api/mockInterviewMappers";
 import {
@@ -23,19 +24,25 @@ export const apiMockInterviewRepository: MockInterviewRepository = {
     const response = await apiClient.get<DataResponse>(`/mock-interviews/${id}`);
     return fromApiMockInterview(response.data);
   },
+  async plan(input) {
+    const response = await apiClient.post<{
+      question_plan: Record<string, unknown>;
+      context_sources: string[];
+      intelligence_status: "ready" | "partial" | "unavailable";
+    }>("/mock-interviews/plan", requestPayload(input));
+    return {
+      questionPlan: fromApiQuestionPlan(response.question_plan),
+      contextSources: response.context_sources,
+      intelligenceStatus: response.intelligence_status,
+    };
+  },
   async create(input) {
     const response = await apiClient.post<{
       session: Record<string, unknown>;
       first_turn: Record<string, unknown>;
     }>(
       "/mock-interviews",
-      {
-        application_id: input.applicationId ?? null,
-        resume_version_id: input.resumeVersionId ?? null,
-        interview_type: input.interviewType,
-        difficulty: input.difficulty,
-        question_count: input.questionCount,
-      },
+      requestPayload(input),
       {
         timeoutMs: MOCK_INTERVIEW_TIMEOUT_MS,
         timeoutMessage: MOCK_INTERVIEW_TIMEOUT_MESSAGE,
@@ -85,3 +92,14 @@ export const apiMockInterviewRepository: MockInterviewRepository = {
     return fromApiMockInterview(response.data);
   },
 };
+
+function requestPayload(input: Parameters<MockInterviewRepository["create"]>[0]) {
+  return {
+    application_id: input.applicationId ?? null,
+    resume_version_id: input.resumeVersionId ?? null,
+    interview_type: input.interviewType,
+    difficulty: input.difficulty,
+    question_count: input.questionCount,
+    focus_areas: input.focusAreas ?? [],
+  };
+}
