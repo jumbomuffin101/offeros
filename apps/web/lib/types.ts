@@ -396,8 +396,55 @@ export type ResumeVersion = {
   latestAnalysisTargetRole?: string;
   latestAnalysisCompany?: string;
   analysisStatus?: string;
+  trendDirection?: "improving" | "stable" | "declining" | "insufficient_data";
+  comparisonStatus?: "comparable" | "partially_comparable" | "not_comparable";
+  recurringStrengths?: string[];
+  recurringWeaknesses?: string[];
+  applicationPerformance?: ResumePerformanceSummary;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ResumePerformanceSummary = {
+  status: "sufficient" | "insufficient_data";
+  sampleSize: number;
+  responseCount: number;
+  oaCount: number;
+  interviewCount: number;
+  offerCount: number;
+  responseRate?: number;
+  oaRate?: number;
+  interviewRate?: number;
+  offerRate?: number;
+  roleFamily: string;
+  statement: string;
+};
+
+export type ResumeIntelligence = {
+  version: string;
+  analysisSchemaVersion: string;
+  analysisMode: "general" | "target_role" | "application";
+  applicationId?: string;
+  comparison: {
+    status: "comparable" | "partially_comparable" | "not_comparable";
+    basis: string[];
+    comparisonAnalysisId?: string;
+    overallDelta?: number;
+    keywordDelta?: number;
+    improvedAreas: string[];
+    declinedAreas: string[];
+    unchangedAreas: string[];
+    confidence: number;
+  };
+  deterministicSignals: Array<{ code?: string; summary?: string; [key: string]: unknown }>;
+  recurringStrengths: string[];
+  recurringWeaknesses: string[];
+  observationCandidates: Array<{ type: string; scope: string; dimension: string; summary: string; confidence: number }>;
+  recommendations: Array<{ key: string; title: string; summary: string; priority: string; route: string; scope: string }>;
+  performance: ResumePerformanceSummary;
+  careerHealthImpact: { resumeReadinessDelta?: number; boundedTo?: number; reason?: string };
+  status: "ready" | "unavailable";
+  simulated: boolean;
 };
 
 export type ResumeAnalysis = {
@@ -430,6 +477,7 @@ export type ResumeAnalysis = {
   errorMessage: string;
   createdAt: string;
   updatedAt: string;
+  intelligence: ResumeIntelligence;
 };
 
 export type PrepStatus = "Not Started" | "In Progress" | "Completed" | "Skipped";

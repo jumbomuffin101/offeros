@@ -30,7 +30,12 @@ def calculate_health(snapshot: CareerSnapshot, metrics: dict[str, object]) -> Ca
     recent_apps = int(metrics["recent_applications"])
     stale = int(metrics["stale_follow_ups"])
     deadlines = int(metrics["urgent_deadlines"])
-    analyzed = sum(bool(r.latest_analysis_id or r.analysis_status == "completed") for r in snapshot.resumes)
+    latest_analysis_by_resume = {}
+    for analysis in snapshot.analyses:
+        latest_analysis_by_resume.setdefault(analysis.resume_version_id, analysis)
+    resume_readiness = _resume_readiness(
+        len(snapshot.resumes), list(latest_analysis_by_resume.values())
+    )
     completed_coding = int(metrics["coding_completed_14d"])
     completed_behavioral = int(metrics["behavioral_completed"])
     completed_design = int(metrics["system_design_completed"])
@@ -41,7 +46,7 @@ def calculate_health(snapshot: CareerSnapshot, metrics: dict[str, object]) -> Ca
 
     subscores: dict[str, int | None] = {
         "application_momentum": min(100, 45 + recent_apps * 12) if snapshot.applications else None,
-        "resume_readiness": min(100, 45 + analyzed * 25) if snapshot.resumes else None,
+        "resume_readiness": resume_readiness,
         "interview_readiness": interview_score if interview_score is not None else (55 if active else None),
         "coding_consistency": _blend_type_readiness(
             min(100, 35 + completed_coding * 12)
@@ -106,3 +111,18 @@ def _blend_type_readiness(base: int | None, scores: list[int]) -> int | None:
     if base is None:
         return interview
     return round(base * 0.7 + (interview or base) * 0.3)
+
+
+def _resume_readiness(total_resumes: int, analyses: list[object]) -> int | None:
+    if total_resumes == 0:
+        return None
+    if not analyses:
+        return 45
+    average = sum(int(getattr(row, "overall_score", 0)) for row in analyses) / len(analyses)
+    coverage = min(1, len(analyses) / total_resumes)
+    bounded_score_signal = max(-10, min(10, round((average - 70) * 0.35)))
+    latest = analyses[0]
+    intelligence = getattr(latest, "intelligence_json", {})
+    health = intelligence.get("career_health_impact", {}) if isinstance(intelligence, dict) else {}
+    longitudinal_delta = max(-4, min(4, int(health.get("resume_readiness_delta") or 0)))
+    return max(35, min(90, round(55 + coverage * 10 + bounded_score_signal + longitudinal_delta)))

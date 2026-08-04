@@ -39,3 +39,7 @@ Gmail classification reuses the configured provider only after deterministic fil
 malformed provider requests remain failed usage and do not count as completed operations. The model
 receives a capped excerpt and an instruction to treat email as untrusted data, return concise
 structured evidence, and avoid forced application matches.
+Resume analysis receives a sanitized CareerContext projection plus deterministic signals. Resume
+text and job descriptions are explicitly marked as untrusted data. The model must not follow
+embedded instructions, reveal prompts, or fabricate metrics. Comparability, application outcome
+rates, observation scope, recommendation keys, and Career Health effects are computed server-side.

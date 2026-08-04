@@ -103,6 +103,8 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
       suggestion: "Add the technology, ownership, and quantified result.",
     }));
   const overallScore = clamp(76 + strongKeywords.length * 2 - missingKeywords.length * 3 + (hasMetrics ? 6 : 0));
+  const prior = readResumeAnalyses().find((item) => item.resumeVersionId === resumeId && item.targetRole.trim().toLowerCase() === payload.targetRole.trim().toLowerCase());
+  const overallDelta = prior ? overallScore - prior.overallScore : undefined;
   return {
     id: `local-analysis-${timestampId(now)}`,
     resumeVersionId: resumeId,
@@ -146,6 +148,31 @@ function localMockAnalysis(resumeId: string, resumeText: string, payload: Resume
     errorMessage: "",
     createdAt: now,
     updatedAt: now,
+    intelligence: {
+      version: "resume-intelligence-v1",
+      analysisSchemaVersion: "resume-analysis-v1",
+      analysisMode: "target_role",
+      comparison: {
+        status: prior ? "comparable" : "not_comparable",
+        basis: prior ? ["same_resume", "same_target_role", "local_deterministic"] : ["no_compatible_prior_analysis"],
+        comparisonAnalysisId: prior?.id,
+        overallDelta,
+        keywordDelta: prior ? clamp(72 + strongKeywords.length * 3 - missingKeywords.length * 4) - prior.keywordScore : undefined,
+        improvedAreas: overallDelta != null && overallDelta >= 3 ? ["overall"] : [],
+        declinedAreas: overallDelta != null && overallDelta <= -3 ? ["overall"] : [],
+        unchangedAreas: overallDelta != null && Math.abs(overallDelta) < 3 ? ["overall"] : [],
+        confidence: prior ? 0.9 : 0,
+      },
+      deterministicSignals: hasMetrics ? [] : [{ code: "NO_QUANTIFIED_BULLETS", summary: "No resume bullets contain quantified evidence." }],
+      recurringStrengths: prior ? prior.strengths.filter((value) => ["Relevant SWE positioning is present.", "The resume can support role-specific tailoring."].includes(value)) : [],
+      recurringWeaknesses: prior ? prior.risks.filter((value) => !hasMetrics && value.toLowerCase().includes("quantified")) : [],
+      observationCandidates: [],
+      recommendations: [{ key: `resume:quantify:${resumeId}`, title: "Quantify two resume bullets", summary: "Add truthful scope or outcome metrics where available.", priority: "medium", route: `/resumes?open=${resumeId}`, scope: "resume_version" }],
+      performance: { status: "insufficient_data", sampleSize: 0, responseCount: 0, oaCount: 0, interviewCount: 0, offerCount: 0, roleFamily: "general_swe", statement: "Local mode has insufficient comparable application outcomes." },
+      careerHealthImpact: { resumeReadinessDelta: Math.max(-4, Math.min(4, Math.round((overallScore - 70) / 8))), boundedTo: 4, reason: "Simulated local intelligence." },
+      status: "ready",
+      simulated: true,
+    },
   };
 }
 
@@ -164,5 +191,10 @@ function resumeSummaryFromAnalysis(analysis: ResumeAnalysis): Partial<ResumeVers
     latestAnalysisTargetRole: analysis.targetRole,
     latestAnalysisCompany: analysis.companyName,
     analysisStatus: analysis.status,
+    trendDirection: analysis.intelligence.comparison.status === "not_comparable" ? "insufficient_data" : (analysis.intelligence.comparison.overallDelta ?? 0) >= 3 ? "improving" : (analysis.intelligence.comparison.overallDelta ?? 0) <= -3 ? "declining" : "stable",
+    comparisonStatus: analysis.intelligence.comparison.status,
+    recurringStrengths: analysis.intelligence.recurringStrengths,
+    recurringWeaknesses: analysis.intelligence.recurringWeaknesses,
+    applicationPerformance: analysis.intelligence.performance,
   };
 }

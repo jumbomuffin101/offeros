@@ -49,7 +49,8 @@ def get_resume(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> DataResponse[ResumeResponse]:
-    return DataResponse(data=ResumeService(db).get(user.id, resume_id))
+    service = ResumeService(db)
+    return DataResponse(data=service.response(user.id, service.get(user.id, resume_id)))
 
 
 @router.patch("/{resume_id}", response_model=DataResponse[ResumeResponse])
@@ -151,7 +152,7 @@ def analyze_resume(
     )
     return ResumeAnalyzeResponse(
         analysis=ResumeAnalysisResponse.model_validate(analysis),
-        resume=ResumeResponse.model_validate(resume),
+        resume=ResumeService(db).response(user.id, resume, analysis),
     )
 
 

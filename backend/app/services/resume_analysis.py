@@ -11,9 +11,20 @@ from app.core.config import Settings
 from app.core.errors import NotFoundError, ValidationError
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.application import Application
-from app.schemas.resume_analysis import ResumeAnalysisCreate
+from app.schemas.resume_analysis import ResumeAnalysisCreate, ResumeIntelligence, ResumePerformanceSummary
+from app.career_intelligence.observations import CareerObservationService
+from app.career_intelligence.repository import CareerIntelligenceRepository
 from app.services.ai_resume_analysis import provider_from_settings
 from app.services.resumes import ResumeService
+from app.services.resume_intelligence import (
+    ResumeCareerContextBuilder,
+    analysis_mode,
+    build_resume_intelligence,
+    calculate_resume_performance,
+    deterministic_signals,
+    find_comparable_analysis,
+    role_family,
+)
 from app.services.resume_summary import apply_latest_analysis_summary, clear_latest_analysis_summary
 
 
@@ -54,15 +65,64 @@ class ResumeAnalysisService:
         if not resume_text:
             raise ValidationError("Upload a resume file or paste resume text before running AI analysis.")
         job_description = payload.job_description.strip()
-        if len(job_description) < 80:
+        mode = "application" if application is not None else (payload.analysis_mode or analysis_mode(application, payload.target_role, job_description))
+        if mode != "general" and len(job_description) < 80:
             raise ValidationError("Paste a target job description before running job-specific resume analysis.")
+        prior_analyses = list(
+            self.db.scalars(
+                select(ResumeAnalysis)
+                .where(
+                    ResumeAnalysis.user_id == user_id,
+                    ResumeAnalysis.resume_version_id == resume.id,
+                    ResumeAnalysis.deleted_at.is_(None),
+                    ResumeAnalysis.status == "completed",
+                )
+                .order_by(ResumeAnalysis.created_at.desc())
+                .limit(12)
+            )
+        )
+        prior, comparison_status, comparison_basis, comparison_confidence = find_comparable_analysis(
+            prior_analyses,
+            current_mode=mode,
+            target_role=payload.target_role,
+            application_id=application.id if application else None,
+        )
+        performance = calculate_resume_performance(
+            self.db, user_id, resume.id, role_family(payload.target_role)
+        )
+        signals = deterministic_signals(
+            resume, resume_text, prior_analyses, performance, application
+        )
+        try:
+            career_context = ResumeCareerContextBuilder(self.db).build(
+                user_id,
+                resume,
+                target_role=payload.target_role,
+                company_name=(payload.company_name or "").strip(),
+                application=application,
+                mode=mode,
+            )
+        except Exception:
+            logger.warning(
+                "resume_intelligence.context_unavailable user_id=%s resume_id=%s",
+                user_id,
+                resume.id,
+                exc_info=self.settings.app_env != "production",
+            )
+            career_context = {
+                "version": "resume-intelligence-v1",
+                "generated_at": datetime.now(UTC).isoformat(),
+                "status": "unavailable",
+            }
 
         provider = provider_from_settings(self.settings)
         analysis_started_at = perf_counter()
         result = provider.analyze(
             resume_text=resume_text,
             target_role=payload.target_role.strip(),
-            job_description=job_description,
+            job_description=job_description or "General software engineering resume readiness assessment.",
+            career_context=career_context,
+            deterministic_signals=signals,
         )
         logger.info(
             "Resume analysis provider completed in %d ms (provider=%s model=%s)",
@@ -79,6 +139,35 @@ class ResumeAnalysisService:
                 resume.extracted_at = datetime.now(UTC)
                 resume.extraction_character_count = len(resume.extracted_text)
 
+            try:
+                intelligence = build_resume_intelligence(
+                    result=result,
+                    resume=resume,
+                    context=career_context,
+                    prior=prior,
+                    comparison_status=comparison_status,
+                    comparison_basis=comparison_basis,
+                    comparison_confidence=comparison_confidence,
+                    signals=signals,
+                    performance=performance,
+                    mode=mode,
+                    application=application,
+                    simulated=provider.provider == "mock",
+                )
+            except Exception:
+                logger.warning(
+                    "resume_intelligence.reconciliation_unavailable user_id=%s resume_id=%s",
+                    user_id,
+                    resume.id,
+                    exc_info=self.settings.app_env != "production",
+                )
+                intelligence = ResumeIntelligence(
+                    analysis_mode=mode,
+                    application_id=application.id if application else None,
+                    performance=ResumePerformanceSummary(),
+                    status="unavailable",
+                    simulated=provider.provider == "mock",
+                )
             analysis = ResumeAnalysis(
                 user_id=user_id,
                 resume_version_id=resume.id,
@@ -90,6 +179,7 @@ class ResumeAnalysisService:
                 provider=provider.provider,
                 model=provider.model,
                 status="completed",
+                intelligence_json=intelligence.model_dump(mode="json"),
                 **result.model_dump(),
             )
             self.db.add(analysis)
@@ -97,6 +187,17 @@ class ResumeAnalysisService:
             apply_latest_analysis_summary(resume, analysis)
             if application is not None:
                 application.resume_analysis_id = analysis.id
+            try:
+                with self.db.begin_nested():
+                    snapshot = CareerIntelligenceRepository(self.db).snapshot(user_id)
+                    CareerObservationService(self.db, datetime.now(UTC)).reconcile(user_id, snapshot)
+            except Exception:
+                logger.warning(
+                    "resume_intelligence.observation_reconciliation_failed user_id=%s resume_id=%s",
+                    user_id,
+                    resume.id,
+                    exc_info=self.settings.app_env != "production",
+                )
             self.db.commit()
         except Exception:
             self.db.rollback()

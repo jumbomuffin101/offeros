@@ -6,7 +6,10 @@
 - Phase 2 complete: Today, Smart Inbox, and Recruiter Copilot consumers.
 - Phase 3A complete: Mock Interview context projection, deterministic question planning,
   longitudinal observations, recommendations, and bounded readiness impact.
-- Phase 3B deferred: Resume Intelligence migration, Gmail classification, Behavioral Coach, and
+- Phase 3B complete: Resume Intelligence sanitized context, comparability, scoped observations,
+  deterministic recommendations, bounded Career Health, and sample-gated application outcomes.
+- Phase 3C deferred: Gmail classification, Behavioral Coach, System Design Coach, and Coding
+  Intelligence integration.
   System Design Coach.
 
 The production use of a Clerk development instance is an accepted portfolio limitation and is not

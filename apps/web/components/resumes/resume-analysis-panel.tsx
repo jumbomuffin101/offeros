@@ -297,7 +297,8 @@ export function ResumeAnalysisPanel({
               <div className="flex items-center gap-2 rounded-lg border border-slate-700/35 bg-slate-900/20 p-2" key={analysis.id}>
                 <button className="min-w-0 flex-1 text-left" onClick={() => setSelectedId(analysis.id)} type="button">
                   <div className="truncate text-sm font-medium text-slate-100">{analysis.targetRole}{analysis.companyName ? ` at ${analysis.companyName}` : ""}</div>
-                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit - {analysis.keywordScore}% keywords - {analysis.model} - {new Date(analysis.createdAt).toLocaleDateString()}</div>
+                  <div className="text-xs text-slate-500">{analysis.overallScore}% fit - {analysis.keywordScore}% keywords - {analysis.intelligence.analysisMode.replace("_", " ")} - {analysis.intelligence.comparison.status.replace("_", " ")} - {new Date(analysis.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-1 text-xs text-slate-600">{analysis.intelligence.recommendations.length} next actions - {analysis.intelligence.observationCandidates.length} longitudinal signals</div>
                 </button>
                 <Button className="px-2" onClick={() => setFullAnalysis(analysis)} variant="ghost" aria-label="View analysis">
                   <ExternalLink className="size-4" />
@@ -443,6 +444,7 @@ export function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
         <ListGroup label="Strengths" items={analysis.strengths} />
         <ListGroup label="Screening risks" items={analysis.risks} />
       </div>
+      <LongitudinalIntelligence analysis={analysis} />
       <WeakBulletGroup items={analysis.weakBullets} />
       {analysis.suggestedBulletRewrites.length ? (
         <div>
@@ -464,6 +466,36 @@ export function AnalysisResult({ analysis }: { analysis: ResumeAnalysis }) {
     </div>
   );
 }
+
+function LongitudinalIntelligence({ analysis }: { analysis: ResumeAnalysis }) {
+  const intelligence = analysis.intelligence;
+  const comparison = intelligence.comparison;
+  const delta = comparison.overallDelta;
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4">
+        <h4 className="text-xs font-medium uppercase text-slate-500">Compared with prior comparable analysis</h4>
+        {comparison.status === "not_comparable" ? <p className="mt-3 text-sm leading-6 text-slate-500">No genuinely comparable prior analysis was found. OfferOS does not claim improvement across materially different roles or schemas.</p> : <><div className="mt-3 text-lg font-semibold text-white">{delta == null ? "No score delta" : `${delta > 0 ? "+" : ""}${delta} overall points`}</div><p className="mt-1 text-xs text-slate-500">{comparison.status.replace("_", " ")} - {Math.round(comparison.confidence * 100)}% comparison confidence</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><ListGroup label="Improved" items={comparison.improvedAreas.map(humanize)} /><ListGroup label="New risks" items={comparison.declinedAreas.map(humanize)} /></div></>}
+      </section>
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4">
+        <h4 className="text-xs font-medium uppercase text-slate-500">Application-performance context</h4>
+        <p className="mt-3 text-sm leading-6 text-slate-300">{intelligence.performance.statement}</p>
+        {intelligence.performance.status === "sufficient" ? <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500"><span>Responses: {intelligence.performance.responseCount}/{intelligence.performance.sampleSize}</span><span>OA: {intelligence.performance.oaCount}/{intelligence.performance.sampleSize}</span><span>Interviews: {intelligence.performance.interviewCount}/{intelligence.performance.sampleSize}</span><span>Offers: {intelligence.performance.offerCount}/{intelligence.performance.sampleSize}</span></div> : null}
+      </section>
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4"><ListGroup label="Recurring strengths" items={intelligence.recurringStrengths} /></section>
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4"><ListGroup label="Recurring weaknesses" items={intelligence.recurringWeaknesses} /></section>
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4 xl:col-span-2"><ListGroup label="Recommended next actions" items={intelligence.recommendations.map((item) => `${item.title}: ${item.summary}`)} /></section>
+      <section className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-4 xl:col-span-2">
+        <h4 className="text-xs font-medium uppercase text-slate-500">Career Health impact</h4>
+        <p className="mt-3 text-sm leading-6 text-slate-300">Resume readiness contribution: {formatDelta(intelligence.careerHealthImpact.resumeReadinessDelta)} points, bounded to ±{intelligence.careerHealthImpact.boundedTo ?? 4}. {intelligence.careerHealthImpact.reason ?? "Only completed, comparable evidence contributes."}</p>
+        {intelligence.simulated ? <Badge className="mt-3" tone="amber">Simulated local intelligence</Badge> : null}
+      </section>
+    </div>
+  );
+}
+
+function humanize(value: string) { return value.replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase()); }
+function formatDelta(value: number | undefined) { return value == null ? "0" : value > 0 ? `+${value}` : String(value); }
 
 function SkillMatchGroup({ label, items }: { label: string; items: ResumeAnalysis["requiredSkillsMatch"] }) {
   return <div><h4 className="mb-2 text-xs font-medium uppercase text-slate-500">{label}</h4><div className="space-y-2">{items.length ? items.slice(0, 12).map((item) => <div className="rounded-lg border border-slate-700/35 bg-slate-900/20 p-3" key={`${label}-${item.skill}`}><div className="flex items-center justify-between gap-3"><span className="text-sm font-medium text-slate-200">{item.skill}</span><Badge tone={item.status === "strong" ? "green" : item.status === "partial" ? "amber" : "red"}>{item.status}</Badge></div>{item.evidence ? <p className="mt-2 text-xs leading-5 text-slate-500">{item.evidence}</p> : null}</div>) : <span className="text-sm text-slate-600">No skill coverage returned.</span>}</div></div>;

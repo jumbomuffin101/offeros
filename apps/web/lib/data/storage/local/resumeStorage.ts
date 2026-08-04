@@ -50,6 +50,11 @@ function normalizeResume(value: unknown): ResumeVersion | null {
     latestAnalysisTargetRole: stringValue(item.latestAnalysisTargetRole),
     latestAnalysisCompany: stringValue(item.latestAnalysisCompany),
     analysisStatus: stringValue(item.analysisStatus),
+    trendDirection: trendDirection(item.trendDirection),
+    comparisonStatus: comparisonStatus(item.comparisonStatus),
+    recurringStrengths: stringArray(item.recurringStrengths),
+    recurringWeaknesses: stringArray(item.recurringWeaknesses),
+    applicationPerformance: performance(item.applicationPerformance),
     createdAt: stringValue(item.createdAt) || updatedAt, updatedAt,
   };
 }
@@ -64,3 +69,15 @@ function dateFromLegacy(value: unknown) { if (typeof value !== "string" || !valu
 function resumeTextStatus(value: unknown): ResumeVersion["textExtractionStatus"] {
   return value === "manual" || value === "parsed" || value === "failed" ? value : "not_started";
 }
+function trendDirection(value: unknown): ResumeVersion["trendDirection"] {
+  return value === "improving" || value === "stable" || value === "declining" ? value : "insufficient_data";
+}
+function comparisonStatus(value: unknown): ResumeVersion["comparisonStatus"] {
+  return value === "comparable" || value === "partially_comparable" ? value : "not_comparable";
+}
+function performance(value: unknown): ResumeVersion["applicationPerformance"] {
+  if (!value || typeof value !== "object") return { status: "insufficient_data", sampleSize: 0, responseCount: 0, oaCount: 0, interviewCount: 0, offerCount: 0, roleFamily: "general_swe", statement: "Not enough application outcomes yet." };
+  const item = value as Record<string, unknown>;
+  return { status: item.status === "sufficient" ? "sufficient" : "insufficient_data", sampleSize: numberValue(item.sampleSize, 0), responseCount: numberValue(item.responseCount, 0), oaCount: numberValue(item.oaCount, 0), interviewCount: numberValue(item.interviewCount, 0), offerCount: numberValue(item.offerCount, 0), responseRate: optionalNumber(item.responseRate), oaRate: optionalNumber(item.oaRate), interviewRate: optionalNumber(item.interviewRate), offerRate: optionalNumber(item.offerRate), roleFamily: stringValue(item.roleFamily) || "general_swe", statement: stringValue(item.statement) || "Not enough application outcomes yet." };
+}
+function optionalNumber(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? value : undefined; }

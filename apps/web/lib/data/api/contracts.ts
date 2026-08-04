@@ -106,8 +106,29 @@ export type ApiResume = {
   latest_analysis_target_role: string;
   latest_analysis_company: string;
   analysis_status: string;
+  applications_used?: number;
+  trend_direction?: "improving" | "stable" | "declining" | "insufficient_data";
+  comparison_status?: "comparable" | "partially_comparable" | "not_comparable";
+  recurring_strengths?: string[];
+  recurring_weaknesses?: string[];
+  application_performance?: ApiResumePerformance;
   created_at: string;
   updated_at: string;
+};
+
+export type ApiResumePerformance = {
+  status?: "sufficient" | "insufficient_data";
+  sample_size?: number;
+  response_count?: number;
+  oa_count?: number;
+  interview_count?: number;
+  offer_count?: number;
+  response_rate?: number | null;
+  oa_rate?: number | null;
+  interview_rate?: number | null;
+  offer_rate?: number | null;
+  role_family?: string;
+  statement?: string;
 };
 
 export type ApiResumeUploadResponse = {
@@ -153,6 +174,32 @@ export type ApiResumeAnalysis = {
   error_message: string;
   created_at: string;
   updated_at: string;
+  intelligence_json?: {
+    version?: string;
+    analysis_schema_version?: string;
+    analysis_mode?: "general" | "target_role" | "application";
+    application_id?: string | null;
+    comparison?: {
+      status?: "comparable" | "partially_comparable" | "not_comparable";
+      basis?: string[];
+      comparison_analysis_id?: string | null;
+      overall_delta?: number | null;
+      keyword_delta?: number | null;
+      improved_areas?: string[];
+      declined_areas?: string[];
+      unchanged_areas?: string[];
+      confidence?: number;
+    };
+    deterministic_signals?: Array<Record<string, unknown>>;
+    recurring_strengths?: string[];
+    recurring_weaknesses?: string[];
+    observation_candidates?: Array<{ type?: string; scope?: string; dimension?: string; summary?: string; confidence?: number }>;
+    recommendations?: Array<{ key?: string; title?: string; summary?: string; priority?: string; route?: string; scope?: string }>;
+    performance?: ApiResumePerformance;
+    career_health_impact?: { resume_readiness_delta?: number; bounded_to?: number; reason?: string };
+    status?: "ready" | "unavailable";
+    simulated?: boolean;
+  };
 };
 
 export type ApiResumeAnalyzeResponse = {

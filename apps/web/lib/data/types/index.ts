@@ -33,6 +33,7 @@ export type ResumeAnalysisInput = {
   jobDescription: string;
   resumeText?: string;
   analysisRequestId?: string;
+  analysisMode?: "general" | "target_role" | "application";
 };
 export type ResumeAnalyzeResult = {
   analysis: ResumeAnalysis;

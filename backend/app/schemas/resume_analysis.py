@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
@@ -37,14 +37,69 @@ class SkillMatch(ORMModel):
 class ResumeAnalysisCreate(ORMModel):
     target_role: NonEmptyStr = Field(max_length=200)
     company_name: str | None = Field(default="", max_length=200)
-    job_description: NonEmptyStr = Field(max_length=40_000)
+    job_description: str = Field(default="", max_length=40_000)
     resume_text: str | None = Field(default=None, max_length=120_000)
     analysis_request_id: UUID | None = None
+    analysis_mode: Literal["general", "target_role", "application"] | None = None
 
     @field_validator("job_description", "resume_text", mode="before")
     @classmethod
     def normalize_text(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
+
+
+class ResumeAnalysisComparison(ORMModel):
+    status: str = "not_comparable"
+    basis: list[str] = Field(default_factory=list)
+    comparison_analysis_id: UUID | None = None
+    overall_delta: int | None = None
+    keyword_delta: int | None = None
+    improved_areas: list[str] = Field(default_factory=list)
+    declined_areas: list[str] = Field(default_factory=list)
+    unchanged_areas: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0, ge=0, le=1)
+
+
+class ResumePerformanceSummary(ORMModel):
+    status: str = "insufficient_data"
+    sample_size: int = 0
+    response_count: int = 0
+    oa_count: int = 0
+    interview_count: int = 0
+    offer_count: int = 0
+    response_rate: float | None = None
+    oa_rate: float | None = None
+    interview_rate: float | None = None
+    offer_rate: float | None = None
+    role_family: str = "general"
+    statement: str = "Not enough application outcomes yet."
+
+
+class ResumeObservationSummary(ORMModel):
+    type: str
+    scope: str
+    dimension: str
+    summary: str
+    confidence: float = Field(ge=0, le=1)
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class ResumeIntelligence(ORMModel):
+    version: str = "resume-intelligence-v1"
+    analysis_schema_version: str = "resume-analysis-v1"
+    analysis_mode: str = "target_role"
+    application_id: UUID | None = None
+    context_generated_at: datetime | None = None
+    comparison: ResumeAnalysisComparison = Field(default_factory=ResumeAnalysisComparison)
+    deterministic_signals: list[dict[str, Any]] = Field(default_factory=list)
+    recurring_strengths: list[str] = Field(default_factory=list)
+    recurring_weaknesses: list[str] = Field(default_factory=list)
+    observation_candidates: list[ResumeObservationSummary] = Field(default_factory=list)
+    recommendations: list[dict[str, Any]] = Field(default_factory=list)
+    performance: ResumePerformanceSummary = Field(default_factory=ResumePerformanceSummary)
+    career_health_impact: dict[str, Any] = Field(default_factory=dict)
+    status: str = "ready"
+    simulated: bool = False
 
 
 class ResumeAnalysisResponse(ORMModel):
@@ -77,6 +132,7 @@ class ResumeAnalysisResponse(ORMModel):
     model: str
     status: str
     error_message: str
+    intelligence_json: ResumeIntelligence = Field(default_factory=ResumeIntelligence)
     created_at: datetime
     updated_at: datetime
 

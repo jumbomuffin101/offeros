@@ -34,6 +34,9 @@ export function mergeAnalyzedResume(
 }
 
 export function resumeSummaryFromAnalysis(resume: ResumeVersion, analysis: ResumeAnalysis): ResumeVersion {
+  const intelligence = analysis.intelligence;
+  const comparison = intelligence?.comparison ?? { status: "not_comparable" as const, overallDelta: undefined };
+  const delta = comparison.overallDelta;
   return {
     ...resume,
     keywordMatchScore: analysis.keywordScore,
@@ -47,6 +50,11 @@ export function resumeSummaryFromAnalysis(resume: ResumeVersion, analysis: Resum
     latestAnalysisTargetRole: analysis.targetRole,
     latestAnalysisCompany: analysis.companyName,
     analysisStatus: analysis.status,
+    trendDirection: comparison.status === "not_comparable" ? "insufficient_data" : delta != null && delta >= 3 ? "improving" : delta != null && delta <= -3 ? "declining" : "stable",
+    comparisonStatus: comparison.status,
+    recurringStrengths: intelligence?.recurringStrengths ?? [],
+    recurringWeaknesses: intelligence?.recurringWeaknesses ?? [],
+    applicationPerformance: intelligence?.performance,
     lastUpdated: analysis.updatedAt || resume.lastUpdated,
     updatedAt: analysis.updatedAt || resume.updatedAt,
   };

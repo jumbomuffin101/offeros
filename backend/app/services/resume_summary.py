@@ -29,9 +29,20 @@ def latest_analysis_summary_values(analysis: ResumeAnalysis | None) -> dict[str,
             "latest_analysis_target_role": "",
             "latest_analysis_company": "",
             "analysis_status": "",
+            "trend_direction": "insufficient_data",
+            "comparison_status": "not_comparable",
+            "recurring_strengths": [],
+            "recurring_weaknesses": [],
+            "application_performance": {},
         }
 
     recommendations = _safe_string_list(getattr(analysis, "recommendations", None), limit=12)
+    intelligence = analysis.intelligence_json if isinstance(getattr(analysis, "intelligence_json", None), dict) else {}
+    comparison = intelligence.get("comparison") if isinstance(intelligence.get("comparison"), dict) else {}
+    delta = comparison.get("overall_delta")
+    trend = "insufficient_data"
+    if comparison.get("status") in {"comparable", "partially_comparable"} and isinstance(delta, (int, float)):
+        trend = "improving" if delta >= 3 else "declining" if delta <= -3 else "stable"
     return {
         "keyword_match_score": getattr(analysis, "keyword_score", 0),
         "strengths": _safe_string_list(getattr(analysis, "strengths", None), limit=12),
@@ -44,6 +55,11 @@ def latest_analysis_summary_values(analysis: ResumeAnalysis | None) -> dict[str,
         "latest_analysis_target_role": _safe_text(getattr(analysis, "target_role", None)),
         "latest_analysis_company": _safe_text(getattr(analysis, "company_name", None)),
         "analysis_status": _safe_text(getattr(analysis, "status", None)),
+        "trend_direction": trend,
+        "comparison_status": _safe_text(comparison.get("status"), "not_comparable"),
+        "recurring_strengths": _safe_string_list(intelligence.get("recurring_strengths"), limit=6),
+        "recurring_weaknesses": _safe_string_list(intelligence.get("recurring_weaknesses"), limit=6),
+        "application_performance": intelligence.get("performance") if isinstance(intelligence.get("performance"), dict) else {},
     }
 
 

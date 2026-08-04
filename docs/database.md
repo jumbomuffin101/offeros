@@ -430,3 +430,17 @@ scope, sync cursor, OAuth state hash, encrypted PKCE verifier, and safe diagnost
 metadata. `gmail_application_suggestions` stores review state and confirmed application/event
 links. Migration `20260727_0017` adds named ownership, status, received-time, application, and
 message-deduplication indexes.
+Resume Career Intelligence migration `20260804_0020` adds one non-null JSON/JSONB
+`resume_analyses.intelligence_json` column with a safe `{}` default for legacy analyses. Verify the
+isolated scenario with:
+
+```powershell
+cd backend
+alembic upgrade 20260803_0019
+python -m scripts.verify_resume_intelligence_migration --seed
+python -m scripts.verify_resume_intelligence_migration --confirm-seed
+alembic upgrade 20260804_0020
+python -m scripts.verify_resume_intelligence_migration --verify
+```
+
+Use a disposable database; the verifier intentionally creates and deletes deterministic fixtures.

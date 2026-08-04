@@ -40,3 +40,7 @@ raw resume text, full job descriptions, application notes, raw Gmail content, us
 tokens, and hidden prompts. Interview answers are sent only for the requested evaluation and are
 not written to logs. Account export omits the persisted sanitized context snapshot as an additional
 data-minimization measure.
+Resume Career Intelligence stores a versioned summary of comparison status, scoped evidence, and
+aggregate application outcomes. It does not store raw CareerContext, hidden prompts, provider
+diagnostics, or chain-of-thought. Raw resume text and job descriptions remain user-owned analysis
+inputs and are scrubbed from logs and error reporting.

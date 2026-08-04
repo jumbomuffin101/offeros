@@ -9,6 +9,7 @@ from sqlalchemy.engine import make_url
 from app.core.config import get_settings
 from scripts import verify_career_intelligence_migration as career_verifier
 from scripts import verify_mock_interview_intelligence_migration as mock_verifier
+from scripts import verify_resume_intelligence_migration as resume_verifier
 from scripts.migration_verification import log_database_target
 
 
@@ -78,6 +79,22 @@ def test_mock_verify_missing_fixture_raises_runtime_error_not_no_result(
     assert mock_verifier.SEED_COMMAND in message
 
 
+def test_resume_intelligence_seed_commits_is_idempotent_and_verifies(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    url = sqlite_url(tmp_path / "resume-intelligence.db")
+    configure_database(url, monkeypatch)
+    upgrade("20260803_0019")
+
+    resume_verifier.seed()
+    resume_verifier.seed()
+    resume_verifier.confirm_seed()
+    assert row_count(url, "resume_analyses", "id", resume_verifier.SEED_ANALYSIS_ID) == 1
+
+    upgrade("20260804_0020")
+    resume_verifier.verify()
+
+
 def test_wrong_revision_has_actionable_error(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -110,6 +127,7 @@ def configure_database(url: str, monkeypatch: pytest.MonkeyPatch) -> None:
     settings = SimpleNamespace(database_url=url)
     monkeypatch.setattr(career_verifier, "get_settings", lambda: settings)
     monkeypatch.setattr(mock_verifier, "get_settings", lambda: settings)
+    monkeypatch.setattr(resume_verifier, "get_settings", lambda: settings)
 
 
 def upgrade(revision: str) -> None:
@@ -125,6 +143,7 @@ def row_count(url: str, table: str, column: str, value: str) -> int:
     allowed = {
         ("users", "clerk_user_id"),
         ("mock_interview_sessions", "id"),
+        ("resume_analyses", "id"),
     }
     if (table, column) not in allowed:
         raise ValueError("Unsupported test count target")

@@ -1,4 +1,4 @@
-import { Copy, Eye, FileText } from "lucide-react";
+import { Copy, Eye, FileText, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { ResumeVersion } from "@/lib/types";
 import { formatResumeDate } from "@/lib/resume-utils";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ export function ResumeCard({
   onDuplicate: () => void;
 }) {
   const analyzed = Boolean(resume.latestAnalysisId || resume.lastAnalyzedAt || resume.latestOverallScore != null);
+  const TrendIcon = resume.trendDirection === "improving" ? TrendingUp : resume.trendDirection === "declining" ? TrendingDown : Minus;
   return (
     <article
       className={`premium-hover group relative rounded-2xl border p-5 transition ${
@@ -69,6 +70,8 @@ export function ResumeCard({
       </div>
 
       {analyzed ? <p className="pointer-events-none relative z-10 mt-3 truncate text-xs text-slate-500">{resume.latestOverallScore ?? resume.keywordMatchScore}% fit for {resume.latestAnalysisTargetRole || resume.targetRole}{resume.latestAnalysisCompany ? ` at ${resume.latestAnalysisCompany}` : ""}</p> : null}
+      {analyzed ? <div className="pointer-events-none relative z-10 mt-2 flex items-center gap-2 text-xs text-slate-500"><TrendIcon className={`size-3.5 ${resume.trendDirection === "improving" ? "text-emerald-300" : resume.trendDirection === "declining" ? "text-rose-300" : "text-slate-500"}`} /><span>{resume.trendDirection === "insufficient_data" ? "No comparable prior analysis" : `${resume.trendDirection?.replace("_", " ")} vs. comparable analysis`}</span></div> : null}
+      {resume.applicationPerformance?.status === "sufficient" ? <p className="pointer-events-none relative z-10 mt-2 text-xs leading-5 text-slate-500">{resume.applicationPerformance.interviewCount} of {resume.applicationPerformance.sampleSize} comparable applications reached interviews. Correlation only.</p> : analyzed ? <p className="pointer-events-none relative z-10 mt-2 text-xs text-slate-600">More application outcomes are needed for performance rates.</p> : null}
 
       <div className="pointer-events-none relative z-10 mt-5">
         <div className="mb-2 flex items-center justify-between text-sm">

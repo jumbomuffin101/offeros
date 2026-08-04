@@ -672,6 +672,12 @@ No endpoint sends or modifies Gmail messages. Callback state is hashed, expiring
 and stored with an encrypted PKCE verifier.
 ## Career Intelligence
 
+Resume analysis responses include `analysis.intelligence_json`. The versioned object contains
+`analysis_mode`, `comparison`, `deterministic_signals`, recurring strengths/weaknesses, scoped
+observation candidates, deterministic recommendations, aggregate application performance, and a
+bounded Career Health impact. Existing analysis fields remain unchanged. `GET /resumes` includes
+only lightweight latest trend and performance summaries; it does not rebuild context per card.
+
 Authenticated, user-scoped read endpoints:
 
 - `GET /api/v1/career-intelligence/context`

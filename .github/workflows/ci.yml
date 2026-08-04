@@ -131,6 +131,19 @@ jobs:
         run: alembic upgrade 20260803_0019
       - name: Verify Mock Interview 0019 migration contract
         run: python -m scripts.verify_mock_interview_intelligence_migration --verify
+
+      - name: Prepare Resume Intelligence 0020 scenario
+        run: psql -v ON_ERROR_STOP=1 -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+      - name: Upgrade to pre-0020 revision
+        run: alembic upgrade 20260803_0019
+      - name: Seed deterministic pre-0020 fixtures
+        run: python -m scripts.verify_resume_intelligence_migration --seed
+      - name: Confirm committed pre-0020 fixtures
+        run: python -m scripts.verify_resume_intelligence_migration --confirm-seed
+      - name: Upgrade 0019 to Resume Intelligence 0020
+        run: alembic upgrade 20260804_0020
+      - name: Verify Resume Intelligence 0020 migration contract
+        run: python -m scripts.verify_resume_intelligence_migration --verify
       - name: Confirm final revision and single head
         run: |
           alembic current

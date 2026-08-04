@@ -96,6 +96,12 @@ class ResumeResponse(ORMModel):
     latest_analysis_target_role: str = ""
     latest_analysis_company: str = ""
     analysis_status: str = ""
+    applications_used: int = 0
+    trend_direction: str = "insufficient_data"
+    comparison_status: str = "not_comparable"
+    recurring_strengths: list[str] = Field(default_factory=list)
+    recurring_weaknesses: list[str] = Field(default_factory=list)
+    application_performance: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
@@ -123,7 +129,7 @@ class ResumeResponse(ORMModel):
         status = "" if value is None else str(value)
         return status if status in allowed else "not_started"
 
-    @field_validator("tags", "strengths", "weaknesses", "missing_keywords", mode="before")
+    @field_validator("tags", "strengths", "weaknesses", "missing_keywords", "recurring_strengths", "recurring_weaknesses", mode="before")
     @classmethod
     def _list_default(cls, value: Any) -> list[str]:
         if value is None:

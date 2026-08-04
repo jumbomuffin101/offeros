@@ -230,3 +230,7 @@ Suggestions are review-only. Accepting one creates a confirmed application timel
 application status changes only when the user explicitly selects that option. Disconnect revokes
 Google access when possible and always removes the encrypted refresh token. Local mode provides a
 clearly labeled simulation and never starts real Google OAuth.
+Career Intelligence Phase 3B connects Resume Intelligence to that same boundary. Analyses receive
+a sanitized resume-specific projection, compare only compatible history, create scoped observations
+and deterministic recommendations, and use application outcomes only after a five-application
+sample. See [docs/resume-intelligence.md](docs/resume-intelligence.md).

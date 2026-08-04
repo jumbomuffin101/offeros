@@ -107,7 +107,7 @@ export function fromApiResume(value: ApiResume): ResumeVersion {
   return {
     id: value.id, name: value.name, targetRole: value.target_role, description: value.description ?? "",
     status: value.status === "active" ? "Active" : "Draft", lastUpdated: value.updated_at,
-    applicationsUsed: 0, keywordMatchScore: safeScore(value.keyword_match_score), tags: stringArray(value.tags),
+    applicationsUsed: Number.isFinite(Number(value.applications_used)) ? Number(value.applications_used) : 0, keywordMatchScore: safeScore(value.keyword_match_score), tags: stringArray(value.tags),
     strengths: stringArray(value.strengths), weaknesses: stringArray(value.weaknesses), missingKeywords: stringArray(value.missing_keywords),
     suggestedImprovement: value.suggested_improvement ?? "", notes: value.notes ?? "", fileName: value.file_name ?? "",
     originalFileName: value.original_file_name ?? "", extractedText: value.extracted_text ?? "",
@@ -120,6 +120,11 @@ export function fromApiResume(value: ApiResume): ResumeVersion {
     latestAnalysisTargetRole: value.latest_analysis_target_role ?? "",
     latestAnalysisCompany: value.latest_analysis_company ?? "",
     analysisStatus: value.analysis_status ?? "",
+    trendDirection: value.trend_direction ?? "insufficient_data",
+    comparisonStatus: value.comparison_status ?? "not_comparable",
+    recurringStrengths: stringArray(value.recurring_strengths),
+    recurringWeaknesses: stringArray(value.recurring_weaknesses),
+    applicationPerformance: fromApiResumePerformance(value.application_performance),
     createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
@@ -176,6 +181,7 @@ export function fromApiResumeAnalysis(value: ApiResumeAnalysis): ResumeAnalysis 
     errorMessage: value.error_message,
     createdAt: value.created_at,
     updatedAt: value.updated_at,
+    intelligence: fromApiResumeIntelligence(value.intelligence_json),
   };
 }
 
@@ -186,6 +192,7 @@ export function toApiResumeAnalysis(value: ResumeAnalysisInput) {
     job_description: value.jobDescription,
     resume_text: value.resumeText,
     analysis_request_id: value.analysisRequestId,
+    analysis_mode: value.analysisMode,
   });
 }
 
@@ -275,6 +282,59 @@ function skillMatches(value: ApiResumeAnalysis["required_skills_match"]): Resume
     status: item.status === "strong" || item.status === "partial" ? item.status : "missing",
     evidence: typeof item.evidence === "string" ? item.evidence : null,
   })) : [];
+}
+function fromApiResumePerformance(value: import("@/lib/data/api/contracts").ApiResumePerformance | undefined): import("@/lib/types").ResumePerformanceSummary {
+  return {
+    status: value?.status === "sufficient" ? "sufficient" : "insufficient_data",
+    sampleSize: Number(value?.sample_size ?? 0),
+    responseCount: Number(value?.response_count ?? 0),
+    oaCount: Number(value?.oa_count ?? 0),
+    interviewCount: Number(value?.interview_count ?? 0),
+    offerCount: Number(value?.offer_count ?? 0),
+    responseRate: nullableNumber(value?.response_rate),
+    oaRate: nullableNumber(value?.oa_rate),
+    interviewRate: nullableNumber(value?.interview_rate),
+    offerRate: nullableNumber(value?.offer_rate),
+    roleFamily: value?.role_family ?? "general_swe",
+    statement: value?.statement ?? "Not enough application outcomes yet.",
+  };
+}
+function fromApiResumeIntelligence(value: ApiResumeAnalysis["intelligence_json"]): ResumeAnalysis["intelligence"] {
+  const comparison = value?.comparison;
+  return {
+    version: value?.version ?? "resume-intelligence-v1",
+    analysisSchemaVersion: value?.analysis_schema_version ?? "legacy",
+    analysisMode: value?.analysis_mode ?? "target_role",
+    applicationId: value?.application_id ?? undefined,
+    comparison: {
+      status: comparison?.status ?? "not_comparable",
+      basis: stringArray(comparison?.basis),
+      comparisonAnalysisId: comparison?.comparison_analysis_id ?? undefined,
+      overallDelta: nullableNumber(comparison?.overall_delta),
+      keywordDelta: nullableNumber(comparison?.keyword_delta),
+      improvedAreas: stringArray(comparison?.improved_areas),
+      declinedAreas: stringArray(comparison?.declined_areas),
+      unchangedAreas: stringArray(comparison?.unchanged_areas),
+      confidence: Number(comparison?.confidence ?? 0),
+    },
+    deterministicSignals: Array.isArray(value?.deterministic_signals) ? value.deterministic_signals : [],
+    recurringStrengths: stringArray(value?.recurring_strengths),
+    recurringWeaknesses: stringArray(value?.recurring_weaknesses),
+    observationCandidates: Array.isArray(value?.observation_candidates) ? value.observation_candidates.map((item) => ({ type: item.type ?? "", scope: item.scope ?? "resume_version", dimension: item.dimension ?? "general", summary: item.summary ?? "", confidence: Number(item.confidence ?? 0) })) : [],
+    recommendations: Array.isArray(value?.recommendations) ? value.recommendations.map((item) => ({ key: item.key ?? "", title: item.title ?? "", summary: item.summary ?? "", priority: item.priority ?? "medium", route: item.route ?? "/resumes", scope: item.scope ?? "resume_version" })) : [],
+    performance: fromApiResumePerformance(value?.performance),
+    careerHealthImpact: {
+      resumeReadinessDelta: nullableNumber(value?.career_health_impact?.resume_readiness_delta),
+      boundedTo: nullableNumber(value?.career_health_impact?.bounded_to),
+      reason: value?.career_health_impact?.reason,
+    },
+    status: value?.status === "unavailable" ? "unavailable" : "ready",
+    simulated: Boolean(value?.simulated),
+  };
+}
+function nullableNumber(value: unknown) {
+  const number = Number(value);
+  return value == null || !Number.isFinite(number) ? undefined : number;
 }
 function inferCategory(input: ApplicationInput | Application): Application["category"] {
   const content = [input.company, input.role, input.source, input.resumeUsed, input.notes, ...input.tags].join(" ").toLowerCase();

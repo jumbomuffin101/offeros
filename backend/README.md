@@ -234,6 +234,12 @@ The frontend uses this endpoint for Settings clear actions and optional sample w
 
 ## AI Resume Intelligence
 
+Phase 3B persists a versioned `intelligence_json` envelope on each analysis. It contains safe
+comparison metadata, deterministic signals, scoped observation/recommendation summaries, aggregate
+resume performance, and bounded Career Health impact. Existing score fields and endpoint response
+shapes remain compatible. Apply migration `20260804_0020` and see
+`docs/resume-intelligence.md` for comparability and privacy rules.
+
 Resume versions now store resume text and extraction metadata:
 
 - `extracted_text`

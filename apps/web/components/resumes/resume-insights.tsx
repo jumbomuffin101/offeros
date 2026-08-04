@@ -9,9 +9,9 @@ export function ResumeInsights({ resumes }: { resumes: ResumeVersion[] }) {
   const insights = [
     { label: "Best keyword match", value: summary.bestKeywordMatch ? `${summary.bestKeywordMatch.name} - ${summary.bestKeywordMatch.keywordMatchScore}%` : "Run an analysis", icon: Target, tone: "text-emerald-300" },
     { label: "Best overall fit", value: summary.bestOverallFit ? `${summary.bestOverallFit.name} - ${summary.bestOverallFit.latestOverallScore ?? 0}%` : "Run an analysis", icon: Target, tone: "text-indigo-300" },
-    { label: "Most used resume", value: summary.mostUsed ? `${summary.mostUsed.name} - ${summary.mostUsed.applicationsUsed} applications` : "No resumes", icon: TrendingUp, tone: "text-cyan-300" },
+    { label: "Resume performance", value: summary.bestPerforming ? `${summary.bestPerforming.name} - ${Math.round((summary.bestPerforming.applicationPerformance?.interviewRate ?? 0) * 100)}% interview rate` : summary.mostUsed ? `${summary.mostUsed.applicationsUsed} tracked uses - more outcomes needed` : "No resumes", icon: TrendingUp, tone: "text-cyan-300" },
     { label: "Common missing keywords", value: summary.commonMissingKeywords.join(", ") || (summary.analyzed.length ? "No keyword gaps recorded" : "Run an analysis"), icon: Activity, tone: "text-amber-300" },
-    { label: "Top next improvement", value: summary.topNextImprovement || (summary.analyzed.length ? "No improvement recorded" : "Run an analysis"), icon: Lightbulb, tone: "text-violet-300" },
+    { label: "Recurring weakness", value: summary.recurringWeakness || summary.topNextImprovement || (summary.analyzed.length ? "No recurring weakness yet" : "Run an analysis"), icon: Lightbulb, tone: "text-violet-300" },
   ];
 
   return (

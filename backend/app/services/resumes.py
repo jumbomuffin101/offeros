@@ -4,12 +4,13 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
 from app.models.base import ResumeStatus
 from app.models.resume import ResumeAnalysis, ResumeVersion
+from app.models.application import Application
 from app.repositories.resumes import ResumeRepository
 from app.schemas.resume import ResumeCreate, ResumeResponse, ResumeUpdate
 from app.schemas.common import persistence_values
@@ -30,12 +31,27 @@ class ResumeService:
     def list(self, user_id: UUID) -> list[ResumeResponse]:
         resumes = self.repository.list(user_id)
         latest_by_resume = self._latest_completed_analyses(user_id, resumes)
+        usage_by_resume = self._application_usage(user_id, resumes)
         response_models: list[ResumeResponse] = []
         for resume in resumes:
             values = ResumeResponse.model_validate(resume).model_dump()
             values.update(latest_analysis_summary_values(latest_by_resume.get(resume.id)))
+            values["applications_used"] = usage_by_resume.get(resume.id, 0)
             response_models.append(ResumeResponse.model_validate(values))
         return response_models
+
+    def response(
+        self,
+        user_id: UUID,
+        resume: ResumeVersion,
+        analysis: ResumeAnalysis | None = None,
+    ) -> ResumeResponse:
+        if analysis is None:
+            analysis = self._latest_completed_analyses(user_id, [resume]).get(resume.id)
+        values = ResumeResponse.model_validate(resume).model_dump()
+        values.update(latest_analysis_summary_values(analysis))
+        values["applications_used"] = self._application_usage(user_id, [resume]).get(resume.id, 0)
+        return ResumeResponse.model_validate(values)
 
     def _latest_completed_analyses(
         self, user_id: UUID, resumes: list[ResumeVersion]
@@ -53,10 +69,31 @@ class ResumeService:
             )
             .order_by(ResumeAnalysis.resume_version_id, ResumeAnalysis.created_at.desc(), ResumeAnalysis.updated_at.desc())
         )
+        rows = list(analyses)
         latest_by_resume: dict[UUID, ResumeAnalysis] = {}
-        for analysis in analyses:
+        by_id = {analysis.id: analysis for analysis in rows}
+        for analysis in rows:
             latest_by_resume.setdefault(analysis.resume_version_id, analysis)
+        for resume in resumes:
+            if resume.latest_analysis_id in by_id:
+                latest_by_resume[resume.id] = by_id[resume.latest_analysis_id]
         return latest_by_resume
+
+    def _application_usage(
+        self, user_id: UUID, resumes: list[ResumeVersion]
+    ) -> dict[UUID, int]:
+        if not resumes:
+            return {}
+        rows = self.db.execute(
+            select(Application.resume_version_id, func.count(Application.id))
+            .where(
+                Application.user_id == user_id,
+                Application.resume_version_id.in_([resume.id for resume in resumes]),
+                Application.deleted_at.is_(None),
+            )
+            .group_by(Application.resume_version_id)
+        )
+        return {resume_id: int(count) for resume_id, count in rows if resume_id is not None}
 
     def get(self, user_id: UUID, resume_id: UUID) -> ResumeVersion:
         resume = self.repository.get(user_id, resume_id)

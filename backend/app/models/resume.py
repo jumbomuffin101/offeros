@@ -93,6 +93,7 @@ class ResumeAnalysis(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base)
     model: Mapped[str] = mapped_column(String(120), default="local-mock")
     status: Mapped[str] = mapped_column(String(40), default="completed")
     error_message: Mapped[str] = mapped_column(Text, default="")
+    intelligence_json: Mapped[dict[str, object]] = mapped_column(string_list_type, default=dict)
 
     user = relationship("User", back_populates="resume_analyses")
     resume = relationship("ResumeVersion", back_populates="analyses")

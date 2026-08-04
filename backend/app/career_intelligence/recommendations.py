@@ -77,6 +77,25 @@ def generate_recommendations(snapshot: CareerSnapshot, now: datetime) -> list[Ca
             repeated.capitalize(), "medium", "Review resumes", "/resumes",
             ["REPEATED_RESUME_WEAKNESS"], [], now,
         ))
+    seen_resumes: set[object] = set()
+    for analysis in snapshot.analyses:
+        if analysis.resume_version_id in seen_resumes:
+            continue
+        seen_resumes.add(analysis.resume_version_id)
+        intelligence = analysis.intelligence_json if isinstance(analysis.intelligence_json, dict) else {}
+        for item in intelligence.get("recommendations", []):
+            if not isinstance(item, dict) or not item.get("key") or not item.get("title"):
+                continue
+            scope = str(item.get("scope") or "resume_version")
+            application_id = intelligence.get("application_id") if scope == "application" else None
+            _add(recommendations, _rec(
+                str(item["key"])[:180], "resume_intelligence", str(item["title"])[:240],
+                str(item.get("summary") or "Review the latest resume analysis.")[:300],
+                str(item.get("priority") or "medium") if str(item.get("priority") or "medium") in PRIORITY_ORDER else "medium",
+                "Review recommendation", str(item.get("route") or f"/resumes?open={analysis.resume_version_id}"),
+                ["RESUME_INTELLIGENCE"], [str(analysis.id)], now, application_id,
+                now + timedelta(days=14),
+            ))
     for session in snapshot.mock_interviews:
         if session.status != "completed":
             continue
