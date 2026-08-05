@@ -145,7 +145,7 @@ jobs:
       - name: Verify Resume Intelligence 0020 migration contract
         run: python -m scripts.verify_resume_intelligence_migration --verify
       - name: Prepare Behavioral Coach 0021 scenario
-        run: python -m scripts.prepare_migration_database
+        run: psql -v ON_ERROR_STOP=1 -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
       - name: Upgrade to pre-0021 revision
         run: alembic upgrade 20260804_0020
       - name: Seed deterministic pre-0021 fixtures
