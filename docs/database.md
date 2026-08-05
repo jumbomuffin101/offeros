@@ -443,4 +443,14 @@ alembic upgrade 20260804_0020
 python -m scripts.verify_resume_intelligence_migration --verify
 ```
 
+Phase 3C migration `20260805_0021` keeps `behavioral_questions` as the story source of truth, adds safe JSON summary fields for legacy stories, and creates `behavioral_story_evaluations` plus `behavioral_practice_sessions`. Verify the isolated upgrade with:
+
+```bash
+alembic upgrade 20260804_0020
+python -m scripts.verify_behavioral_coach_migration --seed
+python -m scripts.verify_behavioral_coach_migration --confirm-seed
+alembic upgrade 20260805_0021
+python -m scripts.verify_behavioral_coach_migration --verify
+```
+
 Use a disposable database; the verifier intentionally creates and deletes deterministic fixtures.

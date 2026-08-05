@@ -2,6 +2,10 @@ import type { PrepSession, PrepWorkspaceData } from "@/lib/types";
 import type { PrepRepository } from "@/lib/data/types/repositories";
 import type {
   ApiBehavioralQuestion,
+  ApiBehavioralEvaluation,
+  ApiBehavioralEvaluationEnvelope,
+  ApiBehavioralPortfolio,
+  ApiBehavioralPractice,
   ApiCodingProblem,
   ApiDataResponse,
   ApiSystemDesignPrompt,
@@ -9,6 +13,9 @@ import type {
 import { apiClient } from "@/lib/data/api/apiClient";
 import {
   fromApiBehavioral,
+  fromApiBehavioralEvaluation,
+  fromApiBehavioralPortfolio,
+  fromApiBehavioralPractice,
   fromApiCoding,
   fromApiSystemDesign,
   toApiBehavioral,
@@ -87,5 +94,21 @@ export const apiPrepRepository: PrepRepository = {
     await resetApiWorkspace("prep", "sample");
     writeApiPrepGoals(prepWorkspaceData.goals);
     return this.list();
+  },
+  async evaluateBehavioral(storyId, input) {
+    const response = await apiClient.post<ApiDataResponse<ApiBehavioralEvaluationEnvelope>>(`/prep/behavioral/${storyId}/evaluate`, { competency_focus: input.competencyFocus || null, application_id: input.applicationId || null }, { timeoutMs: 300000 });
+    return { evaluation: fromApiBehavioralEvaluation(response.data.evaluation), story: fromApiBehavioral(response.data.story) };
+  },
+  async listBehavioralEvaluations(storyId) {
+    const response = await apiClient.get<ApiDataResponse<ApiBehavioralEvaluation[]>>(`/prep/behavioral/${storyId}/evaluations`);
+    return response.data.map(fromApiBehavioralEvaluation);
+  },
+  async behavioralPortfolio() {
+    const response = await apiClient.get<ApiDataResponse<ApiBehavioralPortfolio>>("/prep/behavioral-portfolio");
+    return fromApiBehavioralPortfolio(response.data);
+  },
+  async practiceBehavioral(input) {
+    const response = await apiClient.post<ApiDataResponse<ApiBehavioralPractice>>("/prep/behavioral-practice", { story_id: input.storyId || null, application_id: input.applicationId || null, competency: input.competency, prompt: input.prompt, answer: input.answer }, { timeoutMs: 300000 });
+    return fromApiBehavioralPractice(response.data);
   },
 };

@@ -100,6 +100,10 @@ export interface PrepRepository {
   delete(id: string): Promise<void>;
   replace(data: PrepWorkspaceData): Promise<PrepWorkspaceData>;
   reset(): Promise<PrepWorkspaceData>;
+  evaluateBehavioral(storyId: string, input: { competencyFocus?: string; applicationId?: string }): Promise<{ evaluation: import("@/lib/types").BehavioralEvaluation; story: import("@/lib/types").BehavioralQuestion }>;
+  listBehavioralEvaluations(storyId: string): Promise<import("@/lib/types").BehavioralEvaluation[]>;
+  behavioralPortfolio(): Promise<import("@/lib/types").BehavioralPortfolio>;
+  practiceBehavioral(input: { storyId?: string; applicationId?: string; competency: string; prompt: string; answer: string }): Promise<import("@/lib/types").BehavioralPracticeResult>;
 }
 
 export interface DashboardRepository {

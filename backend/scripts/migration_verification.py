@@ -92,7 +92,7 @@ def database_uuid(engine: Engine, value: str) -> UUID | str:
 
 
 def safe_count(connection: Connection, table: str) -> int:
-    allowed = {"users", "career_observations", "mock_interview_sessions", "resume_analyses"}
+    allowed = {"users", "career_observations", "mock_interview_sessions", "resume_analyses", "behavioral_questions"}
     if table not in allowed:
         raise ValueError(f"Unsupported migration diagnostic table: {table}")
     return int(connection.scalar(text(f"SELECT COUNT(*) FROM {table}")) or 0)

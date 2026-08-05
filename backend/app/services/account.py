@@ -17,7 +17,7 @@ from app.models.gmail import GmailApplicationSuggestion, GmailConnection, GmailM
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
 from app.models.launch import AIUsageEvent, Notification
 from app.models.mock_interview import MockInterviewScorecard, MockInterviewSession, MockInterviewTurn
-from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
+from app.models.prep import BehavioralPracticeSession, BehavioralQuestion, BehavioralStoryEvaluation, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.settings import UserSettings
 from app.models.user import User
@@ -34,6 +34,8 @@ EXPORT_MODELS = {
     "coding_profile_connections": CodingProfileConnection,
     "coding_goals": CodingGoal,
     "behavioral_questions": BehavioralQuestion,
+    "behavioral_story_evaluations": BehavioralStoryEvaluation,
+    "behavioral_practice_sessions": BehavioralPracticeSession,
     "system_design_prompts": SystemDesignPrompt,
     "mock_interviews": MockInterviewSession,
     "notifications": Notification,
@@ -169,6 +171,8 @@ class AccountService:
             CodingProfileConnection,
             CodingGoal,
             CodingProblem,
+            BehavioralStoryEvaluation,
+            BehavioralPracticeSession,
             BehavioralQuestion,
             SystemDesignPrompt,
             AnalyticsSnapshot,

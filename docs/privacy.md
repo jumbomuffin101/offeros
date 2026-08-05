@@ -44,3 +44,5 @@ Resume Career Intelligence stores a versioned summary of comparison status, scop
 aggregate application outcomes. It does not store raw CareerContext, hidden prompts, provider
 diagnostics, or chain-of-thought. Raw resume text and job descriptions remain user-owned analysis
 inputs and are scrubbed from logs and error reporting.
+
+Behavioral Coach stores saved STAR text and explicitly submitted practice answers, plus safe evaluation summaries. It excludes raw CareerContext, Gmail bodies, resume text, hidden prompts, provider diagnostics, and chain-of-thought from evaluation persistence and logs. Account export includes user-authored story/practice data and safe summaries; account deletion and workspace reset remove stories, evaluations, practices, and related observations.

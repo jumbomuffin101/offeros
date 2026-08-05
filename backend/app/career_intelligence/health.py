@@ -60,7 +60,7 @@ def calculate_health(snapshot: CareerSnapshot, metrics: dict[str, object]) -> Ca
             ],
         ),
         "behavioral_readiness": _blend_type_readiness(
-            min(100, 35 + completed_behavioral * 15) if snapshot.behavioral else None,
+            _behavioral_story_readiness(snapshot.behavioral, completed_behavioral),
             [row.scorecard.behavioral_score for row in completed_interviews if row.scorecard and row.scorecard.behavioral_score is not None],
         ),
         "system_design_readiness": _blend_type_readiness(
@@ -126,3 +126,15 @@ def _resume_readiness(total_resumes: int, analyses: list[object]) -> int | None:
     health = intelligence.get("career_health_impact", {}) if isinstance(intelligence, dict) else {}
     longitudinal_delta = max(-4, min(4, int(health.get("resume_readiness_delta") or 0)))
     return max(35, min(90, round(55 + coverage * 10 + bounded_score_signal + longitudinal_delta)))
+
+
+def _behavioral_story_readiness(stories: list[object], completed: int) -> int | None:
+    if not stories:
+        return None
+    values = {"draft": 42, "needs_work": 52, "practice_ready": 68, "interview_ready": 82}
+    average = sum(values.get(str(getattr(row, "readiness_status", "draft")), 42) for row in stories) / len(stories)
+    evaluated = sum(bool(getattr(row, "latest_evaluated_at", None)) for row in stories)
+    coverage = min(6, evaluated) * 2
+    consistency = min(4, completed) * 1.5
+    # Story intelligence can move this subscore by at most 10 points from its baseline.
+    return max(35, min(90, round(average + coverage + consistency)))

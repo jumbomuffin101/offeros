@@ -283,7 +283,9 @@ through answer turns; the full Career Context is not rebuilt on every answer.
 After completion, validated per-turn candidates are aggregated before Career Observations are
 reconciled. The normal user-scoped cache invalidation path then updates Today and Smart Inbox.
 Resume Intelligence is integrated in Phase 3B through a sanitized projection built at the Career
-Intelligence boundary. It does not call Mock Interviews or Recruiter Copilot directly; new scoped
-observations become available to those consumers only through CareerContextBuilder. Gmail
-classification, Behavioral Coach, System Design Coach, and Coding Intelligence remain deferred.
-remain deferred to Phase 3B.
+Intelligence boundary. Behavioral Coach follows the same boundary in Phase 3C:
+`BehavioralCareerContextBuilder` projects only behavioral evidence plus bounded story, practice,
+application-prep, mock-score, and summarized resume signals. Neither integration calls Mock
+Interviews or Recruiter Copilot directly; scoped observations reach those consumers through
+`CareerContextBuilder`. Gmail classification, System Design Coach, Coding Intelligence, and Phase
+3D remain deferred.

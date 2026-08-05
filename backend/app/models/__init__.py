@@ -17,7 +17,13 @@ from app.models.career_intelligence import CareerObservation
 from app.models.gmail import GmailApplicationSuggestion, GmailConnection, GmailMessageReference
 from app.models.application_prep import ApplicationPrepPlan
 from app.models.coding import CodingActivity, CodingGoal, CodingProfileConnection
-from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
+from app.models.prep import (
+    BehavioralPracticeSession,
+    BehavioralQuestion,
+    BehavioralStoryEvaluation,
+    CodingProblem,
+    SystemDesignPrompt,
+)
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.settings import UserSettings
 from app.models.user import User
@@ -44,6 +50,8 @@ __all__ = [
     "CodingGoal",
     "CodingProfileConnection",
     "BehavioralQuestion",
+    "BehavioralStoryEvaluation",
+    "BehavioralPracticeSession",
     "CodingProblem",
     "ResumeVersion",
     "ResumeAnalysis",

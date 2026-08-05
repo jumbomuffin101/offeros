@@ -8,9 +8,11 @@
   longitudinal observations, recommendations, and bounded readiness impact.
 - Phase 3B complete: Resume Intelligence sanitized context, comparability, scoped observations,
   deterministic recommendations, bounded Career Health, and sample-gated application outcomes.
-- Phase 3C deferred: Gmail classification, Behavioral Coach, System Design Coach, and Coding
-  Intelligence integration.
-  System Design Coach.
+- Phase 3C complete: Behavioral Coach sanitized context, deterministic STAR checks, competency
+  coverage, comparable evaluations, scoped observations, recommendations, practice, and bounded
+  Career Health.
+- Deferred: System Design Coach, Gmail classification integration, Coding Intelligence integration,
+  and Phase 3D.
 
 The production use of a Clerk development instance is an accepted portfolio limitation and is not
 changed by Phase 3A.

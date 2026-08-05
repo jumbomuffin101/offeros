@@ -19,6 +19,7 @@ Clerk provides account authentication. The frontend repository factory supports 
 - Manifest V3 job capture extension for user-initiated Greenhouse, Lever, Ashby, and active-page fallback capture
 - Application-specific AI Recruiter Copilot with persistent conversations, quick prompts, and follow-up drafting
 - Deterministic Career Intelligence shared by Today, Smart Inbox, and Recruiter Copilot
+- Behavioral Coach with deterministic STAR checks, controlled competency coverage, comparable evaluations, and focused practice
 
 ## Tech Stack
 
@@ -77,6 +78,8 @@ AI_MOCK_ENABLED=false
 ```
 
 Local mode uses deterministic mock analysis without a backend AI key. Backend mock analysis is available only when `AI_MOCK_ENABLED=true` in local/test environments. In production, missing OpenRouter config returns a clear setup error.
+
+Behavioral Coach reuses the same backend AI provider when configured and falls back to deterministic guidance. See [docs/behavioral-prep.md](docs/behavioral-prep.md) for taxonomy, readiness, comparison, Career Health, and privacy rules.
 
 In API mode, users can upload PDF, DOCX, or TXT resumes up to 5 MB. FastAPI extracts text server-side, stores only the extracted text and original filename in PostgreSQL, and deletes temporary processing state. Files are not sent directly to OpenRouter and permanent private file storage is intentionally deferred. Manual resume-text paste remains available as a fallback.
 

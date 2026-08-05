@@ -31,8 +31,15 @@ class ApplicationPrepService:
         text = f"{application.role} {application.job_description} {' '.join(analysis.missing_keywords or []) if analysis else ''}".lower()
         topics = [{"topic": name, "priority": "high" if key in text else "medium", "reason": "Based on this role's requirements and your current prep history."} for key, name in TOPIC_KEYWORDS.items() if key in text][:5] or [{"topic": "Data structures", "priority": "high", "reason": "Core technical interview preparation for this software engineering role."}, {"topic": "Graphs", "priority": "medium", "reason": "Build balanced algorithm coverage from your logged practice."}]
         behavioral_categories = ["Ownership", "Collaboration", "Impact", "Ambiguity"]
+        stories = list(self.db.scalars(select(BehavioralQuestion).where(
+            BehavioralQuestion.user_id == user_id, BehavioralQuestion.deleted_at.is_(None)
+        ).limit(100)))
+        story_matches = {
+            category.lower(): [str(story.id) for story in stories if category.lower() in {tag.lower() for tag in story.competency_tags or []} or category.lower() in f"{story.category} {story.question}".lower()][:3]
+            for category in behavioral_categories
+        }
         coding = {"priority_topics": topics, "recommended_problem_mix": {"easy": 2, "medium": 6, "hard": 1}, "weekly_target": 8}
-        behavioral = {"focus_areas": [{"category": item, "priority": "high" if item == "Ownership" else "medium", "reason": "Use a concrete STAR story relevant to this role."} for item in behavioral_categories], "recommended_story_ids": [], "missing_story_categories": behavioral_categories}
+        behavioral = {"focus_areas": [{"category": item, "priority": "high" if item == "Ownership" else "medium", "reason": "Use a concrete STAR story relevant to this role.", "story_ids": story_matches[item.lower()]} for item in behavioral_categories], "recommended_story_ids": list(dict.fromkeys(story_id for values in story_matches.values() for story_id in values)), "missing_story_categories": [item for item in behavioral_categories if not story_matches[item.lower()]], "coach_route": f"/prep?tab=behavioral&application={application.id}"}
         system = {"focus_areas": [{"topic": topic["topic"], "priority": topic["priority"], "reason": topic["reason"]} for topic in topics if topic["topic"] in {"Distributed systems", "Caching", "Databases", "Storage systems"}], "recommended_prompts": []}
         plan = self.db.scalar(select(ApplicationPrepPlan).where(ApplicationPrepPlan.application_id == application.id))
         if plan is None:

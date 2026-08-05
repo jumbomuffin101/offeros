@@ -43,3 +43,5 @@ Resume analysis receives a sanitized CareerContext projection plus deterministic
 text and job descriptions are explicitly marked as untrusted data. The model must not follow
 embedded instructions, reveal prompts, or fabricate metrics. Comparability, application outcome
 rates, observation scope, recommendation keys, and Career Health effects are computed server-side.
+
+Behavioral Coach reuses the same configured OpenRouter provider and timeout policy. Deterministic STAR checks run first. Story text, practice answers, and sanitized context are untrusted data; the model returns strict concise JSON, receives one malformed-output repair attempt, and may not fabricate metrics or experiences. No chain-of-thought is requested or persisted. When AI is unavailable, server-side rules and clearly labeled local simulation preserve the workflow.

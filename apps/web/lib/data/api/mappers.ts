@@ -20,6 +20,9 @@ import type {
 import type {
   ApiApplication,
   ApiBehavioralQuestion,
+  ApiBehavioralEvaluation,
+  ApiBehavioralPortfolio,
+  ApiBehavioralPractice,
   ApiCodingProblem,
   ApiPrepStatus,
   ApiResume,
@@ -215,11 +218,28 @@ export function toApiCoding(value: Partial<CodingProblemInput>) {
 }
 
 export function fromApiBehavioral(value: ApiBehavioralQuestion): BehavioralQuestion {
+  const completeness = value.star_completeness_json ?? {};
   return {
     id: value.id, question: value.question, category: value.category,
     starSituation: value.star_situation, starTask: value.star_task, starAction: value.star_action,
     starResult: value.star_result, confidenceScore: value.confidence_score,
-    status: prepStatusFromApi[value.status], createdAt: value.created_at, updatedAt: value.updated_at,
+    status: prepStatusFromApi[value.status],
+    competencyTags: value.competency_tags ?? [],
+    starCompleteness: {
+      score: typeof completeness.score === "number" ? completeness.score : 0,
+      sections: isRecord(completeness.sections) ? completeness.sections as Record<string, boolean> : {},
+      signals: stringArray(completeness.signals),
+      wordCount: typeof completeness.word_count === "number" ? completeness.word_count : 0,
+      schemaVersion: typeof completeness.schema_version === "string" ? completeness.schema_version : "star-completeness-v1",
+    },
+    latestEvaluation: mapBehavioralResult(value.latest_evaluation_json),
+    latestEvaluatedAt: value.latest_evaluated_at ?? "",
+    evaluationSchemaVersion: value.evaluation_schema_version ?? "behavioral-evaluation-v1",
+    trendSummary: mapBehavioralComparison(value.trend_summary_json),
+    observationSummary: value.observation_summary_json ?? {},
+    readinessStatus: isBehavioralReadiness(value.readiness_status) ? value.readiness_status : "draft",
+    careerContextVersion: value.career_context_version ?? "",
+    createdAt: value.created_at, updatedAt: value.updated_at,
   };
 }
 
@@ -228,9 +248,50 @@ export function toApiBehavioral(value: Partial<BehavioralQuestion>) {
     question: value.question, category: value.category, star_situation: value.starSituation,
     star_task: value.starTask, star_action: value.starAction, star_result: value.starResult,
     confidence_score: value.confidenceScore,
+    competency_tags: value.competencyTags,
     status: value.status ? prepStatusToApi[value.status] : undefined,
   });
 }
+
+export function fromApiBehavioralEvaluation(value: ApiBehavioralEvaluation) {
+  return {
+    id: value.id,
+    storyId: value.story_id,
+    applicationId: value.application_id,
+    competencyFocus: value.competency_focus,
+    evaluation: mapBehavioralResult(value.evaluation_json) ?? emptyBehavioralResult(),
+    comparison: mapBehavioralComparison(value.comparison_json) ?? emptyBehavioralComparison(),
+    observationSummary: value.observation_summary_json ?? {},
+    provider: value.provider,
+    model: value.model,
+    status: value.status,
+    createdAt: value.created_at,
+  };
+}
+
+export function fromApiBehavioralPortfolio(value: ApiBehavioralPortfolio) {
+  return { totalStories: value.total_stories, evaluatedStories: value.evaluated_stories, interviewReadyStories: value.interview_ready_stories, competenciesCovered: value.competencies_covered, missingCompetencies: value.missing_competencies, overusedStoryIds: value.overused_story_ids, storiesNeedingWork: value.stories_needing_work, strongestStoryId: value.strongest_story_id, weakestStoryId: value.weakest_story_id, topNextAction: value.top_next_action, dataSufficiency: value.data_sufficiency };
+}
+
+export function fromApiBehavioralPractice(value: ApiBehavioralPractice) {
+  return { id: value.id, storyId: value.story_id, applicationId: value.application_id, competency: value.competency, prompt: value.prompt, evaluation: mapBehavioralResult(value.evaluation_json) ?? emptyBehavioralResult(), status: value.status, completedAt: value.completed_at ?? "", createdAt: value.created_at };
+}
+
+function mapBehavioralResult(value: Record<string, unknown> | undefined) {
+  if (!isRecord(value) || !isRecord(value.star_scores) || !isRecord(value.quality_scores)) return null;
+  return { competencies: stringArray(value.competencies), starScores: numberRecord(value.star_scores) as import("@/lib/types").BehavioralEvaluationResult["starScores"], qualityScores: numberRecord(value.quality_scores) as import("@/lib/types").BehavioralEvaluationResult["qualityScores"], strengths: stringArray(value.strengths), weaknesses: stringArray(value.weaknesses), missingElements: stringArray(value.missing_elements), recommendedRevision: stringArray(value.recommended_revision), observationCandidates: Array.isArray(value.observation_candidates) ? value.observation_candidates.filter(isRecord) : [] };
+}
+
+function mapBehavioralComparison(value: Record<string, unknown> | undefined) {
+  if (!isRecord(value) || !["comparable", "partially_comparable", "not_comparable"].includes(String(value.status))) return null;
+  return { priorEvaluationId: typeof value.prior_evaluation_id === "string" ? value.prior_evaluation_id : null, status: String(value.status) as import("@/lib/types").BehavioralComparison["status"], dataSufficiency: String(value.data_sufficiency ?? "insufficient"), scoreDeltas: numberRecord(value.score_deltas), improvedAreas: stringArray(value.improved_areas), declinedAreas: stringArray(value.declined_areas), unchangedAreas: stringArray(value.unchanged_areas) };
+}
+
+function emptyBehavioralResult(): import("@/lib/types").BehavioralEvaluationResult { return { competencies: [], starScores: { situation: 1, task: 1, action: 1, result: 1, reflection: 1 }, qualityScores: { clarity: 1, specificity: 1, ownership: 1, impact: 1, conciseness: 1, authenticity: 1 }, strengths: [], weaknesses: [], missingElements: [], recommendedRevision: [], observationCandidates: [] }; }
+function emptyBehavioralComparison(): import("@/lib/types").BehavioralComparison { return { priorEvaluationId: null, status: "not_comparable", dataSufficiency: "insufficient", scoreDeltas: {}, improvedAreas: [], declinedAreas: [], unchangedAreas: [] }; }
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+function numberRecord(value: unknown): Record<string, number> { return isRecord(value) ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === "number")) : {}; }
+function isBehavioralReadiness(value: unknown): value is import("@/lib/types").BehavioralReadiness { return ["draft", "needs_work", "practice_ready", "interview_ready"].includes(String(value)); }
 
 export function fromApiSystemDesign(value: ApiSystemDesignPrompt): SystemDesignPrompt {
   return {

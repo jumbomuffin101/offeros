@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from scripts import verify_career_intelligence_migration as career_verifier
 from scripts import verify_mock_interview_intelligence_migration as mock_verifier
 from scripts import verify_resume_intelligence_migration as resume_verifier
+from scripts import verify_behavioral_coach_migration as behavioral_verifier
 from scripts.migration_verification import log_database_target
 
 
@@ -95,6 +96,22 @@ def test_resume_intelligence_seed_commits_is_idempotent_and_verifies(
     resume_verifier.verify()
 
 
+def test_behavioral_coach_seed_commits_is_idempotent_and_verifies(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    url = sqlite_url(tmp_path / "behavioral-coach.db")
+    configure_database(url, monkeypatch)
+    upgrade("20260804_0020")
+
+    behavioral_verifier.seed()
+    behavioral_verifier.seed()
+    behavioral_verifier.confirm_seed()
+    assert row_count(url, "behavioral_questions", "id", behavioral_verifier.SEED_STORY_ID) == 1
+
+    upgrade("20260805_0021")
+    behavioral_verifier.verify()
+
+
 def test_wrong_revision_has_actionable_error(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -128,6 +145,7 @@ def configure_database(url: str, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(career_verifier, "get_settings", lambda: settings)
     monkeypatch.setattr(mock_verifier, "get_settings", lambda: settings)
     monkeypatch.setattr(resume_verifier, "get_settings", lambda: settings)
+    monkeypatch.setattr(behavioral_verifier, "get_settings", lambda: settings)
 
 
 def upgrade(revision: str) -> None:
@@ -144,6 +162,7 @@ def row_count(url: str, table: str, column: str, value: str) -> int:
         ("users", "clerk_user_id"),
         ("mock_interview_sessions", "id"),
         ("resume_analyses", "id"),
+        ("behavioral_questions", "id"),
     }
     if (table, column) not in allowed:
         raise ValueError("Unsupported test count target")

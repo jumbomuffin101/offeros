@@ -26,6 +26,8 @@ export function usePrep() {
     return prepRepository.replace({ ...current, goals });
   }), [resource]);
   const reset = useCallback(() => resource.mutate(() => prepRepository.reset()), [resource]);
+  const evaluateBehavioral = useCallback((storyId: string, input: { competencyFocus?: string; applicationId?: string }) => resource.mutate(() => prepRepository.evaluateBehavioral(storyId, input)), [resource]);
+  const practiceBehavioral = useCallback((input: { storyId?: string; applicationId?: string; competency: string; prompt: string; answer: string }) => resource.mutate(() => prepRepository.practiceBehavioral(input)), [resource]);
   const remove = useCallback((id: string) => resource.mutate(() => prepRepository.delete(id)), [resource]);
   const get = useCallback(async (id: string) => {
     const item = await prepRepository.get(id);
@@ -36,6 +38,9 @@ export function usePrep() {
   return {
     data: resource.data, loading: resource.loading, error: resource.error, refresh: resource.refresh,
     saveCoding, setCodingStatus, saveBehavioral, setBehavioralStatus,
-    saveSystemDesign, setSystemDesignStatus, saveGoals, reset, delete: remove, get,
+    saveSystemDesign, setSystemDesignStatus, saveGoals, evaluateBehavioral, practiceBehavioral,
+    listBehavioralEvaluations: prepRepository.listBehavioralEvaluations,
+    behavioralPortfolio: prepRepository.behavioralPortfolio,
+    reset, delete: remove, get,
   };
 }

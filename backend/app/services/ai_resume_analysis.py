@@ -121,6 +121,9 @@ class AIProvider(Protocol):
     ) -> ResumeAnalysisResult:
         ...
 
+    def structured(self, messages: list[dict[str, str]], *, max_tokens: int) -> str:
+        ...
+
 
 class CopilotProvider(Protocol):
     provider: str
@@ -240,6 +243,9 @@ class MockResumeAnalysisProvider:
             "against the saved job description and your actual experience."
         )
 
+    def structured(self, messages: list[dict[str, str]], *, max_tokens: int) -> str:
+        raise AppError("ai_mock_unsupported", "Use deterministic local behavioral evaluation.", 503)
+
 
 class OpenRouterProvider:
     provider = "openrouter"
@@ -300,6 +306,9 @@ class OpenRouterProvider:
             json_response=False,
             max_tokens=min(self.max_tokens, 1_000),
         ).strip()
+
+    def structured(self, messages: list[dict[str, str]], *, max_tokens: int) -> str:
+        return self._complete_with_retry(messages, json_response=True, max_tokens=max_tokens)
 
     def _complete_with_retry(
         self,

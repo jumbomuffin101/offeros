@@ -67,5 +67,6 @@ trend, observation summary, and intelligence status. Legacy sessions receive emp
 Account export includes safe plans/trends/observation summaries but excludes the context projection.
 Account deletion and Prep reset remove sessions and cascading turns/scorecards.
 
-Voice interviews and Career Intelligence Phase 3B consumers (Resume Intelligence migration, Gmail
-classification, Behavioral Coach, and System Design Coach) remain deferred.
+Voice interviews, System Design Coach, Gmail classification integration, Coding Intelligence
+integration, and Phase 3D remain deferred. Resume Intelligence and Behavioral Coach are complete
+and feed Mock Interviews only through shared CareerContext.

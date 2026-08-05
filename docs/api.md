@@ -402,6 +402,17 @@ Example:
 | PATCH | `/prep/system-design-prompts/{id}` | Update prompt/concepts/notes/status |
 | DELETE | `/prep/system-design-prompts/{id}` | Soft delete |
 
+### Behavioral Coach
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/prep/behavioral/{story_id}/evaluate` | Evaluate a saved story with optional competency/application scope |
+| GET | `/prep/behavioral/{story_id}/evaluations` | Return bounded, newest-first evaluation history |
+| GET | `/prep/behavioral-portfolio` | Return lightweight competency/readiness coverage |
+| POST | `/prep/behavioral-practice` | Evaluate and persist one focused practice answer |
+
+Story CRUD responses include deterministic STAR completeness, competency tags, readiness, and latest-evaluation summaries. All endpoints are user-scoped. Portfolio responses do not include raw practice answers.
+
 ### Prep Sessions and Goals
 
 | Method | Path | Purpose |

@@ -9,6 +9,12 @@ from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPromp
 from app.models.user import User
 from app.schemas.common import DataResponse
 from app.schemas.prep import (
+    BehavioralEvaluationCreate,
+    BehavioralEvaluationEnvelope,
+    BehavioralEvaluationResponse,
+    BehavioralPortfolioResponse,
+    BehavioralPracticeCreate,
+    BehavioralPracticeResponse,
     BehavioralQuestionCreate,
     BehavioralQuestionResponse,
     BehavioralQuestionUpdate,
@@ -19,6 +25,7 @@ from app.schemas.prep import (
     SystemDesignPromptResponse,
     SystemDesignPromptUpdate,
 )
+from app.services.behavioral_intelligence import BehavioralCoachService
 from app.services.prep import PrepService
 
 
@@ -95,6 +102,58 @@ def delete_behavioral(
 ) -> Response:
     PrepService(db).delete(BehavioralQuestion, user.id, item_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/behavioral/{item_id}/evaluate", response_model=DataResponse[BehavioralEvaluationEnvelope])
+def evaluate_behavioral(
+    item_id: UUID,
+    payload: BehavioralEvaluationCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[BehavioralEvaluationEnvelope]:
+    evaluation, story = BehavioralCoachService(db).evaluate(
+        user.id,
+        item_id,
+        competency_focus=payload.competency_focus,
+        application_id=payload.application_id,
+    )
+    return DataResponse(data=BehavioralEvaluationEnvelope(
+        evaluation=BehavioralEvaluationResponse.model_validate(evaluation),
+        story=BehavioralQuestionResponse.model_validate(story),
+    ))
+
+
+@router.get("/behavioral/{item_id}/evaluations", response_model=DataResponse[list[BehavioralEvaluationResponse]])
+def list_behavioral_evaluations(
+    item_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[list[BehavioralEvaluationResponse]]:
+    return DataResponse(data=BehavioralCoachService(db).history(user.id, item_id))
+
+
+@router.get("/behavioral-portfolio", response_model=DataResponse[BehavioralPortfolioResponse])
+def behavioral_portfolio(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[BehavioralPortfolioResponse]:
+    return DataResponse(data=BehavioralCoachService(db).portfolio(user.id))
+
+
+@router.post("/behavioral-practice", response_model=DataResponse[BehavioralPracticeResponse], status_code=201)
+def create_behavioral_practice(
+    payload: BehavioralPracticeCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DataResponse[BehavioralPracticeResponse]:
+    return DataResponse(data=BehavioralCoachService(db).practice(
+        user.id,
+        story_id=payload.story_id,
+        application_id=payload.application_id,
+        competency=payload.competency,
+        prompt=payload.prompt,
+        answer=payload.answer,
+    ))
 
 
 @router.get("/system-design", response_model=DataResponse[list[SystemDesignPromptResponse]])

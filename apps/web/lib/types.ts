@@ -506,9 +506,35 @@ export type BehavioralQuestion = {
   starResult: string;
   confidenceScore: number;
   status: PrepStatus;
+  competencyTags?: string[];
+  starCompleteness?: BehavioralStarCompleteness;
+  latestEvaluation?: BehavioralEvaluationResult | null;
+  latestEvaluatedAt?: string;
+  evaluationSchemaVersion?: string;
+  trendSummary?: BehavioralComparison | null;
+  observationSummary?: Record<string, unknown>;
+  readinessStatus?: BehavioralReadiness;
+  careerContextVersion?: string;
   createdAt: string;
   updatedAt: string;
 };
+
+export type BehavioralReadiness = "draft" | "needs_work" | "practice_ready" | "interview_ready";
+export type BehavioralStarCompleteness = { score: number; sections: Record<string, boolean>; signals: string[]; wordCount: number; schemaVersion: string };
+export type BehavioralEvaluationResult = {
+  competencies: string[];
+  starScores: Record<"situation" | "task" | "action" | "result" | "reflection", number>;
+  qualityScores: Record<"clarity" | "specificity" | "ownership" | "impact" | "conciseness" | "authenticity", number>;
+  strengths: string[];
+  weaknesses: string[];
+  missingElements: string[];
+  recommendedRevision: string[];
+  observationCandidates: Record<string, unknown>[];
+};
+export type BehavioralComparison = { priorEvaluationId: string | null; status: "comparable" | "partially_comparable" | "not_comparable"; dataSufficiency: string; scoreDeltas: Record<string, number>; improvedAreas: string[]; declinedAreas: string[]; unchangedAreas: string[] };
+export type BehavioralEvaluation = { id: string; storyId: string; applicationId: string | null; competencyFocus: string | null; evaluation: BehavioralEvaluationResult; comparison: BehavioralComparison; observationSummary: Record<string, unknown>; provider: string; model: string; status: string; createdAt: string };
+export type BehavioralPortfolio = { totalStories: number; evaluatedStories: number; interviewReadyStories: number; competenciesCovered: string[]; missingCompetencies: string[]; overusedStoryIds: string[]; storiesNeedingWork: string[]; strongestStoryId: string | null; weakestStoryId: string | null; topNextAction: string; dataSufficiency: "insufficient" | "partial" | "sufficient" };
+export type BehavioralPracticeResult = { id: string; storyId: string | null; applicationId: string | null; competency: string; prompt: string; evaluation: BehavioralEvaluationResult; status: string; completedAt: string; createdAt: string };
 
 export type SystemDesignPrompt = {
   id: string;

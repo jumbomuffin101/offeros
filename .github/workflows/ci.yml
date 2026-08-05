@@ -144,6 +144,18 @@ jobs:
         run: alembic upgrade 20260804_0020
       - name: Verify Resume Intelligence 0020 migration contract
         run: python -m scripts.verify_resume_intelligence_migration --verify
+      - name: Prepare Behavioral Coach 0021 scenario
+        run: python -m scripts.prepare_migration_database
+      - name: Upgrade to pre-0021 revision
+        run: alembic upgrade 20260804_0020
+      - name: Seed deterministic pre-0021 fixtures
+        run: python -m scripts.verify_behavioral_coach_migration --seed
+      - name: Confirm committed pre-0021 fixtures
+        run: python -m scripts.verify_behavioral_coach_migration --confirm-seed
+      - name: Upgrade 0020 to Behavioral Coach 0021
+        run: alembic upgrade 20260805_0021
+      - name: Verify Behavioral Coach 0021 migration contract
+        run: python -m scripts.verify_behavioral_coach_migration --verify
       - name: Confirm final revision and single head
         run: |
           alembic current

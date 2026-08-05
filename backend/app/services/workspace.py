@@ -11,7 +11,7 @@ from app.models.application_event import ApplicationEvent
 from app.models.base import ApplicationStatus, Difficulty, PrepStatus, Priority, ResumeStatus
 from app.models.career_intelligence import CareerObservation
 from app.models.mock_interview import MockInterviewSession
-from app.models.prep import BehavioralQuestion, CodingProblem, SystemDesignPrompt
+from app.models.prep import BehavioralPracticeSession, BehavioralQuestion, BehavioralStoryEvaluation, CodingProblem, SystemDesignPrompt
 from app.models.resume import ResumeAnalysis, ResumeVersion
 from app.models.settings import UserSettings
 from app.schemas.common import persistence_values
@@ -52,6 +52,8 @@ class WorkspaceService:
 
             if payload.scope in {"all", "prep"}:
                 self._delete(MockInterviewSession, user_id)
+                self._delete(BehavioralPracticeSession, user_id)
+                self._delete(BehavioralStoryEvaluation, user_id)
                 summary.deleted["coding"] = self._delete(CodingProblem, user_id)
                 summary.deleted["behavioral"] = self._delete(BehavioralQuestion, user_id)
                 summary.deleted["systemDesign"] = self._delete(SystemDesignPrompt, user_id)

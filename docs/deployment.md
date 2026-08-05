@@ -115,6 +115,8 @@ alembic upgrade head
 
 Resume Intelligence migrations add extracted text metadata, job-matching analysis fields, and latest-analysis summary fields on `resume_versions`. Always run `alembic upgrade head` after deploying backend code that includes resume upload or analysis schema changes.
 
+Behavioral Coach requires migration `20260805_0021`. CI verifies both a clean upgrade and an isolated `20260804_0020 -> 20260805_0021` legacy-story upgrade using the explicit seed, confirm, and verify commands in `docs/database.md`.
+
 Application Resume Intelligence adds `applications.resume_version_id`,
 `applications.resume_analysis_id`, and `applications.job_description`. The migration
 links an application to a saved resume and its exact role-specific analysis without

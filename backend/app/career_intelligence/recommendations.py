@@ -113,6 +113,29 @@ def generate_recommendations(snapshot: CareerSnapshot, now: datetime) -> list[Ca
                 expires_at=now + timedelta(days=7),
             ))
         break
+    covered: set[str] = set()
+    for story in snapshot.behavioral:
+        covered.update(story.competency_tags or [])
+        completeness = story.star_completeness_json if isinstance(story.star_completeness_json, dict) else {}
+        signals = completeness.get("signals", []) if isinstance(completeness.get("signals", []), list) else []
+        if story.readiness_status in {"draft", "needs_work"}:
+            signal = next((item for item in signals if isinstance(item, str)), "story_needs_revision")
+            _add(recommendations, _rec(
+                f"behavioral-story:{story.id}:{signal}", "behavioral_story", "Improve a behavioral story",
+                _behavioral_signal_summary(signal), "medium", "Open story",
+                f"/prep?tab=behavioral&story={story.id}", ["BEHAVIORAL_STORY_NEEDS_WORK"],
+                [str(story.id)], now, expires_at=now + timedelta(days=14),
+            ))
+    for competency in ("ownership", "conflict", "failure", "ambiguity", "leadership"):
+        if snapshot.behavioral and competency not in covered:
+            _add(recommendations, _rec(
+                f"behavioral-missing:{competency}", "behavioral_portfolio",
+                f"Add a {competency.replace('_', ' ')} story",
+                "Your saved story portfolio does not yet cover this common behavioral competency.",
+                "low", "Open Behavioral Coach", f"/prep?tab=behavioral&competency={competency}",
+                ["MISSING_BEHAVIORAL_COMPETENCY"], [], now, expires_at=now + timedelta(days=30),
+            ))
+            break
     return sorted(recommendations.values(), key=lambda row: (-PRIORITY_ORDER[row.priority], row.key))
 
 
@@ -129,3 +152,14 @@ def _add(items: dict[str, CareerRecommendation], item: CareerRecommendation) -> 
 
 def _utc(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+def _behavioral_signal_summary(signal: str) -> str:
+    return {
+        "missing_result": "Add a concrete result and explain what changed.",
+        "vague_outcome": "Make the outcome specific and verifiable.",
+        "unclear_ownership": "Clarify your personal contribution separately from the team.",
+        "no_quantification": "Add a real metric where one is available; never invent one.",
+        "insufficient_reflection": "Add the learning you carried into later work.",
+        "too_much_context": "Shorten the setup so your action stays central.",
+    }.get(signal, "Revise the weakest STAR section and practice the answer once.")

@@ -240,9 +240,23 @@ export type ApiBehavioralQuestion = {
   star_result: string;
   confidence_score: number;
   status: ApiPrepStatus;
+  competency_tags?: string[];
+  star_completeness_json?: Record<string, unknown>;
+  latest_evaluation_json?: Record<string, unknown>;
+  latest_evaluated_at?: string | null;
+  evaluation_schema_version?: string;
+  trend_summary_json?: Record<string, unknown>;
+  observation_summary_json?: Record<string, unknown>;
+  readiness_status?: string;
+  career_context_version?: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type ApiBehavioralEvaluation = { id: string; story_id: string; application_id: string | null; competency_focus: string | null; evaluation_json: Record<string, unknown>; comparison_json: Record<string, unknown>; observation_summary_json: Record<string, unknown>; provider: string; model: string; status: string; created_at: string };
+export type ApiBehavioralEvaluationEnvelope = { evaluation: ApiBehavioralEvaluation; story: ApiBehavioralQuestion };
+export type ApiBehavioralPortfolio = { total_stories: number; evaluated_stories: number; interview_ready_stories: number; competencies_covered: string[]; missing_competencies: string[]; overused_story_ids: string[]; stories_needing_work: string[]; strongest_story_id: string | null; weakest_story_id: string | null; top_next_action: string; data_sufficiency: "insufficient" | "partial" | "sufficient" };
+export type ApiBehavioralPractice = { id: string; story_id: string | null; application_id: string | null; competency: string; prompt: string; evaluation_json: Record<string, unknown>; status: string; completed_at: string | null; created_at: string };
 
 export type ApiSystemDesignPrompt = {
   id: string;
